@@ -1,0 +1,164 @@
+{
+  "dashboard": "Broker Onboarding Performance",
+  "slug": "broker-onboarding-performance",
+  "warehouse": "GUSTIE_ADHOC_WH",
+  "timezone": "America/Denver",
+  "segments": [
+    {
+      "id": "roster",
+      "path": "broker-onboarding/queries/roster.sql",
+      "family": "Roster",
+      "grain": "advisor",
+      "params": [],
+      "metrics": [
+        "current PE per IC"
+      ]
+    },
+    {
+      "id": "byb_sla",
+      "path": "broker-onboarding/queries/byb_bo_sla_v7.sql",
+      "family": "SLA",
+      "grain": "benefit order",
+      "params": [
+        "{{Date Range Start}}",
+        "{{Date Range End}}"
+      ],
+      "metrics": [
+        "BO Status",
+        "E2E SLA",
+        "Cancel Rate"
+      ]
+    },
+    {
+      "id": "bt_sla",
+      "path": "broker-onboarding/queries/bt_bo_sla_v8.sql",
+      "family": "SLA",
+      "grain": "benefit order",
+      "params": [
+        "{{Date Range Start}}",
+        "{{Date Range End}}"
+      ],
+      "metrics": [
+        "BO Status",
+        "E2E SLA",
+        "Cancel Rate"
+      ]
+    },
+    {
+      "id": "availability",
+      "path": "broker-onboarding/queries/availability.sql",
+      "family": "Phone",
+      "grain": "team x name x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Phone Availability (70-105 band)"
+      ]
+    },
+    {
+      "id": "abandon",
+      "path": "broker-onboarding/queries/abandon.sql",
+      "family": "Phone",
+      "grain": "advisor x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Abandon (mod.)"
+      ]
+    },
+    {
+      "id": "phone_calls",
+      "path": "broker-onboarding/queries/phone_calls.sql",
+      "family": "Phone",
+      "grain": "advisor",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Calls volume/duration"
+      ]
+    },
+    {
+      "id": "level_ai_qa",
+      "path": "broker-onboarding/queries/level_ai_qa.sql",
+      "family": "Quality",
+      "grain": "advisor x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Level AI QA"
+      ]
+    },
+    {
+      "id": "level_ai_channels",
+      "path": "broker-onboarding/queries/level_ai_channels.sql",
+      "family": "Quality",
+      "grain": "advisor x channel",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Level AI channel mix"
+      ]
+    },
+    {
+      "id": "qc",
+      "path": "broker-onboarding/queries/bo_qc_errors.sql",
+      "family": "Quality",
+      "grain": "QC error",
+      "params": [
+        "{{ Date Range Start }}",
+        "{{ Date Range End }}"
+      ],
+      "metrics": [
+        "QC errors"
+      ]
+    },
+    {
+      "id": "csat",
+      "path": "broker-onboarding/queries/csat.sql",
+      "family": "Voice of Customer",
+      "grain": "survey -> advisor x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "CSAT"
+      ]
+    },
+    {
+      "id": "csat_comments",
+      "path": "broker-onboarding/queries/csat_comments.sql",
+      "family": "Voice of Customer",
+      "grain": "comment",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "CSAT verbatims"
+      ]
+    },
+    {
+      "id": "email_sla",
+      "path": "broker-onboarding/queries/bo_email_month.sql",
+      "family": "Email",
+      "grain": "email touchpoint",
+      "params": [
+        "{{PERF_END}}"
+      ],
+      "metrics": [
+        "Email SLA"
+      ]
+    }
+  ]
+}
