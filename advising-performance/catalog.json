@@ -1,0 +1,242 @@
+{
+  "segments": [
+    {
+      "id": "opp_sla",
+      "path": "advising-performance/queries/opp_sla.sql",
+      "family": "SLA",
+      "main_table": "bi_reporting.advising_opportunities",
+      "joins": [
+        "bi.sfdc_opportunity_history"
+      ],
+      "grain": "opportunity",
+      "params": [
+        "{{date_start}}",
+        "{{date_end}}"
+      ],
+      "metrics": [
+        "ER Confirm SLA",
+        "RFD SLA",
+        "Alt SLA"
+      ],
+      "window_rule": "wide start, bucket by close-month; is_open=false"
+    },
+    {
+      "id": "ticket_sla",
+      "path": "advising-performance/queries/ticket_sla.sql",
+      "family": "SLA",
+      "main_table": "bi.sfdc_tickets",
+      "joins": [
+        "bi.sfdc_users_gusto_employees_view",
+        "bi.gusto_employees",
+        "bi_reporting.advising_opportunities",
+        "bi_reporting.benefit_orders"
+      ],
+      "grain": "ticket",
+      "params": [
+        "{{Date Range Start}}",
+        "{{Date Range End}}"
+      ],
+      "metrics": [
+        "Ticket SLA"
+      ],
+      "guard": "hide if <5 tickets"
+    },
+    {
+      "id": "bo_grain",
+      "path": "advising-performance/queries/bo_grain.sql",
+      "family": "SLA",
+      "main_table": "bi_reporting.benefit_orders",
+      "joins": [
+        "bi.benefit_order_status_change_history",
+        "bi.gusto_employees",
+        "bi.sfdc_users_gusto_employees_view",
+        "bi.sfdc_opportunities_fact",
+        "bi.sfdc_tickets",
+        "bi_reporting.advising_opportunities"
+      ],
+      "grain": "benefit order",
+      "params": [
+        "{{Date Range Start}}",
+        "{{Date Range End}}"
+      ],
+      "metrics": [
+        "BOs fulfilled/cancelled",
+        "Ticket Rate"
+      ],
+      "guard": "exclude months <5 fulfilled BOs"
+    },
+    {
+      "id": "availability",
+      "path": "advising-performance/queries/availability.sql",
+      "family": "Phone",
+      "main_table": "bi.gusto_employees",
+      "joins": [
+        "bi.people_analytics_workday_time_tracking",
+        "bi.wfm_agent_activity_log_details"
+      ],
+      "grain": "team x name x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Phone Availability"
+      ]
+    },
+    {
+      "id": "abandon",
+      "path": "advising-performance/queries/abandon.sql",
+      "family": "Phone",
+      "main_table": "bi.phone_calls",
+      "joins": [
+        "bi.phone_user_metrics",
+        "bi.gusto_employees"
+      ],
+      "grain": "team x name x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Abandon (mod.)"
+      ]
+    },
+    {
+      "id": "level_ai_qa",
+      "path": "advising-performance/queries/level_ai_qa.sql",
+      "family": "Quality",
+      "main_table": "bi.fct_level_ai_conversation_asr_log",
+      "joins": [
+        "bi.cases",
+        "bi.gusto_employees"
+      ],
+      "grain": "conversation",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Level AI QA"
+      ]
+    },
+    {
+      "id": "phone_calls",
+      "path": "advising-performance/queries/phone_calls.sql",
+      "family": "Phone",
+      "main_table": "bi.phone_user_metrics",
+      "joins": [
+        "bi.gusto_employees"
+      ],
+      "grain": "advisor x month",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Calls volume/duration"
+      ]
+    },
+    {
+      "id": "level_ai_channels",
+      "path": "advising-performance/queries/level_ai_channels.sql",
+      "family": "Quality",
+      "main_table": "bi.fct_level_ai_conversation_asr_log",
+      "joins": [
+        "bi.cases",
+        "bi.gusto_employees"
+      ],
+      "grain": "advisor x month x channel",
+      "params": [
+        "{{start_date}}",
+        "{{end_date}}"
+      ],
+      "metrics": [
+        "Level AI channel mix"
+      ]
+    },
+    {
+      "id": "csat",
+      "path": "advising-performance/queries/csat.sql",
+      "family": "Voice of Customer",
+      "main_table": "bi_reporting.ces_csat_data",
+      "joins": [
+        "bi_reporting.benefit_orders",
+        "bi_reporting.advising_opportunities",
+        "bi.sfdc_opportunities_fact",
+        "bi.int_sfdc_user_current_gusto_employees_pepe"
+      ],
+      "grain": "survey",
+      "params": [
+        "{{Date Start}}",
+        "{{Date End}}"
+      ],
+      "metrics": [
+        "CSAT"
+      ]
+    },
+    {
+      "id": "inapp",
+      "path": "advising-performance/queries/inapp.sql",
+      "family": "Voice of Customer",
+      "main_table": "bi.application_survey_data",
+      "joins": [
+        "bi.user_roles",
+        "bi_reporting.advising_opportunities",
+        "bi.sfdc_opportunities_fact",
+        "bi.int_sfdc_user_current_gusto_employees_pepe"
+      ],
+      "grain": "survey",
+      "params": [
+        "{{survey_start_date}}",
+        "{{survey_end_date}}",
+        "{{workflow_status}}"
+      ],
+      "metrics": [
+        "In-App Sentiment"
+      ]
+    },
+    {
+      "id": "email_sla",
+      "path": "advising-performance/queries/email_sla.sql",
+      "family": "Email",
+      "main_table": "bi.benefit_order_touchpoints",
+      "joins": [
+        "bi.cases",
+        "bi.gusto_employees",
+        "bi.sfdc_users_gusto_employees_view",
+        "bi.benefit_orders",
+        "bi.benefit_order_status_change_history",
+        "bi.sfdc_opportunity_history",
+        "bi_reporting.advising_opportunities",
+        "bi.static_calendar"
+      ],
+      "grain": "inbound email touchpoint",
+      "params": [
+        "{{ TP Date Range Start }}",
+        "{{ TP Date Range End }}"
+      ],
+      "metrics": [
+        "Email SLA"
+      ]
+    },
+    {
+      "id": "pe_map",
+      "path": "advising-performance/queries/pe_map.sql",
+      "family": "Roster",
+      "main_table": "bi_reporting.advising_opportunities (derived)",
+      "joins": [
+        "bi.sfdc_opportunity_history"
+      ],
+      "grain": "advisor",
+      "params": [
+        "{{date_start}}",
+        "{{date_end}}"
+      ],
+      "metrics": [
+        "current PE per IC"
+      ]
+    }
+  ],
+  "warehouse": "GUSTIE_ADHOC_WH",
+  "timezone": "America/Denver"
+}
