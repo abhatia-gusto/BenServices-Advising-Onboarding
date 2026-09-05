@@ -1,0 +1,138 @@
+{
+  "dashboard": "New Plan & Renewal Onboarding Performance",
+  "slug": "npr-onboarding-performance",
+  "warehouse": "GUSTIE_ADHOC_WH",
+  "timezone": "America/Denver",
+  "window_note": "pipeline queries use a fixed start literal (2026-01-01) -> CURRENT_DATE(); change bounds to widen. email_sla has the start literal in 3 anchors.",
+  "segments": [
+    {
+      "id": "roster",
+      "path": "npr-onboarding/queries/q_roster.sql",
+      "family": "Roster",
+      "grain": "IC",
+      "params": [],
+      "metrics": [
+        "current PE per IC"
+      ]
+    },
+    {
+      "id": "bo_grain",
+      "path": "npr-onboarding/queries/q_bo_v2.sql",
+      "family": "SLA",
+      "grain": "benefit order",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "BO Status (OA Held)",
+        "Ticket Rate denom",
+        "New Plan Cancel"
+      ]
+    },
+    {
+      "id": "ticket_sla",
+      "path": "npr-onboarding/queries/q_ticketsla_v4.sql",
+      "family": "SLA",
+      "grain": "OA-attributed ticket",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Ticket SLA"
+      ]
+    },
+    {
+      "id": "availability",
+      "path": "npr-onboarding/queries/q_avail.sql",
+      "family": "Phone",
+      "grain": "team x IC x month",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Phone Availability"
+      ]
+    },
+    {
+      "id": "abandon",
+      "path": "npr-onboarding/queries/q_abandon.sql",
+      "family": "Phone",
+      "grain": "queue x month",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Abandon (team/queue)"
+      ]
+    },
+    {
+      "id": "abandon_ic",
+      "path": "npr-onboarding/queries/q_abandon_ic.sql",
+      "family": "Phone",
+      "grain": "IC x month",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Abandon (mod.) per IC"
+      ]
+    },
+    {
+      "id": "level_ai_qa",
+      "path": "npr-onboarding/queries/q_qa.sql",
+      "family": "Quality",
+      "grain": "QA'd conversation",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Level AI QA"
+      ]
+    },
+    {
+      "id": "csat",
+      "path": "npr-onboarding/queries/q_csat_rows.sql",
+      "family": "Diagnostic",
+      "grain": "CSAT survey",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "CSAT"
+      ]
+    },
+    {
+      "id": "email_sla",
+      "path": "npr-onboarding/queries/q_email_ic.sql",
+      "family": "Diagnostic",
+      "grain": "email touchpoint",
+      "params": [
+        "start (3 anchors)",
+        "end"
+      ],
+      "metrics": [
+        "Email SLA (<=4hr HOOP)"
+      ]
+    },
+    {
+      "id": "maestro",
+      "path": "npr-onboarding/queries/q_maestro_ic.sql",
+      "family": "Diagnostic",
+      "grain": "eligible benefit order",
+      "params": [
+        "start",
+        "end"
+      ],
+      "metrics": [
+        "Maestro task completion"
+      ]
+    }
+  ]
+}
