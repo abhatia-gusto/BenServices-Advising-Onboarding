@@ -1,0 +1,41 @@
+{
+  "dashboard": "Advising Net MRR Retention",
+  "slug": "advising-mrr-dashboard",
+  "warehouse": "GUSTIE_ADHOC_WH",
+  "role": "FR_PROD_SNOWFLAKE_GUSTIE_INTERNAL",
+  "database": "DATA_WAREHOUSE_RC1",
+  "timezone": "America/Denver",
+  "note": "No IC scorecard. Reports MRR retention by fiscal year, cohort, advisor.",
+  "segments": [
+    {
+      "id": "closed",
+      "path": "advising-mrr/queries/query.sql",
+      "family": "MRR",
+      "main_table": "bi_reporting.advising_opportunities",
+      "grain": "closed opp x benefit line (before+after)",
+      "params": [
+        "{{Close Start}}",
+        "{{Close End}}"
+      ],
+      "metrics": [
+        "MRR Before/After",
+        "Net MRR Retention",
+        "expansion",
+        "contraction",
+        "churn"
+      ]
+    },
+    {
+      "id": "open",
+      "path": "advising-mrr/queries/query_open.sql",
+      "family": "MRR",
+      "main_table": "bi_reporting.advising_opportunities",
+      "grain": "open renewal opp (next 6 months)",
+      "params": [],
+      "metrics": [
+        "MRR at risk",
+        "open backlog"
+      ]
+    }
+  ]
+}
