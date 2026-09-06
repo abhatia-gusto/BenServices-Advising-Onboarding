@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────
+# SECRETS — never commit
+# ─────────────────────────────────────────────────────────────
+snowflake_pat*
+*.env
+*.pat
+*_pat.txt
+*_pat.md
+*token*.txt
+.config/
+
+# ─────────────────────────────────────────────────────────────
+# DATA-BEARING BUILD OUTPUTS — contain customer/PII or business data
+# (dashboards are published to ShareSomething from the local machine;
+#  the built artifacts and their embedded data never belong in git)
+# ─────────────────────────────────────────────────────────────
+*.html                      # built dashboards with embedded rows (templates are whitelisted below)
+!*_loader_template.html     # keep UI/loader TEMPLATES (structure only, no data)
+!*_template.html
+v11_core_data.json
+v11_period_data.json
+diagnostic_data.json
+oa_data.json
+varD*.json
+data/*.json
+**/data/*.json
+*_month.csv
+_last_*.csv
+_last_*.json
+queries/*.csv               # freshly-pulled CSAT/InApp diagnostic CSVs
+**/queries/*.csv
+
+# ─────────────────────────────────────────────────────────────
+# ONE-OFF ANALYSIS / SCRATCH / BACKUPS / LOGS
+# ─────────────────────────────────────────────────────────────
+*.bak
+*.bak_*
+*.log
+*.png
+_*.csv
+_*.txt
+_*.json
+_*.py                       # underscore-prefixed one-off analysis scripts (not pipeline)
+__pycache__/
+*.pyc
+/tmp/
+.DS_Store
