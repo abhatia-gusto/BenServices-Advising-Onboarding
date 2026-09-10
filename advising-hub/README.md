@@ -18,9 +18,9 @@ At the top of each tab: **tiles** (how many opps, total MRR, how many at risk), 
 
 ## Overview — your triage screen
 - **Stage tiles** — Open / PF / Closed counts, dollars, and how many are at risk. Click one to focus the page on that stage.
-- **Book insights** — quick reads on Outreach (intros, who's gone quiet), Recommendation & SLA, Premium increases, and Flags.
+- **Book insights** — quick reads on Outreach (intros, who's gone quiet), Recommendation & SLA, Premium increases, and Flags. The RFD / ERC / ALT lines show **% outside SLA** — the share that missed the 5-day target, counting only opps that actually reached that stage (same basis as the Advising SLA dashboard), with the raw miss/eligible count beside it.
 - **Risk boxes** — High / Medium / Low counts and the top reasons driving them. Click through to the exact list of customers.
-- **PE / IC roll-up** — in PE view, see each advisor under you; in Team view, each PE team. Click to drill in.
+- **PE / IC roll-up** — in PE view, see each advisor under you; in Team view, each PE team; plus per-row **Outside SLA (RFD · ERC · ALT)** columns so you can see who's slipping on turnaround (amber ≥40%, red ≥55%). Click a row to drill in.
 
 ---
 
