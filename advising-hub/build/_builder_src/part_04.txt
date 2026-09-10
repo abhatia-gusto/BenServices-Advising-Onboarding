@@ -346,7 +346,7 @@ function ovInsights(L,O){
   const row = (k,v,att) => `<div class="ov-ins-row"><span class="ov-ins-k">${k}</span><span class="ov-ins-v${att?" att":""}">${v}</span></div>`;
   // OUTREACH
   const introN = cnt(L,r=>isY(r.intro_call));
-  const connect = introN? Math.round(100*cnt(L,r=>isY(r.intro_connect))/introN) : 0;
+  const connect = introN? Math.round(100*cnt(L,r=>isY(r.intro_call)&&isY(r.intro_connect))/introN) : 0;
   // AGING helper: median daysSince + count(>14d)
   const aging = field => {
     const ds = L.map(r=>daysSince(r[field]));
