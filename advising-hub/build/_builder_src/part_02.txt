@@ -1,3 +1,8 @@
+   Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
+   PF    -> riskPF    (4-factor fulfillment model)
+   Closed-> riskPF but marked archived. tier: >=35 High · >=18 Med · else Low. */
+const EARLY = new Set(["Open","SAL","Attempting Contact","New","Working","Nurturing"]);
+const MID   = new Set(["Engaged","ER Confirm"]);
 function _daysSince(s){ const d=dUntil(s); return d==null?null:-d; }   // days since a past date
 function riskOpen(r){
   const bl = (r.blocked_reason||"");
@@ -413,8 +418,3 @@ function render(){
     if (e.target.closest("a")) return;
     if (e.target.closest("[data-lines]")) return;
     const id = tr.dataset.id;
-    OPEN = (OPEN===id) ? null : id;
-    render();
-  }));
-  el("body").querySelectorAll("[data-lines]").forEach(n => n.addEventListener("click", e => {
-    e.stopPropagation(); LINES_OPEN = !LINES_OPEN; render();
