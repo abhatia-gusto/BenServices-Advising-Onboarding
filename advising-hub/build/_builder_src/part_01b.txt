@@ -39,8 +39,14 @@
 .ov-fcnt{font:700 11px var(--mono);color:var(--g6)}
 .ov-rollup{padding:0;overflow:hidden}
 .ov-rtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ov-rscroll{max-height:452px;overflow:auto}
 .ov-rtable th{text-align:left;font:700 9.5px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--g6);padding:12px 15px 9px;border-bottom:1px solid var(--g3)}
 .ov-rtable td{padding:12px 15px;border-bottom:1px solid var(--g2)}
+.ov-rtable thead th{position:sticky;top:0;z-index:2;background:var(--card)}
+.ov-rtable thead th.ov-rsla-grp{background:var(--g2)}
+.ov-rtable th:first-child,.ov-rtable td:first-child{position:sticky;left:0;z-index:1;background:var(--card)}
+.ov-rtable thead th:first-child{z-index:3}
+.ov-rrow:hover td:first-child{background:var(--teal-050)}
 .ov-rrow{cursor:pointer}
 .ov-rrow:hover td{background:var(--teal-050)}
 .ov-rname{font-weight:600}
@@ -372,9 +378,3 @@ const ICONS = {
 };
 function coIcon(url, kind, title){
   const svg = ICONS[kind] || "";
-  return url
-    ? `<a class="ic" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(title)}">${svg}</a>`
-    : `<span class="ic off" title="${esc(title)} — none on record">${svg}</span>`;
-}
-
-/* ============================================================ risk engine
