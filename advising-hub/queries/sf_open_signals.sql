@@ -1,7 +1,8 @@
 -- sf_open_signals (C + E): per-opp open-risk signals re-sourced from Snowflake
 -- SF-mirror tables (the original live-SOQL pulls cannot run headlessly).
 -- One row per cohort opp. NO note text / PII — flags, dates, and integers only.
---   auto_renewal (E)        <- BI_REPORTING.ADVISING_OPPORTUNITIES.REASON_FOR_ADVISING ('Auto-renewed')
+--   (auto_renewal REMOVED — now sourced canonically from Snowplow in auto_renewal.sql;
+--    REASON_FOR_ADVISING is unreliable and broke at FY26 Q2, so it is no longer used here.)
 --   lead_days (E)           <- DATEDIFF(create_date -> renewal_date)
 --   selection_deadline      <- ADVISING_OPPORTUNITIES.OFFERING_SELECTION_DEADLINE
 --   submission_deadline     <- CASE2.OPPORTUNITY_SUBMISSION_DEADLINE__C on the Benefits Renewal Case
@@ -13,7 +14,7 @@
 --   absent), intro_call completion checkbox (Intro_Call_Completed__c not mirrored;
 --   live-connect is covered by sf_activity.intro_connect).
 with o as (
-  select sfdc_object_id opp, renewal_date, create_date, reason_for_advising,
+  select sfdc_object_id opp, renewal_date, create_date,
          advising_blocked_reason, special_enrollment, offering_selection_deadline
   from data_warehouse_rc1.bi_reporting.advising_opportunities
   where renewal_date in ({{cohort_dates}})
@@ -36,7 +37,6 @@ recert as (
   group by t.sfdc_opportunity_id
 )
 select o.opp,
-  case when o.reason_for_advising ilike '%Auto-renewed%' then 'Y' else 'N' end auto_renewal,
   datediff('day', o.create_date, o.renewal_date) lead_days,
   to_char(o.offering_selection_deadline,'YYYY-MM-DD') selection_deadline,
   to_char(subdl.submission_deadline,'YYYY-MM-DD') submission_deadline,
