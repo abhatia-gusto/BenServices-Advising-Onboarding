@@ -1,3 +1,4 @@
+    carrier: ml.carrier ? F(ml.carrier) : PH("carrier"), carriers: r.carriers_enrolled||"",
     range: inc==null ? PH("X to Y") : F(lo.toFixed(0)+" to "+hi.toFixed(0)),
     exact: inc==null ? PH("X") : F(inc.toFixed(1)),
     rateKnown: rk, sel: r.selection_deadline ? F(r.selection_deadline) : PH("date"),
@@ -355,6 +356,5 @@ function ovInsights(L,O){
   const meanAlt = mean(L.map(r=>r.alt_created));
   const d2alt = median(L.filter(r=>r.alt_published_date).map(r=> r.alt_published_days!=null?r.alt_published_days:r.days_to_alt ));
   // % outside SLA (na-excluded — same denominator as the Advising SLA dashboard: opps that reached the stage)
-  const outSLA = f => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
-    return e? {v:`${Math.round(100*x/e)}% <span class="ov-sub">${x.toLocaleString()}/${e.toLocaleString()}</span>`, att:(100*x/e)>=40} : {v:"—",att:false}; };
-  const rfdO=outSLA("rfd_sla"), ercO=outSLA("erc_sla"), altO=outSLA("alt_sla");
+  const outSLA = (f,minE=1) => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
+    return e>=minE? {v:`${Math.round(100*x/e)}% <span class="ov-sub">${x.toLocaleString()}/${e.toLocaleString()}</span>`, att:(100*x/e)>=40} : {v:"—",att:false}; };
