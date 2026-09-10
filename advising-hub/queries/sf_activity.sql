@@ -1,12 +1,18 @@
+-- sf_activity: per-opp (open/PF) Salesforce case activity. Feeds intro_connect,
+-- connect_date, last_update, case_summary(activity), n_email/n_call/n_connect.
+-- FIX (case2 schema drift 2026-09): salesforce_production_no_pii.case2 dropped
+-- opportunity__c / record_type_name__c. Re-pointed to DATA_WAREHOUSE_RC1.BI.CASES
+-- (SFDC_OPPORTUNITY_ID, RECORD_TYPE_NAME, full-length ID) joined to the SF task
+-- mirror on task.whatid = cases.id. Output columns unchanged.
 with openpf as (
   select sfdc_object_id from data_warehouse_rc1.bi_reporting.advising_opportunities
   where renewal_date in ({{cohort_dates}}) and status not in ('Closed Won','Closed Lost','Order Lost')
 ),
 rc as (
-  select c.id case_id, c.opportunity__c opp
-  from data_warehouse_rc1.salesforce_production_no_pii.case2 c
-  where c.record_type_name__c='Benefits Renewal Case'
-    and c.opportunity__c in (select sfdc_object_id from openpf)
+  select c.id case_id, c.sfdc_opportunity_id opp
+  from data_warehouse_rc1.bi.cases c
+  where c.record_type_name = 'Benefits Renewal Case'
+    and c.sfdc_opportunity_id in (select sfdc_object_id from openpf)
 ),
 t as (
   select rc.opp, tk.type, tk.status, tk.createddate
