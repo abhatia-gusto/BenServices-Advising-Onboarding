@@ -104,3 +104,12 @@ Every field that used to be carried-forward is now sourced live. Open/PF opps re
 - **Notes.**
   - `lf_savings_pct` is an **enrolled-only average** of per-employee savings vs the default medical recommendation (not an all-employee average).
   - The local LF reason-code classifier (`lf_signal_classifier.py`) is an **optional, non-portable** enrichment for the separate LF-conversion dashboard; the four hub LF fields are pure Snowflake and do **not** require it (the pipeline runs it only as a guarded step, skipped headless).
+
+---
+
+## Sept 10 — Overview SLA
+- **RFD / ERC / ALT now read as "% outside SLA."** The share that *missed* the 5-day target = **Missed ÷ (Met + Missed), na excluded** (opps that never reached the stage don't count) — the same denominator as the Advising SLA dashboard. This replaces the old "% met" phrasing.
+- **Two places on the Overview:**
+  - **Book-insights panel** — the Recommendation & SLA read shows each of RFD / ERC / ALT as % outside SLA, with the raw miss/eligible count beside it.
+  - **PE / IC / Team roll-up** — per-row **Outside SLA** columns for RFD · ERC · ALT (grouped under one header), colored **amber ≥ 40%, red ≥ 55%**.
+- **Alt published stays as % of scoped opps** (not "of requested"): publishing isn't gated on an explicit request, so an "of requested" denominator would exceed 100%.
