@@ -46,10 +46,11 @@
 .ov-rname{font-weight:600}
 .ov-rnum{font-family:var(--mono);color:var(--g6)}
 .ov-rhi{font-family:var(--mono);font-weight:700;color:#c0392b}
-.ov-rsla{font-family:var(--mono);font-size:12px;text-align:center;color:var(--g6)}
-.ov-rsla-grp{text-align:center;border-left:1px solid var(--line);background:var(--g2)}
-.ov-rsla-sub{text-align:center;font-size:9px}
-.ov-rtable td.ov-rsla:nth-last-child(3){border-left:1px solid var(--line)}
+.ov-rsla5{font-family:var(--mono);font-size:12px;text-align:right;white-space:nowrap;border-left:1px solid var(--line)}
+.ov-rsla5 i{color:var(--g4);font-style:normal;margin:0 3px}
+.ov-s5-na{color:var(--g4)}
+.ov-rsla-grp{text-align:right;border-left:1px solid var(--line);background:var(--g2)}
+.ov-rsla-key{font:400 8.5px var(--mono);color:var(--g5);letter-spacing:.02em;margin-top:2px;text-transform:none}
 .ov-sub{font-weight:400;color:var(--g5);font-size:9px}
 .ov-rtotcell .ov-rtot{display:flex;align-items:center;gap:10px}
 .ov-rtot-bar{display:inline-block;width:150px;height:12px;background:var(--g3);border-radius:6px;overflow:hidden}
@@ -377,4 +378,3 @@ function coIcon(url, kind, title){
 }
 
 /* ============================================================ risk engine
-   Per-tab risk profile computed client-side from existing row fields.
