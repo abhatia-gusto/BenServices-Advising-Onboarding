@@ -11,7 +11,7 @@ cat part_01a.txt part_01b.txt part_02.txt part_03.txt part_04.txt part_05.txt > 
 Verify — the reconstructed file's git blob SHA must equal:
 
 ```
-d95895beb0b2e052625c73c7cec3597836f60773
+3273f6f7d9bfed8386149dec99ea417de5eeea06
 ```
 
 (`git hash-object build_advising_hub.py`). Each part was verified byte-exact against its source
