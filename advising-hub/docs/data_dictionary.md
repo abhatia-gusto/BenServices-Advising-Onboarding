@@ -1,6 +1,7 @@
-# Advising Hub — Field Guide
+# Advising Hub — Field Guide (Resources tab content)
 
-Plain-language reference: what each column means and how to read it. Written for advisors, not analysts. One line each; no SQL. This is the content behind the hub's Read Me pane.
+**Status:** plan only — this is the plain-language content for an in-app **Resources** tab (not built yet).
+Written for advisors, not analysts: what each column means and how to read it. One line each; no SQL.
 
 ---
 
@@ -9,13 +10,21 @@ Plain-language reference: what each column means and how to read it. Written for
 - **Advisor / PE** — who owns it.
 
 ## Outreach priority (the "P")
-The single most important reason to reach out. Lowest number = most urgent. Blank/archived once the opp leaves Open.
+The single most important reason to reach out. Lowest number = most urgent. Blank once the opp is closed.
 - **P1 Recommendation ready** — the default recommendation has been sent; customer has real numbers in hand.
 - **P2 Level-funded** — a level-funded option with real savings is available.
 - **P3 Above-market rate** — the medical increase is 14%+.
 - **P4 Data gap** — no enrollment / $0 on record; the question is whether they have coverage at all.
 - **P5 Selection deadline** — the floor; every open opp qualifies, nearest deadline first.
 - Small tags may also appear (SEP, recertification, renewal packet needed, estimate-only rate) — context, they don't change the number.
+
+### EYO2 T ↔ Hub P mapping
+How the EYO2 triage tiers (T) line up with the Hub's Outreach-priority tiers (P):
+- **T1 Default sent** ↔ **P1** (default_rec_sent)
+- **T2 Level funded** ↔ **P2**
+- **T3 Rate ≥14%** ↔ **P3** — NOTE: the Hub currently uses **≥15%** (computed-only)
+- **T4 0 enrollees / $0 MRR** ↔ **P4**
+- **T5 Selection deadline** ↔ **P5**
 
 ## General
 - **Renewal date / Cohort** — when it renews.
@@ -27,7 +36,7 @@ The single most important reason to reach out. Lowest number = most urgent. Blan
 - **Premium Δ** — how the medical premium is moving. The header tells you the basis:
   - **Open / PF = "Projected"** — today's rate vs. the plan they'd land on if nothing changes (the successor). Best estimate before they enroll.
   - **Closed = "Final"** — today's rate vs. what they actually enrolled in.
-  - Colors: gold ≥15%, orange ≥20%, red ≥30%.
+  - Colors: gold ≥14%, orange ≥20%, red ≥30%.
 - **In the drill** you'll see each benefit line (medical, dental, vision, etc.), current premium, and the options. Note: the "default" and "selected" figures are an **average of the offered menu** (customers are usually shown several plans), so treat them as a range, not one plan's price. Dental/vision/life show only when they have a real premium; HSA/FSA/DCA show "—".
 
 ## Enrollment & MRR (in the drill / header)
@@ -38,15 +47,16 @@ The single most important reason to reach out. Lowest number = most urgent. Blan
 - **Default sent** — date the default recommendation went to the customer.
 - **Time to rec sent** — days from when the opp opened to that send.
 - **Time in RFD** — how long it sat in "Ready for Default Package" before the rec went out (the turnaround SLO; 5-day target).
-- **Time in ERC** — days in the "ER Confirm" stage (5-day target).
 
 ## Alternates
 - **Alt requested / created / published / days to alt** — whether alternates were asked for, how many were built, when the first one published, and how long that took.
+- **Alt SLA** — the requested→published turnaround. It is **`na` when no alternate was requested** (the turnaround SLO doesn't apply); only opps that requested an alternate are scored Met/Missed.
 
 ## Flags
-- **Default automation** — ● if the default was auto-finalized by the system (roughly half of renewals), — if not. In the drill: the completion date, plus small dots for whether it was *eligible* to automate and whether rate-parsing succeeded. (Definition: `default_automation.md`.)
+- **Default automation** — ● if the default was auto-finalized by the system (roughly half of renewals), — if not. In the drill: the completion date, plus small dots for whether it was *eligible* to automate and whether rate-parsing succeeded.
 - **LF** — level-funded savings band: High (>10%) / Medium (5–10%) / Low (0–5%) / No (≤0%). Flagged for priority on any positive savings. In the drill, **Recommended in Alt: Yes/No** = whether the LF plan was actually put in a published alternate package (same definition as the LF dashboard).
-- **Recert · SEP · BoR/Term · Auto-renewal · Intro done · Intro connect** — the usual advising flags. (Auto-renewal vs default automation: `auto_renewal.md`.)
+- **Recert · SEP · BoR/Term · Auto-renewal · Intro done · Intro connect** — the usual advising flags.
+  - **Auto-renewal** — the *customer* confirmed the default package and skipped the renewal flow (Snowplow `ConfirmDefaultAndSkipFlow` event on GA_TRACK_365_DAYS, keyed to this renewal window). This is **distinct from Default automation**, which is the *system* auto-finalizing the default. (Replaced the old REASON_FOR_ADVISING source, which was unreliable and broke at FY26 Q2.)
 - **We've gone quiet / Customer gone quiet** — days since our last email out and since their last reply (in the drill; feeds the health read).
 - **Email due / received** — an unanswered customer email and when it came in (open/PF only).
 - **Funding change** — shows FI→LF etc. only once closed (before then the plan isn't final).
@@ -55,17 +65,17 @@ The single most important reason to reach out. Lowest number = most urgent. Blan
 - **Surveys / In-app / CSAT** — recent feedback, newest first.
 
 ## Benefit order (PF / Closed)
-- **Tickets → Advising · Open tickets · Open >5d · BO status** — support tickets routed in (total and currently-open, and how many are past the 5-day SLA), and where the order stands.
+- **Tickets → Advising · BO status** — support tickets routed in, and where the order stands.
 
 ## Closed-only
-- **Outcome · Closed on · MRR before / MRR after** — how it landed (both MRR values shown as columns and tiles). Closed opps are frozen except a daily status re-check (see the refresh pipeline).
+- **Outcome · Closed on · MRR before / MRR after** — how it landed (both MRR values shown as columns and tiles). Closed opps are frozen except a daily status re-check (see the refresh plan).
 
 ## Risk (next to Outreach priority)
 A 0–100 health score with a High / Med / Low tier and a plain-English "why it's at risk" in the drill. Scored differently by stage:
 - **Open** — the advising-cycle model: customer connection (intro/quiet), minimal SF update, recommendation (rate, alternates, LF-not-yet-in-alt), and flags (SEP, recert, packet, term/BoR, deadlines).
 - **PF** — the fulfillment model: negative in-app sentiment (this cycle), OA→advising tickets, recert still open, within 1 week of fulfillment, auto-renewing into an increase.
 - **Closed** — the last score, greyed/archived.
-Reasons read grouped (Open) or as a short sentence; the score sorts and filters like any column. Full spec: `risk_profile.md`.
+Reasons read grouped (Open) or as a short sentence; the score sorts and filters like any column.
 
 ## At-a-glance tiles (top of each tab)
 Each tab shows: **Opps** (after filters) · **MRR** (before on Open/PF; before *and* after on Closed) · **At risk (High)**.
@@ -76,46 +86,4 @@ Each tab shows: **Opps** (after filters) · **MRR** (before on Open/PF; before *
 
 ---
 
-*Companion to `risk_profile.md`, `default_automation.md`, and `auto_renewal.md`.*
-
----
-
-## Sept 10 update
-- **`salesforce_production_no_pii.case2` schema drift.** `case2` was stripped of `opportunity__c`, `record_type_name__c`, `isclosed`, and `reason`. `sf_activity` and `cases` were re-pointed to **`BI.CASES`** (Benefits Renewal Case), joined to `task`, so case activity and renewal-case counts are unaffected (output columns unchanged).
-- **New live daily signals.** Three previously carried-forward areas are now reconstructed from Snowflake and refreshed daily on Open/PF opps (Closed stays frozen): (1) **email recency** — last outbound / last inbound email date; (2) **SF open-signals** — `auto_renewal`, selection/submission deadlines, recert ticket, BoR/term, SEP, `lead_days`; (3) **per-line premium deltas** — successor / default / selected / finalized premium tiers and their % deltas.
-- **Still carried-forward.** Sourced next via **Salesforce MCP**: `recert_status` (`Ticket__c.Recert_Status__c`), `intro_call` / `intro_call_date` (`Case.Intro_Call_Completed__c`), `packets_files` / `packet_carriers` (`ContentDocumentLink`). Snowflake-reconstructable next: `rate_increase_pct` / `rate_status`, `days_to_default`, `lf_*`, `email_due*`, `cycle_open`, `default_rec_*`, `automation_eligible`.
-
----
-
-## Sept 10 — full live coverage
-Every field that used to be carried-forward is now sourced live. Open/PF opps refresh daily; Closed opps stay frozen. Nothing remains genuinely-unrecoverable — the `carry_forward_not_reconstructed` list in `catalog.json` is now empty.
-
-- **Now live from Snowflake** (in `refresh_advising_hub.py` → `merge_freeze`, Open/PF branch):
-  - `rate_increase_pct` / `rate_status` / `rate_structure` — `queries/rate_index.sql`.
-  - `days_to_default` (the **Time in RFD** dwell) — `queries/time_in_rfd.sql`.
-  - `lf_savings_pct` / `lf_savings_band` / `lf_in_alt` / `lf_quote` — `queries/lf.sql`.
-  - `automation_eligible` / `rate_parse_success` — `queries/auto_finalize.sql`.
-  - `default_rec_sent` / `default_rec_built` and `cycle_open` (+ derived rec-cycle timing) — `queries/rec_timing.sql`.
-  - `email_due` / `email_due_status` / `email_due_hoop_hrs` / `email_due_hoop_days` and `email_pending*` / `email_received_date` — `queries/email_due.sql`.
-- **Now live from the Salesforce MCP** (pulled by the daily **task orchestrator** each morning *before* the python runs — the python only reads the CSVs it leaves; see `../build/sf_mcp_pull_spec.md`):
-  - `recert_status` — `Ticket__c.Recert_Status__c` (most-recent recert ticket per opp).
-  - `intro_call` / `intro_call_date` — `Case.Intro_Call_Completed__c` (checkbox); the date is a **proxy** = the CreatedDate of the completed Benefits Renewal Case (there is no dedicated intro-call date field).
-  - `packets_files` / `packet_carriers` — `ContentDocumentLink` where `ContentDocument.Title LIKE '%Renewal Packet%'`, linked to the **Opportunity**.
-- **Notes.**
-  - `lf_savings_pct` is an **enrolled-only average** of per-employee savings vs the default medical recommendation (not an all-employee average).
-  - The local LF reason-code classifier (`lf_signal_classifier.py`) is an **optional, non-portable** enrichment for the separate LF-conversion dashboard; the four hub LF fields are pure Snowflake and do **not** require it (the pipeline runs it only as a guarded step, skipped headless).
-
----
-
-## Sept 10 — Overview SLA
-- **RFD / ERC / ALT now read as "% outside SLA."** The share that *missed* the 5-day target = **Missed ÷ (Met + Missed), na excluded** (opps that never reached the stage don't count) — the same denominator as the Advising SLA dashboard. This replaces the old "% met" phrasing.
-- **Two places on the Overview:**
-  - **Book-insights panel** — the Recommendation & SLA read shows each of RFD / ERC / ALT as % outside SLA, with the raw miss/eligible count beside it.
-  - **PE / IC / Team roll-up** — per-row **Outside SLA** columns for RFD · ERC · ALT (grouped under one header), colored **amber ≥ 40%, red ≥ 55%**.
-- **Alt published stays as % of scoped opps** (not "of requested"): publishing isn't gated on an explicit request, so an "of requested" denominator would exceed 100%.
-
-## Sept 10 — Ticket & Email SLA
-- **`ticket_sla`** — the OA→Advising ticket's resolution SLA: resolved within **5 days** = **Met**; **any late ticket = Missed**; **na** when the opp has no advising ticket.
-- **`email_sla`** — inbound email answered within **240 HOOP-minutes**: within target = **Met**; **any late reply = Missed**; **na** when there's no inbound email needing a reply.
-- **Where they show:** both read as **"% outside SLA (na-excluded)"** in the Book insights, and as a compact **RFD · ERC · ALT · TKT · EMAIL** cell in the PE / IC / Team roll-up. The ticket (TKT) figure is **hidden when fewer than 5 tickets are in scope** for the row.
-- **"Last outbound contact" removed** from the Overview insights (the underlying field is retained in the data).
+*Companion to `Advising_Hub_Daily_Refresh_PLAN.md`, `Advising_Hub_Risk_Profile_PLAN.md`, and `Default_Automation_CALC_reference.md`.*

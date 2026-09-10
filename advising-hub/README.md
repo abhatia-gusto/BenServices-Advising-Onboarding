@@ -57,7 +57,8 @@ At the top of each tab: **tiles** (how many opps, total MRR, how many at risk), 
 
 ### Flags
 - **LF** (level-funded savings band: High / Medium / Low / No) — and in the drill, **Recommended in Alt** (did we actually put the LF option in front of them).
-- **Recert**, **SEP**, **BoR/Term**, **Auto-renewal**, **Default automation** (whether the system auto-finalized the default; drill shows the completion date).
+- **Recert**, **SEP**, **BoR/Term**, **Auto-renewal**, **Default automation**.
+  - **Auto-renewal** — the *customer* confirmed the default and skipped the flow (from Snowplow). This is different from **Default automation**, which means the *system* auto-finalized the default; its drill shows the completion date.
 
 ### Sentiment
 - **Surveys / In-app / CSAT** — recent feedback, newest first; the drill shows the comment.
@@ -81,7 +82,7 @@ Opening a customer shows everything for that opp in one place:
 - **Enrollment** — headcount by line, before → after, carriers.
 - **Customer Contact** — intro/connect, last email out/in, last update, email awaiting reply.
 - **Recommendation & Alt** — default sent, time in each step, alternates.
-- **Flags** — LF (+ recommended-in-alt), recert, SEP, auto-renewal, default automation.
+- **Flags** — LF (+ recommended-in-alt), recert, SEP, auto-renewal (customer confirmed the default and skipped the flow), default automation (system auto-finalized).
 - **Sentiment** — CSAT / in-app with the verbatim comment.
 - **Benefit order & tickets** — status and open items.
 - A **Customer Positioning →** button jumps to that customer's call script.
