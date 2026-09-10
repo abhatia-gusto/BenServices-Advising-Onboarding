@@ -1,3 +1,12 @@
+  // PREMIUM (medical)
+  const medDelta = median(L.map(r=>r.rate_increase_pct));
+  // FLAGS
+  const lfBand = r => (r.lf_savings_band==="High"||r.lf_savings_band==="Medium"||r.lf_savings_band==="Low");
+  const recertOpen = cnt(L,r=>r.recert_status && r.recert_status!=="Recert Approved");
+  const packetNeeded = cnt(L,r=>/packet/i.test(r.blocked_reason||""));
+  const borTerm = cnt(L,r=>isY(r.bor_term) || /Termination|BoR/i.test(r.blocked_reason||""));
+  const col = inner => `<div class="ov-ins-col">${inner}</div>`;
+  return `<div class="ov-panel ov-insights"><div class="ov-ins-h">Book insights</div>`+
     `<div class="ov-insstrip">`+
     col(
       grp("OUTREACH")+
@@ -19,9 +28,9 @@
       row("Days to default (create→sent)", (d2def==null?"—":d2def+"d"))+
       row("Time in RFD", (trfd==null?"—":trfd+"d"))+
       row("Time in ERC", (terc==null?"—":terc+"d"))+
-      row("RFD SLA missed", cnt(L,r=>r.rfd_sla==="Missed").toLocaleString(), true)+
-      row("ERC SLA missed", cnt(L,r=>r.erc_sla==="Missed").toLocaleString(), true)+
-      row("ALT SLA missed", cnt(L,r=>r.alt_sla==="Missed").toLocaleString(), true)+
+      row("RFD outside SLA", rfdO.v, rfdO.att)+
+      row("ERC outside SLA", ercO.v, ercO.att)+
+      row("ALT outside SLA", altO.v, altO.att)+
       row("Alt published", pct(L,r=>!!r.alt_published_date)+"%")+
       row("Avg alt packages", (meanAlt==null?"—":meanAlt.toFixed(2)))+
       row("Days to alt published", (d2alt==null?"—":d2alt+"d"))
@@ -112,27 +121,35 @@ function ovRollup(){
   const keyOf = isTeam ? (r=>r.pe) : (r=>r.advisor);
   const map=new Map();
   scopeRows.forEach(r=>{ const key=keyOf(r); if(!key) return;
-    if(!map.has(key)) map.set(key,{name:key,live:0,openHigh:0,pfHigh:0});
+    if(!map.has(key)) map.set(key,{name:key,live:0,openHigh:0,pfHigh:0,rfdM:0,rfdX:0,ercM:0,ercX:0,altM:0,altX:0});
     const o=map.get(key), t=tabOf(r);
     if(t==="open"||t==="pf") o.live++;
     if(t==="open" && riskCached(r).tier==="High") o.openHigh++;
     if(t==="pf"   && riskCached(r).tier==="High") o.pfHigh++;
+    if(r.rfd_sla==="Met")o.rfdM++; else if(r.rfd_sla==="Missed")o.rfdX++;
+    if(r.erc_sla==="Met")o.ercM++; else if(r.erc_sla==="Missed")o.ercX++;
+    if(r.alt_sla==="Met")o.altM++; else if(r.alt_sla==="Missed")o.altX++;
   });
   const rows=[...map.values()].map(o=>({...o,total:o.openHigh+o.pfHigh})).sort((a,b)=>b.total-a.total);
   const max=Math.max(1, ...rows.map(o=>o.total));
   const attr = isTeam ? "data-ovpe" : "data-ovic";
   const colHead = isTeam ? "PE TEAM" : "IC";
+  const slaCell=(m,x)=>{ const e=m+x; if(!e) return `<td class="ov-rsla">—</td>`;
+    const p=Math.round(100*x/e), c=p>=55?"#c0392b":(p>=40?"#b7791f":"var(--g6)");
+    return `<td class="ov-rsla" style="color:${c}${p>=40?";font-weight:700":""}" title="${x.toLocaleString()} of ${e.toLocaleString()} missed · na excluded">${p}%</td>`; };
   const body=rows.map(o=>{ const w=(o.total/max)*150;
     return `<tr class="ov-rrow" ${attr}="${esc(o.name)}" title="${isTeam?"See this PE's roll-up":"See this IC's book"}">`+
       `<td class="ov-rname">${esc(o.name)}</td>`+
       `<td class="ov-rnum">${o.live.toLocaleString()}</td>`+
       `<td class="ov-rhi">${o.openHigh}</td>`+
       `<td class="ov-rhi">${o.pfHigh}</td>`+
-      `<td class="ov-rtotcell"><span class="ov-rtot"><span class="ov-rtot-bar"><span style="width:${w}px"></span></span><b>${o.total}</b></span></td></tr>`;
+      `<td class="ov-rtotcell"><span class="ov-rtot"><span class="ov-rtot-bar"><span style="width:${w}px"></span></span><b>${o.total}</b></span></td>`+
+      slaCell(o.rfdM,o.rfdX)+slaCell(o.ercM,o.ercX)+slaCell(o.altM,o.altX)+`</tr>`;
   }).join("");
   return `<div class="ov-panel ov-rollup"><table class="ov-rtable">`+
-    `<thead><tr><th>${colHead}</th><th>LIVE OPPS</th><th>OPEN HIGH</th><th>PF HIGH</th><th>AT-RISK TOTAL →</th></tr></thead>`+
-    `<tbody>${body||`<tr><td colspan="5" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div>`;
+    `<thead><tr><th rowspan="2">${colHead}</th><th rowspan="2">LIVE OPPS</th><th rowspan="2">OPEN HIGH</th><th rowspan="2">PF HIGH</th><th rowspan="2">AT-RISK TOTAL →</th><th colspan="3" class="ov-rsla-grp">OUTSIDE SLA (miss %)</th></tr>`+
+    `<tr><th class="ov-rsla-sub">RFD</th><th class="ov-rsla-sub">ERC</th><th class="ov-rsla-sub">ALT</th></tr></thead>`+
+    `<tbody>${body||`<tr><td colspan="8" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div>`;
 }
 function ovSeedScope(){
   const pes=ovPEs(), ics=ovICs(null);
