@@ -322,6 +322,11 @@ def merge_freeze(prior_path):
     tslav = {} if tsla_failed else {r["OPP"]: (r.get("TICKET_SLA") or "na") for r in _rd(os.path.join(VNEXT,"out","ticket_sla.csv"))}
     eslav = {} if esla_failed else {r["OPP"]: (r.get("EMAIL_SLA")  or "na") for r in _rd(os.path.join(VNEXT,"out","email_sla.csv"))}
 
+    # canonical CUSTOMER auto-renewal from Snowplow (confirm-default-and-skip). Open/PF-live,
+    # Closed frozen (carry forward). Replaces the old REASON_FOR_ADVISING derivation.
+    arv_failed = "auto_renewal" in failed
+    arv = {} if arv_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","auto_renewal.csv"))}
+
     # --- Salesforce MCP live fields (NOT in the Snowflake mirror) ---
     # intro_call/intro_call_date (SF Case.Intro_Call_Completed__c), recert_status
     # (SF Ticket__c.Recert_Status__c), packets_files/packet_carriers (SF ContentDocumentLink
@@ -375,6 +380,10 @@ def merge_freeze(prior_path):
         row["tab"] = tab
         # in-app numeric mirror the builder reads (derive from whatever in_app resolved to)
         row["inapp_current"] = fnum(row.get("in_app"))
+        # ALT SLA is a requested->published turnaround; with no alternate request it does not
+        # apply -> force 'na' (never 'Missed'). alt_requested is refreshed in the OVERLAY above.
+        if (row.get("alt_requested") or "N") != "Y":
+            row["alt_sla"] = "na"
 
         if tab not in CLOSED_TABS:                      # OPEN / PF — fully refresh
             stat["open_pf"] += 1
@@ -423,9 +432,12 @@ def merge_freeze(prior_path):
                 e = emailr.get(oid)
                 row["last_outbound_email_date"] = (e.get("LAST_OUTBOUND_EMAIL_DATE") or None) if e else None
                 row["last_inbound_email_date"]  = (e.get("LAST_INBOUND_EMAIL_DATE")  or None) if e else None
+            if not arv_failed:                          # canonical customer auto-renewal (Snowplow)
+                x = arv.get(oid)
+                row["auto_renewal"]      = (x.get("AUTO_RENEWAL") or "N") if x else "N"
+                row["auto_renewal_date"] = (x.get("AUTO_RENEWAL_DATE") or None) if x else None
             if not sigs_failed:
                 s = sigs.get(oid) or {}
-                row["auto_renewal"]       = s.get("AUTO_RENEWAL") or "N"
                 ld = fnum(s.get("LEAD_DAYS")); row["lead_days"] = int(ld) if ld is not None else None
                 row["selection_deadline"] = s.get("SELECTION_DEADLINE") or None
                 row["submission_deadline"]= s.get("SUBMISSION_DEADLINE") or None
@@ -518,6 +530,15 @@ def merge_freeze(prior_path):
                       "open_cases_by_type","open_cases_total"):
                 row[k] = p.get(k)
         out.append(row)
+
+    # Drop builder-recomputed-decorative fields so a STALE persisted value can't leak into the UI:
+    #   queue_tier -> recomputed live in build_advising_hub.py (Min of P1..P5 flags) every load.
+    #   tab        -> build_advising_hub.py tabOf(r) recomputes it from r.stage; stored tab is unused.
+    # (merge_freeze already consumed tab above for Open/PF-vs-Closed classification; the builder
+    #  never reads the persisted value.)
+    for r in out:
+        r.pop("queue_tier", None)
+        r.pop("tab", None)
 
     json.dump(out, open(DATA,"w"), separators=(",",":"), default=str)
     print(f"  merged {len(out)} opps  open/pf={stat['open_pf']} closed={stat['closed']} "
