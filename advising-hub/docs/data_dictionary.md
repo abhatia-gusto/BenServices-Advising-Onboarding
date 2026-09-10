@@ -113,3 +113,9 @@ Every field that used to be carried-forward is now sourced live. Open/PF opps re
   - **Book-insights panel** — the Recommendation & SLA read shows each of RFD / ERC / ALT as % outside SLA, with the raw miss/eligible count beside it.
   - **PE / IC / Team roll-up** — per-row **Outside SLA** columns for RFD · ERC · ALT (grouped under one header), colored **amber ≥ 40%, red ≥ 55%**.
 - **Alt published stays as % of scoped opps** (not "of requested"): publishing isn't gated on an explicit request, so an "of requested" denominator would exceed 100%.
+
+## Sept 10 — Ticket & Email SLA
+- **`ticket_sla`** — the OA→Advising ticket's resolution SLA: resolved within **5 days** = **Met**; **any late ticket = Missed**; **na** when the opp has no advising ticket.
+- **`email_sla`** — inbound email answered within **240 HOOP-minutes**: within target = **Met**; **any late reply = Missed**; **na** when there's no inbound email needing a reply.
+- **Where they show:** both read as **"% outside SLA (na-excluded)"** in the Book insights, and as a compact **RFD · ERC · ALT · TKT · EMAIL** cell in the PE / IC / Team roll-up. The ticket (TKT) figure is **hidden when fewer than 5 tickets are in scope** for the row.
+- **"Last outbound contact" removed** from the Overview insights (the underlying field is retained in the data).
