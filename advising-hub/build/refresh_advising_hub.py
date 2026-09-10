@@ -314,6 +314,14 @@ def merge_freeze(prior_path):
     rectv = {} if rect_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","rec_timing.csv"))}
     eduev = {} if edue_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","email_due.csv"))}
 
+    # Per-opp SLA fields (Met/Missed/na), Open/PF-live, Closed-frozen (carry forward on fail).
+    # ticket_sla -> OA->Benefits-Advising ticket resolution SLA (perf-dash Flow-4a 5-day).
+    # email_sla  -> inbound-email response SLA (perf-dash AB Email SLA v8, 240 HOOP-min).
+    tsla_failed = "ticket_sla" in failed
+    esla_failed = "email_sla"  in failed
+    tslav = {} if tsla_failed else {r["OPP"]: (r.get("TICKET_SLA") or "na") for r in _rd(os.path.join(VNEXT,"out","ticket_sla.csv"))}
+    eslav = {} if esla_failed else {r["OPP"]: (r.get("EMAIL_SLA")  or "na") for r in _rd(os.path.join(VNEXT,"out","email_sla.csv"))}
+
     # --- Salesforce MCP live fields (NOT in the Snowflake mirror) ---
     # intro_call/intro_call_date (SF Case.Intro_Call_Completed__c), recert_status
     # (SF Ticket__c.Recert_Status__c), packets_files/packet_carriers (SF ContentDocumentLink
@@ -487,6 +495,9 @@ def merge_freeze(prior_path):
                 row["email_pending_date"] = la
                 row["email_pending_days"] = _daysbetween(la, TODAY_ISO) if la else None
                 row["email_received_date"]= la if (row["email_due"] == "Y" and la) else None
+            # per-opp SLA fields (default 'na' when the opp is absent from the CSV)
+            if not tsla_failed: row["ticket_sla"] = tslav.get(oid, "na")
+            if not esla_failed: row["email_sla"]  = eslav.get(oid, "na")
             # --- Salesforce-MCP live fields (Open/PF refresh; Closed frozen). Carry forward
             #     the prior/assembler value when the opp is absent from the CSV. ---
             if oid in sfmcp_intro:
