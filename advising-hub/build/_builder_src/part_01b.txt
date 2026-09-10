@@ -1,0 +1,380 @@
+/* ---- Overview tab ---- */
+#pane-overview{max-width:1180px}
+.ov-title{font:700 20px var(--ui);letter-spacing:-.01em;margin:2px 0 2px}
+.ov-sub{font-size:12px;color:var(--g6);margin:0 0 14px}
+.ov-scopebar{display:flex;align-items:center;gap:12px;margin:6px 0 14px;flex-wrap:wrap}
+.ov-chips{display:inline-flex;gap:6px}
+.ov-chip{font:700 12px var(--ui);padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--g6);cursor:pointer}
+.ov-chip:hover{background:var(--teal-050)}
+.ov-chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.ov-scopesel{min-width:190px}
+.ov-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 14px}
+.ov-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ov-card-h{font:700 10px var(--ui);letter-spacing:.09em;text-transform:uppercase;color:var(--g6)}
+.ov-card-n{font:600 26px/1.1 var(--ui);margin-top:8px}
+.ov-card-u{font-size:12px;color:var(--g6);font-weight:400}
+.ov-card-mrr{font-family:var(--mono);font-size:14px;margin-top:6px;color:var(--teal-dk)}
+.ov-card-arw{color:var(--g5)}
+.ov-card-risk{font-size:12px;margin-top:8px;color:var(--coral-dk);font-weight:600;display:flex;align-items:center;gap:6px}
+.ov-card-risk.ov-arch{color:var(--g5);font-style:italic;font-weight:500}
+.ov-hi-dot{display:inline-block;width:9px;height:9px;border-radius:2px;background:#c0392b}
+.ov-legend{display:flex;gap:16px;margin:0 0 10px;font-size:11px;color:var(--g6)}
+.ov-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ov-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.ov-panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.ov-panel-h{font:700 13px var(--ui);color:var(--ink);margin-bottom:12px}
+.ov-qrow{padding:8px 6px;cursor:pointer;border-radius:6px}
+.ov-qrow:hover{background:var(--teal-050)}
+.ov-qhead{display:flex;align-items:center;justify-content:space-between}
+.ov-qlab{font:700 12px var(--ui);color:var(--ink)}
+.ov-arw{color:var(--green);font-weight:700}
+.ov-bar{display:flex;height:13px;margin:6px 0 4px;background:var(--g3);border-radius:3px;overflow:hidden;max-width:320px}
+.ov-seg{display:block;height:13px}
+.ov-seg[data-ovrisk]{cursor:pointer}
+.ov-qcnt{font:400 10.5px var(--mono);color:var(--g6)}
+.ov-frow{padding:7px 6px;cursor:pointer;border-radius:6px}
+.ov-frow:hover{background:var(--teal-050)}
+.ov-fbar-track{display:inline-block;width:190px;height:12px;background:var(--g3);border-radius:6px;overflow:hidden;vertical-align:middle;margin:5px 8px 0 0}
+.ov-fbar{display:block;height:12px;background:#c0392b;border-radius:6px}
+.ov-fcnt{font:700 11px var(--mono);color:var(--g6)}
+.ov-rollup{padding:0;overflow:hidden}
+.ov-rtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ov-rtable th{text-align:left;font:700 9.5px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--g6);padding:12px 14px;border-bottom:1.5px solid var(--line)}
+.ov-rtable td{padding:10px 14px;border-bottom:1px solid var(--g3)}
+.ov-rrow{cursor:pointer}
+.ov-rrow:hover td{background:var(--teal-050)}
+.ov-rname{font-weight:600}
+.ov-rnum{font-family:var(--mono);color:var(--g6)}
+.ov-rhi{font-family:var(--mono);font-weight:700;color:#c0392b}
+.ov-rtotcell .ov-rtot{display:flex;align-items:center;gap:10px}
+.ov-rtot-bar{display:inline-block;width:150px;height:12px;background:var(--g3);border-radius:6px;overflow:hidden}
+.ov-rtot-bar span{display:block;height:12px;background:#c0392b;border-radius:6px}
+.ov-rtot b{font-family:var(--mono);color:#c0392b}
+.ov-ovlay{display:block}
+.ov-rcol{display:block}
+.ov-insights{padding:14px 16px}
+.ov-insstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:14px 4px}
+.ov-ins-col{padding:0 14px;border-right:1px solid #eef2f0}
+.ov-ins-col:last-child{border-right:none}
+.ov-3box{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.ov-3box>.ov-panel{width:100%}
+.ov-ins-h{font:700 15px var(--ui);color:var(--ink);margin-bottom:6px}
+.ov-ins-grp{font:700 9.5px var(--ui);letter-spacing:.05em;color:var(--g6);text-transform:uppercase;margin:12px 0 4px}
+.ov-ins-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0}
+.ov-ins-k{font-size:10.5px;color:#3a4a44}
+.ov-ins-v{font:700 10.5px var(--ui);color:var(--teal-dk);white-space:nowrap}
+.ov-ins-v.att{color:#c0392b;font-weight:800}
+.ov-pbar{position:relative;height:11px;margin:6px 0 4px}
+.ov-pbar .g{position:absolute;left:0;top:0;height:11px;background:#cdd8d3;border-radius:3px}
+.ov-pbar .r{position:absolute;left:0;top:0;height:11px;background:#c0392b;border-radius:3px;cursor:pointer}
+@media(max-width:1000px){.ov-3box{grid-template-columns:1fr}.ov-insstrip{grid-template-columns:repeat(2,1fr)}.ov-ins-col{border-right:none}}
+@media(max-width:820px){.ov-cards{grid-template-columns:1fr}.ov-2col{grid-template-columns:1fr}.ov-ovlay{grid-template-columns:1fr}.ov-insstrip{grid-template-columns:1fr}}
+/* filterable stage tiles + risk H/M/L boxes */
+.ov-card-click{cursor:pointer;transition:border-color .12s ease,box-shadow .12s ease}
+.ov-card-click:hover{border-color:var(--teal)}
+.ov-card-on{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-tint)}
+.ov-risktier{display:block}
+.ov-risktier.on{background:var(--teal-050)}
+.ov-riskdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.ov-riskdetail{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
+.ov-riskdetail-h{font:700 10px var(--ui);letter-spacing:.05em;text-transform:uppercase;color:var(--g6);margin-bottom:6px}
+/* Guide pane */
+#pane-guide{max-width:860px}
+.guidedoc{max-width:820px;line-height:1.62;color:var(--ink);font-size:14px}
+.guidedoc h1{font:700 26px/1.2 var(--ui);letter-spacing:-.01em;margin:6px 0 10px}
+.guidedoc h2{font:700 19px var(--ui);margin:26px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.guidedoc h3{font:700 15px var(--ui);margin:18px 0 4px;color:var(--teal-dk)}
+.guidedoc p{margin:8px 0}
+.guidedoc ul{margin:6px 0 12px;padding-left:22px}
+.guidedoc li{margin:3px 0}
+.guidedoc hr{border:none;border-top:1px solid var(--line);margin:20px 0}
+.guidedoc code{font-family:var(--mono);font-size:12px;background:var(--g3);padding:1px 5px;border-radius:4px}
+.guidedoc strong{font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand">Benefits Advising <b>Hub</b><span class="verbadge">alpha</span></div>
+      <div class="sub">Renewal Workbench &amp; Customer Outreach Platform &middot; all 2026 cohorts (7/1&ndash;12/1)</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="chip cohort" id="cohortPill">All cohorts</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-pane="overview">Overview</button>
+    <button class="tab" data-pane="open">Open <span class="cnt" id="cnt-open"></span></button>
+    <button class="tab" data-pane="pf">Pending Fulfillment <span class="cnt" id="cnt-pf"></span></button>
+    <button class="tab" data-pane="closed">Closed <span class="cnt" id="cnt-closed"></span></button>
+    <button class="tab" data-pane="script">Customer Positioning</button>
+    <button class="tab" data-pane="guide">Read Me</button>
+  </div>
+
+  <div class="pane" id="pane-overview">
+    <div id="ovScope"></div>
+    <div id="ovBody"></div>
+  </div>
+
+  <div class="pane on" id="pane-table">
+    <div class="kpis" id="kpis"></div>
+    <div class="bar">
+      <div class="fld"><label>Search</label><input type="text" id="fSearch" placeholder="Company, advisor, or PE..."></div>
+      <div id="mdAdv"></div>
+      <div id="mdPE"></div>
+      <div id="mdStage"></div>
+      <div id="mdTier"></div>
+      <div id="mdCohort"></div>
+      <div class="fld"><label>Risk</label><div id="mdRisk"></div></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="tbltop" id="tblTop"><div class="tbltop-inner" id="tblTopInner"></div></div>
+    <div class="tblwrap" id="tblwrap">
+      <table id="tbl">
+        <thead><tr class="grp" id="grpRow"></tr><tr class="cols" id="hdr"></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+    </div>
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <div class="pane" id="pane-script">
+    <div class="scriptbar">
+      <button class="btn ghost sm" id="bBackTable">&larr; Back to opps</button>
+      <button class="btn ghost sm hidden" id="bGeneric">Generic positioning</button>
+      <input type="text" id="scriptSearch" class="scriptsearch" list="scriptCompanies" placeholder="Look up a customer&hellip;" autocomplete="off">
+      <datalist id="scriptCompanies"></datalist>
+      <span class="who" id="scriptWho"></span>
+      <div class="spacer" style="flex:1"></div>
+      <label class="toggle"><input type="checkbox" id="tSample"> Sample lines only</label>
+    </div>
+    <div class="doc" id="scriptDoc"></div>
+  </div>
+
+  <div class="pane" id="pane-guide">
+    <div class="guidedoc">__GUIDEHTML__</div>
+  </div>
+</div>
+
+<script id="hubdata" type="application/json">__HUBDATA__</script>
+<script>
+/* ============================================================ data + state */
+const HUB = JSON.parse(document.getElementById("hubdata").textContent);
+const TODAY = new Date(new Date().toISOString().slice(0,10)+"T00:00:00");
+const TAB_CLOSED = new Set(["Closed Won","Closed Lost","Order Lost","Closed Admin"]);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const LS_KEY = "advhub_state_v1";
+let PAGE = 1;                // 1-based page over the filtered+sorted set
+let PAGE_SIZE = 100;         // 50 | 100 | 250
+let TAB = "open";            // "open" | "pf" | "closed"
+let CLOSED = false;          // derived: TAB==="closed"
+let SORT = {k:"tier", dir:1};
+let OPEN = null;             // drill row opp id
+let LINES_OPEN = false;
+let DRILL_SORT = {k:"enr_before", dir:-1};
+
+const tabOf = r => { const s=r.stage||""; return TAB_CLOSED.has(s) ? "closed" : (s==="Pending Fulfillment" ? "pf" : "open"); };
+
+function cohortLabel(c){
+  const m = /^(\d{4})-(\d{2})/.exec(c||""); if(!m) return c||"—";
+  return `${MONTHS[(+m[2])-1]} ${m[1]} (${+m[2]}/1)`;
+}
+HUB.forEach(r => {
+  if (typeof r.advisor === "string") r.advisor = r.advisor.replace(/\*+\s*$/,"").trim();
+  if (typeof r.pe      === "string") r.pe      = r.pe.replace(/\*+\s*$/,"").trim();
+  if (!("cohort" in r)){ const rd = String(r.renewal_date||"");
+    r.cohort = /^\d{4}-\d{2}/.test(rd) ? rd.slice(0,7) : ""; }
+  // Outreach tier: computed for all tabs (last value shown greyed/archived on PF & Closed).
+  {
+    const flags = [];
+    // P1: recommendation ready — default recommendation sent (present, not null/empty)
+    if (r.default_rec_sent) flags.push(1);
+    // P2: level-funded quote with a real savings band (fires on High/Medium/Low, not No)
+    if (r.lf_quote && r.lf_savings_band && r.lf_savings_band!=="No") flags.push(2);
+    // P3: medical projected Δ >= 15 and computed (not an estimate)
+    if (r.rate_increase_pct != null && r.rate_increase_pct >= 15 && r.rate_status && !/^estimate/i.test(r.rate_status)) flags.push(3);
+    // P4: data gap
+    if (!r.enrollees || !r.mrr) flags.push(4);
+    // P5: selection deadline present
+    if (r.selection_deadline) flags.push(5);
+    r.queue_tier = flags.length ? Math.min(...flags) : 5;
+    // annotation labels — descriptive only, do NOT change the numeric tier
+    const annos = [];
+    if (r.sep==="Y") annos.push("SEP");
+    if (r.recert_ticket==="Y" || /recert/i.test(r.recert_status||"")) annos.push("Recertification");
+    if (/packet/i.test(r.blocked_reason||"")) annos.push("Renewal packet needed");
+    if (/^estimate/i.test(r.rate_status||"")) annos.push("Estimated increase");
+    r.tier_annos = annos;
+  }
+});
+
+/* ============================================================ utils */
+const el = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const D = s => s ? new Date(String(s).slice(0,10)+"T00:00:00") : null;
+const dayDiff = (a,b) => Math.round((a-b)/86400000);
+const dUntil = s => s ? dayDiff(D(s),TODAY) : null;
+const money = v => v==null ? "" : "$"+Math.round(v).toLocaleString();
+const money1 = v => v==null ? "" : "$"+(Math.round(v*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const fund = v => ({fully_insured:"Fully insured",level_funded:"Level funded",self_funded:"Self funded"})[v] || (v||"");
+const fundShort = v => ({fully_insured:"FI",level_funded:"LF",self_funded:"SF"})[v] || (v?String(v).replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase():"—");
+// transition chip: "FI→LF" — only render the transition when CLOSED (funding_after is
+// menu-ambiguous pre-close, so pre-close we show just the current funding).
+const fundTransChip = (cur, after) => {
+  const c = fundShort(cur);
+  if (!CLOSED || after==null || after==="") return c;
+  return `${c}→${fundShort(after)}`;
+};
+const DASH = `<span class="t-ok">—</span>`;
+const or = v => (v==null || v==="") ? DASH : v;                 // drill value fallback
+const primaryLine = r => { const ls=r.lines||[]; if(!ls.length) return null;
+  return ls.slice().sort((a,b)=>(b.enr_before||0)-(a.enr_before||0))[0]; };
+const isY = v => v==="Y";
+const hasRecert = r => isY(r.recert_ticket) || /recert/i.test(r.recert_status||"");
+const rows = () => HUB.filter(r => tabOf(r)===TAB);
+
+/* ============================================================ columns */
+const medLine = r => (r.lines||[]).find(l => l.benefit_type==="medical") || null;
+const lineEnr = (r,bt) => { const l=(r.lines||[]).find(x=>x.benefit_type===bt); return l?l.enr_before:null; };
+const lineEnrA = (r,bt) => { const l=(r.lines||[]).find(x=>x.benefit_type===bt); return l?l.enr_after:null; };
+const BT_DEFS = [["medical","Medical"],["dental","Dental"],["vision","Vision"],
+                 ["life","Life"],["short_term_disability","STD"],["long_term_disability","LTD"]];
+const BT_PRESENT = BT_DEFS.filter(([bt]) => HUB.some(r => (r.lines||[]).some(l => l.benefit_type===bt)));
+const PIN_W = {company:210, advisor:132, pe:120};
+
+// tabs: "o"=Open "p"=Pending Fulfillment "c"=Closed. omitted => all three.
+const nn = v => (v==null? -1 : v);
+const BASE_COLS = [
+  // Frozen
+  {k:"company",g:"customer",t:"Customer",pin:1,s:r=>r.company||""},
+  {k:"advisor",g:"customer",t:"Advisor",pin:1,s:r=>r.advisor||""},
+  {k:"pe",     g:"customer",t:"PE",     pin:1,s:r=>r.pe||""},
+  // Outreach priority
+  {k:"tier",   g:"queue", t:"Outreach priority", s:r=>r.queue_tier},
+  {k:"risk",   g:"queue", t:"Risk", s:r=>riskCached(r).score},
+  // Closed-only
+  {k:"outcome",g:"closed",t:"Outcome",tabs:"c",s:r=>r.outcome||""},
+  {k:"closedon",g:"closed",t:"Closed on",tabs:"c",s:r=>r.closed_on||""},
+  {k:"mrrb",   g:"closed",t:"MRR before",tabs:"c",s:r=>nn(r.mrr_before)},
+  {k:"mrra",   g:"closed",t:"MRR after", tabs:"c",s:r=>nn(r.mrr_after)},
+  // General
+  {k:"renewal",g:"general",t:"Renewal date", s:r=>r.renewal_date||""},
+  {k:"survey", g:"general",t:"Survey answered",s:r=>isY(r.survey_answered)?1:0},
+  {k:"seldl",  g:"general",t:"Selection deadline",s:r=>r.selection_deadline||"9999"},
+  {k:"subdl",  g:"general",t:"Submission deadline",s:r=>r.submission_deadline||"9999"},
+  {k:"d2r",    g:"general",t:"Days to Renewal",s:r=>r.days_to_renewal??9999},
+  {k:"d2s",    g:"general",t:"Days to Submission",s:r=>{const d=dUntil(r.submission_deadline);return d==null?99999:d;}},
+  {k:"lead",   g:"general",t:"Lead days",s:r=>r.lead_days??99999},
+  {k:"stage",  g:"general",t:"Stage",   s:r=>r.stage||""},
+  {k:"dis",    g:"general",t:"Days in Stage",s:r=>r.days_in_stage??-1},
+  {k:"mrr",    g:"general",t:"MRR",   tabs:"op", s:r=>r.mrr??-1},
+  {k:"funding",g:"general",t:"Funding", s:r=>fund(r.funding)},
+  {k:"enr",    g:"general",t:"ENR (med)",s:r=>r.enrollees??-1},
+  {k:"carrier",g:"general",t:"Carrier (med)",s:r=>(medLine(r)||{}).carrier||""},
+  {k:"packets",g:"general",t:"Packets", s:r=>r.packets_files??-1},
+  {k:"rate",   g:"general",
+     t:()=>tabCode()==="c"?"Premium Δ (Final)":"Premium Δ (Projected)",
+     s:r=>{ if(tabCode()==="c"){ const ml=medLine(r); const v=ml?ml.d_fin:null; return v==null?-999:v; } return r.rate_increase_pct??-999; },
+     ttl:()=>({o:"Medical projected renewal Δ vs successor (EYO)",p:"Medical projected renewal Δ vs successor (EYO)",c:"Medical final selected Δ (enrolled)"}[tabCode()])},
+  {k:"nlines", g:"line",   t:"Lines ▸",s:r=>r.num_lines??-1},
+  // Flags
+  {k:"lf",     g:"flags", t:"LF",       s:r=>r.lf_quote||""},
+  {k:"lfsav",  g:"flags", t:"LF savings",s:r=>{const b=r.lf_savings_band;return b==="High"?4:b==="Medium"?3:b==="Low"?2:b==="No"?1:-1;}},
+  {k:"recert", g:"flags", t:"Recert",   s:r=>hasRecert(r)?1:0},
+  {k:"sep",    g:"flags", t:"SEP",      s:r=>isY(r.sep)?1:0},
+  {k:"bor",    g:"flags", t:"BoR/Term", s:r=>isY(r.bor_term)?1:0},
+  {k:"autoren",g:"flags", t:"Auto-renewal",s:r=>isY(r.auto_renewal)?1:0},
+  {k:"defauto",g:"flags", t:"Default automation",s:r=>isY(r.default_automation)?1:0},
+  {k:"intro",  g:"contact", t:"Intro (done)", s:r=>isY(r.intro_call)?1:0},
+  {k:"introc", g:"contact", t:"Intro Connect",s:r=>isY(r.intro_connect)?1:0},
+  {k:"emaildue",g:"contact",t:"Email due",tabs:"op",s:r=>isY(r.email_due)?(r.email_due_hoop_hrs??1):-1},
+  {k:"emailrecv",g:"contact",t:"Received",tabs:"op",s:r=>r.email_received_date||""},
+  {k:"lastout",g:"contact",t:"Last email out",s:r=>r.last_outbound_email_date||""},
+  {k:"lastin", g:"contact",t:"Last email in", s:r=>r.last_inbound_email_date||""},
+  {k:"lastupd",g:"contact", t:"Last Update",s:r=>r.last_update_date||r.last_update||""},
+  // Sentiment (own group, right after Flags). Per-tab: Open=all-survey count · PF=in-app · Closed=CSAT + in-app
+  {k:"survcount",g:"sentiment",t:"Surveys (12mo)",tabs:"o",s:r=>r.all_survey_count??-1},
+  {k:"inapp",  g:"sentiment", t:"In-app",tabs:"pc",s:r=>r.inapp_current??-1},
+  {k:"csat",   g:"sentiment", t:"CSAT",    tabs:"c", s:r=>r.csat_current??-1},
+  // Recommendation
+  {k:"recsent", g:"rec",  t:"Default rec sent", s:r=>r.default_rec_sent||""},
+  {k:"d2def",   g:"rec",  t:"Time to rec sent",s:r=>r.days_to_rec_cycle??99999,
+     ttl:()=>"Opp create → first recommendation sent (days)"},
+  {k:"trfd",    g:"rec",  t:"Time in RFD",s:r=>r.days_to_default??99999,
+     ttl:()=>"Time in RFD (SLO) — days in Ready-for-Default-Package"},
+  {k:"altreq",  g:"rec",  t:"Alt requested",s:r=>(isY(r.alt_requested)||r.alt_requested_date)?1:0},
+  {k:"altcreated",g:"rec",t:"Alt created", s:r=>r.alt_created??-1},
+  {k:"altpub",  g:"rec",  t:"Alt published",s:r=>r.alt_published_date||""},
+  {k:"days2alt",g:"rec",  t:"Days to alt",  s:r=>r.days_to_alt??99999},
+  {k:"terc",   g:"rec",  t:"Time in ERC",s:r=>r.time_in_erc??99999,
+     ttl:()=>"Time in ER Confirm — days in stage"},
+  // Benefit order  (BO status MUST remain the last column on PF/Closed)
+  {k:"tix",    g:"bo",    t:"Tickets → Advising",tabs:"pc",s:r=>r.tickets_to_advising??-1},
+  {k:"opentix",g:"bo",    t:"Open tickets",tabs:"pc",s:r=>r.open_tickets??-1},
+  {k:"opentixsla",g:"bo", t:"Open >5d",tabs:"pc",s:r=>r.open_tickets_past_sla??-1},
+  {k:"bostatus",g:"bo",   t:"BO status",tabs:"pc",s:r=>r.bo_status||""}   // MUST be last on PF/Closed
+];
+const LINE_COLS = BT_PRESENT.map(([bt,lab]) => ({
+  k:"ln_"+bt, g:"line", t:lab, line:true, bt:bt,
+  s:r=>{ const v=lineEnr(r,bt); return v==null?-1:v; }
+}));
+const COLS = (()=>{ const i=BASE_COLS.findIndex(c=>c.k==="nlines");
+  return BASE_COLS.slice(0,i+1).concat(LINE_COLS, BASE_COLS.slice(i+1)); })();
+const GROUP_LABEL = {customer:"Customer", queue:"Outreach priority", closed:"Closed-only", general:"General", line:"Line (current)", flags:"Flags", contact:"Customer Contact", sentiment:"Sentiment", rec:"Recommendation", bo:"Benefit order"};
+const GROUP_ORDER = [...new Set(COLS.map(c=>c.g))];
+const tabCode = () => TAB==="open"?"o":TAB==="pf"?"p":"c";
+const colInTab = c => !c.tabs || c.tabs.includes(tabCode());
+const visibleCols = () => COLS.filter(c => (c.line ? LINES_OPEN : true) && colInTab(c));
+function pinLeft(cols, i){ let x=0; for(let j=0;j<i;j++){ if(cols[j].pin) x+=PIN_W[cols[j].k]||120; } return x; }
+
+/* ============================================================ tier + helpers */
+function tierChip(r, showAnno){
+  if (r.queue_tier==null) return DASH;
+  const t = r.queue_tier;
+  const reason = TIER_NAMES[t]||"";
+  const annos = r.tier_annos||[];
+  const annoTip = annos.length ? ` · ${annos.join(", ")}` : "";
+  let out = `<span class="tier t${t}" title="Outreach priority P${t} — ${esc(reason)}${esc(annoTip)}">P${t}</span>`
+       + (reason ? ` <span class="t-ok" style="font-size:10.5px">${esc(reason)}</span>` : "");
+  if (showAnno && annos.length) out += " " + annos.map(a=>`<span class="badge rc">${esc(a)}</span>`).join(" ");
+  return out;
+}
+function dot(state, title){
+  const cls = state==="bad"?"bad":state==="warn"?"warn":state==="on"?"on":"";
+  return `<span class="dot ${cls}" title="${esc(title)}"></span>`;
+}
+function rateCell(r){
+  // medical-anchored premium Δ. Open/PF -> rate_increase_pct (Projected);
+  // Closed -> medical line d_fin (Final). Null Closed d_fin -> em-dash.
+  if (tabCode()==="c"){
+    const ml = medLine(r); const v = ml ? ml.d_fin : null;
+    if (v==null) return DASH;
+    const cls = v>=30?"t-bad":v>=20?"t-warn":v>=15?"t-gold":"";
+    return `<span class="num ${cls}" title="Final selected medical premium Δ (enrolled)">${(v>0?"+":"")+v.toFixed(1)}%</span>`;
+  }
+  const v = r.rate_increase_pct, st = r.rate_status||"";
+  if (v==null) return `<span class="t-ok" title="${esc(st)}">${esc(st.replace(/^estimate /,"est ")||"—")}</span>`;
+  const cls = v>=30?"t-bad":v>=20?"t-warn":v>=15?"t-gold":"";
+  const suffix = (st && st!=="computed") ? ` <span class="t-ok" style="font-size:10px">${esc(st.replace(/^estimate /,"est "))}</span>` : "";
+  return `<span class="num ${cls}" title="Projected medical renewal Δ vs successor · ${esc(st)}">${v.toFixed(1)}%</span>${suffix}`;
+}
+const ICONS = {
+  hippo: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13a6 4.5 0 0 1 6-4.5h4a5.5 4 0 0 1 4.4 2.2l1.6.4v3l-1.4.3A5.5 4 0 0 1 17 17v2h-2.5v-1.4h-3V19H9v-2.2A6 4.5 0 0 1 4 13z"/><path d="M9.5 8.6A2.4 2 0 0 1 13 7.4"/><circle cx="15.4" cy="12.4" r=".5"/></svg>`,
+  sf:    `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 18H7.5a3.5 3.5 0 0 1-.6-6.95A4.5 4.5 0 0 1 15.6 9.6 3.2 3.2 0 0 1 17 18z"/></svg>`,
+  bo:    `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 11h7M8.5 14h7M8.5 17h4"/></svg>`
+};
+function coIcon(url, kind, title){
+  const svg = ICONS[kind] || "";
+  return url
+    ? `<a class="ic" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(title)}">${svg}</a>`
+    : `<span class="ic off" title="${esc(title)} — none on record">${svg}</span>`;
+}
+
+/* ============================================================ risk engine
+   Per-tab risk profile computed client-side from existing row fields.
+   Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
+   PF    -> riskPF    (4-factor fulfillment model)
+   Closed-> riskPF but marked archived. tier: >=35 High · >=18 Med · else Low. */
+const EARLY = new Set(["Open","SAL","Attempting Contact","New","Working","Nurturing"]);
+const MID   = new Set(["Engaged","ER Confirm"]);
