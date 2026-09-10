@@ -1,3 +1,8 @@
+    range: inc==null ? PH("X to Y") : F(lo.toFixed(0)+" to "+hi.toFixed(0)),
+    exact: inc==null ? PH("X") : F(inc.toFixed(1)),
+    rateKnown: rk, sel: r.selection_deadline ? F(r.selection_deadline) : PH("date"),
+    sub: r.submission_deadline ? F(r.submission_deadline) : PH("date"), eff:F(r.renewal_date||"—"), inc };
+}
 function buildScript(r){
   const v = scriptVars(r);
   const on = {
@@ -349,12 +354,7 @@ function ovInsights(L,O){
   const terc  = median(L.map(r=>r.time_in_erc));
   const meanAlt = mean(L.map(r=>r.alt_created));
   const d2alt = median(L.filter(r=>r.alt_published_date).map(r=> r.alt_published_days!=null?r.alt_published_days:r.days_to_alt ));
-  // PREMIUM (medical)
-  const medDelta = median(L.map(r=>r.rate_increase_pct));
-  // FLAGS
-  const lfBand = r => (r.lf_savings_band==="High"||r.lf_savings_band==="Medium"||r.lf_savings_band==="Low");
-  const recertOpen = cnt(L,r=>r.recert_status && r.recert_status!=="Recert Approved");
-  const packetNeeded = cnt(L,r=>/packet/i.test(r.blocked_reason||""));
-  const borTerm = cnt(L,r=>isY(r.bor_term) || /Termination|BoR/i.test(r.blocked_reason||""));
-  const col = inner => `<div class="ov-ins-col">${inner}</div>`;
-  return `<div class="ov-panel ov-insights"><div class="ov-ins-h">Book insights</div>`+
+  // % outside SLA (na-excluded — same denominator as the Advising SLA dashboard: opps that reached the stage)
+  const outSLA = f => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
+    return e? {v:`${Math.round(100*x/e)}% <span class="ov-sub">${x.toLocaleString()}/${e.toLocaleString()}</span>`, att:(100*x/e)>=40} : {v:"—",att:false}; };
+  const rfdO=outSLA("rfd_sla"), ercO=outSLA("erc_sla"), altO=outSLA("alt_sla");
