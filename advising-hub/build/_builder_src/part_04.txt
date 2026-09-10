@@ -1,3 +1,9 @@
+  const inc = r.rate_increase_pct;   // already a percentage number
+  const rk = r.rate_status==="computed";
+  const lo = inc==null ? null : Math.max(0, inc - (rk?1:3));
+  const hi = inc==null ? null : inc + (rk?2:4);
+  const ml = medLine(r)||{};
+  return { live:true, r, adv:F(r.advisor||"your advisor"), ren:F(r.renewal_date||"—"),
     carrier: ml.carrier ? F(ml.carrier) : PH("carrier"), carriers: r.carriers_enrolled||"",
     range: inc==null ? PH("X to Y") : F(lo.toFixed(0)+" to "+hi.toFixed(0)),
     exact: inc==null ? PH("X") : F(inc.toFixed(1)),
@@ -352,9 +358,3 @@ function ovInsights(L,O){
   // RECOMMENDATION & SLA
   const d2def = median(L.map(r=>r.days_to_rec_cycle));
   const trfd  = median(L.map(r=>r.days_to_default));
-  const terc  = median(L.map(r=>r.time_in_erc));
-  const meanAlt = mean(L.map(r=>r.alt_created));
-  const d2alt = median(L.filter(r=>r.alt_published_date).map(r=> r.alt_published_days!=null?r.alt_published_days:r.days_to_alt ));
-  // % outside SLA (na-excluded — same denominator as the Advising SLA dashboard: opps that reached the stage)
-  const outSLA = (f,minE=1) => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
-    return e>=minE? {v:`${Math.round(100*x/e)}% <span class="ov-sub">${x.toLocaleString()}/${e.toLocaleString()}</span>`, att:(100*x/e)>=40} : {v:"—",att:false}; };
