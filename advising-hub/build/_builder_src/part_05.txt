@@ -1,3 +1,9 @@
+  const terc  = median(L.map(r=>r.time_in_erc));
+  const meanAlt = mean(L.map(r=>r.alt_created));
+  const d2alt = median(L.filter(r=>r.alt_published_date).map(r=> r.alt_published_days!=null?r.alt_published_days:r.days_to_alt ));
+  // % outside SLA (na-excluded — same denominator as the Advising SLA dashboard: opps that reached the stage)
+  const outSLA = (f,minE=1) => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
+    return e>=minE? {v:`${Math.round(100*x/e)}% <span class="ov-sub">${x.toLocaleString()}/${e.toLocaleString()}</span>`, att:(100*x/e)>=40} : {v:"—",att:false}; };
   const rfdO=outSLA("rfd_sla"), ercO=outSLA("erc_sla"), altO=outSLA("alt_sla"), tktO=outSLA("ticket_sla",5), emlO=outSLA("email_sla");
   // PREMIUM (medical)
   const medDelta = median(L.map(r=>r.rate_increase_pct));
@@ -153,10 +159,10 @@ function ovRollup(){
       `<td class="ov-rtotcell"><span class="ov-rtot"><span class="ov-rtot-bar"><span style="width:${w}px"></span></span><b>${o.total}</b></span></td>`+
       slaCell(o)+`</tr>`;
   }).join("");
-  return `<div class="ov-panel ov-rollup"><table class="ov-rtable">`+
+  return `<div class="ov-panel ov-rollup"><div class="ov-rscroll"><table class="ov-rtable">`+
     `<thead><tr><th>${colHead}</th><th>LIVE OPPS</th><th>OPEN HIGH</th><th>PF HIGH</th><th>AT-RISK TOTAL →</th>`+
     `<th class="ov-rsla-grp" title="Outside SLA miss % — na excluded">OUTSIDE SLA %<div class="ov-rsla-key">RFD·ERC·ALT·TKT·EM</div></th></tr></thead>`+
-    `<tbody>${body||`<tr><td colspan="6" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div>`;
+    `<tbody>${body||`<tr><td colspan="6" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div></div>`;
 }
 function ovSeedScope(){
   const pes=ovPEs(), ics=ovICs(null);
