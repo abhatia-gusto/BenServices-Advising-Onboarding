@@ -234,6 +234,22 @@ def merge_freeze(prior_path):
         ct = int(fnum(r.get("OPEN_CT")) or 0)
         if ct > 0: cases[r["OPP"]][r["RTS"]] = cases[r["OPP"]].get(r["RTS"],0) + ct
 
+    # reconstructed live pulls (B/C/D/E). On failure -> carry forward (skip overlay).
+    email_failed = "email_recency" in failed
+    sigs_failed  = "sf_open_signals" in failed
+    premd_failed = "premium_lines_delta" in failed
+    emailr = {} if email_failed else {r["OPP"]:r for r in _rd(os.path.join(VNEXT,"out","email_recency.csv"))}
+    sigs   = {} if sigs_failed  else {r["OPP"]:r for r in _rd(os.path.join(VNEXT,"out","sf_open_signals.csv"))}
+    premd  = {}
+    if not premd_failed:
+        for r in _rd(os.path.join(VNEXT,"out","premium_delta.csv")):
+            premd[(r["OPP"], r["BENEFIT_TYPE"])] = r
+    def _iround(x):
+        v = fnum(x); return int(round(v)) if v is not None else None
+    PR_INT = [("pr_exp_e","PR_EXP_E"),("pr_exp_n","PR_EXP_N"),("pr_succ","PR_SUCC"),
+              ("pr_dflt","PR_DFLT"),("pr_sel","PR_SEL"),("pr_fin","PR_FIN")]
+    PR_DEC = [("d_succ","D_SUCC"),("d_dflt","D_DFLT"),("d_sel","D_SEL"),("d_fin","D_FIN")]
+
     def cross_sentence(d):
         if not d: return None
         items = sorted(d.items(), key=lambda kv:(-kv[1], kv[0]))
@@ -299,6 +315,27 @@ def merge_freeze(prior_path):
                 row["open_cases_by_type"] = od; row["open_cases_total"] = sum(od.values())
                 cs = cross_sentence(od); ex = row.get("case_summary")
                 if cs: row["case_summary"] = (ex.rstrip()+" "+cs) if ex else cs
+            # --- reconstructed LIVE fields (Open/PF refresh; Closed stays frozen) ---
+            if not email_failed:
+                e = emailr.get(oid)
+                row["last_outbound_email_date"] = (e.get("LAST_OUTBOUND_EMAIL_DATE") or None) if e else None
+                row["last_inbound_email_date"]  = (e.get("LAST_INBOUND_EMAIL_DATE")  or None) if e else None
+            if not sigs_failed:
+                s = sigs.get(oid) or {}
+                row["auto_renewal"]       = s.get("AUTO_RENEWAL") or "N"
+                ld = fnum(s.get("LEAD_DAYS")); row["lead_days"] = int(ld) if ld is not None else None
+                row["selection_deadline"] = s.get("SELECTION_DEADLINE") or None
+                row["submission_deadline"]= s.get("SUBMISSION_DEADLINE") or None
+                row["bor_term"]           = s.get("BOR_TERM") or "N"
+                row["sep"]                = s.get("SEP") or "N"
+                row["recert_ticket"]      = s.get("RECERT_TICKET") or "N"
+                row["recert_flag_date"]   = s.get("RECERT_FLAG_DATE") or None
+                rl = fnum(s.get("RECERT_LATENESS_DAYS")); row["recert_lateness_days"] = int(rl) if rl is not None else None
+            if not premd_failed:
+                for l in row["lines"]:
+                    pr = premd.get((oid, l.get("benefit_type")))
+                    for jf,cf in PR_INT: l[jf] = _iround(pr.get(cf)) if pr else None
+                    for jf,cf in PR_DEC: l[jf] = fnum(pr.get(cf)) if pr else None
         else:                                           # CLOSED — frozen snapshot
             stat["closed"] += 1
             for k in FROZEN_CLOSED: row[k] = p.get(k)   # restore frozen numerics/premium

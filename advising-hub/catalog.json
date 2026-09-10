@@ -19,10 +19,22 @@
     {"id":"cases","file":"cases.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/casemeta.csv","feeds":["case_summary (renewal case counts)","n_rcase/n_open_rcase"]},
     {"id":"open_cases_by_type","file":"open_cases_by_type.sql","grain":"opp x record_type_summary","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/opencases_bytype.csv","feeds":["open_cases_by_type","open_cases_total","case_summary (cross-type line)"]},
     {"id":"time_in_erc","file":"time_in_erc.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/time_in_erc.csv","feeds":["time_in_erc"]},
-    {"id":"open_tickets","file":"open_tickets.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/open_tickets.csv","feeds":["open_tickets","open_tickets_past_sla"]}
+    {"id":"open_tickets","file":"open_tickets.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/open_tickets.csv","feeds":["open_tickets","open_tickets_past_sla"]},
+    {"id":"email_recency","file":"email_recency.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/email_recency.csv","feeds":["last_outbound_email_date","last_inbound_email_date"]},
+    {"id":"sf_open_signals","file":"sf_open_signals.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/sf_open_signals.csv","feeds":["auto_renewal","lead_days","selection_deadline","submission_deadline","bor_term","sep","recert_ticket","recert_flag_date","recert_lateness_days"]},
+    {"id":"premium_lines_delta","file":"premium_lines_delta.sql","grain":"opp x benefit_type","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/premium_delta.csv","feeds":["lines[].pr_exp_e/pr_exp_n/pr_succ/pr_dflt/pr_sel/pr_fin","lines[].d_succ/d_dflt/d_sel/d_fin"]}
   ],
   "carry_forward_not_reconstructed": {
-    "_note": "These JSON fields exist in the current dataset via ad-hoc patch scripts whose SQL was NOT saved to disk. refresh_advising_hub.py carries them forward per-opp from the prior published dataset (frozen). Reconstruct a clean query in a follow-up.",
-    "fields": ["per-line premium detail: pr_exp_e/pr_exp_n/pr_succ/pr_dflt/pr_sel/pr_fin and d_succ/d_dflt/d_sel/d_fin","lf_savings_pct","lf_savings_band (recomputed from lf_savings_pct)","lf_in_alt","auto_renewal","automation_eligible","lead_days","last_outbound_email_date","last_inbound_email_date","email_due*","cycle_open / tl_cycle_open","default_rec_sent / default_rec_built","days_to_default (RFD dwell; note: reconstructable from sla.sql RFD CTE — currently carried forward)","rate_increase_pct / rate_status (from _renewal_full rate_tmpl.sql, not re-pulled in the merge path)","recert_* (SF SOQL open-signal)","selection_deadline/submission_deadline (SF SOQL open-signal)","intro_call/intro_call_date (SF SOQL open-signal)","packets_files/packet_carriers (SF SOQL open-signal)"]
+    "_note": "Fields still carried forward per-opp from the prior published dataset (frozen) because they genuinely cannot be cleanly sourced from Snowflake, or are out of the current reconstruction scope. Open/PF live-refreshed fields have been REMOVED from this list (see queries above). Anything remaining is flagged with the reason.",
+    "unmappable_from_snowflake": {
+      "_note": "The originating SF object/field is not present in the DATA_WAREHOUSE_RC1 SF mirror, so these stay carried-forward.",
+      "recert_status": "SF Ticket__c.Recert_Status__c ('Recert Approved'/'Recert Failed'/...) is NOT mirrored in salesforce_production_no_pii.TICKET__C. recert_ticket/recert_flag_date/recert_lateness_days ARE now live (BI.SFDC_TICKETS open recert ticket); only the picklist status remains frozen.",
+      "packets_files / packet_carriers": "Sourced from ContentDocumentLink (Title LIKE '%Renewal Packet%'); ContentDocumentLink/ContentDocument are NOT present in salesforce_production_no_pii. No Snowflake equivalent found.",
+      "intro_call / intro_call_date": "SF Case.Intro_Call_Completed__c checkbox is NOT mirrored (case2 lost it). intro_call remains on the base-snapshot + intro_flips mechanism via assemble_vnext (semi-static). NOTE: intro_connect + connect_date (live-connect flag+date) ARE now live via sf_activity."
+    },
+    "out_of_scope_this_cycle": {
+      "_note": "Not part of the A-E reconstruction; still carried forward.",
+      "fields": ["lf_savings_pct","lf_savings_band (recomputed from lf_savings_pct)","lf_in_alt","automation_eligible","email_due*","cycle_open / tl_cycle_open","default_rec_sent / default_rec_built","days_to_default (RFD dwell; reconstructable from sla.sql RFD CTE)","rate_increase_pct / rate_status (from _renewal_full rate_tmpl.sql)"]
+    }
   }
 }

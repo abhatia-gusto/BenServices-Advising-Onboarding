@@ -77,3 +77,10 @@ Each tab shows: **Opps** (after filters) · **MRR** (before on Open/PF; before *
 ---
 
 *Companion to `risk_profile.md`, `default_automation.md`, and `auto_renewal.md`.*
+
+---
+
+## Sept 10 update
+- **`salesforce_production_no_pii.case2` schema drift.** `case2` was stripped of `opportunity__c`, `record_type_name__c`, `isclosed`, and `reason`. `sf_activity` and `cases` were re-pointed to **`BI.CASES`** (Benefits Renewal Case), joined to `task`, so case activity and renewal-case counts are unaffected (output columns unchanged).
+- **New live daily signals.** Three previously carried-forward areas are now reconstructed from Snowflake and refreshed daily on Open/PF opps (Closed stays frozen): (1) **email recency** — last outbound / last inbound email date; (2) **SF open-signals** — `auto_renewal`, selection/submission deadlines, recert ticket, BoR/term, SEP, `lead_days`; (3) **per-line premium deltas** — successor / default / selected / finalized premium tiers and their % deltas.
+- **Still carried-forward.** Sourced next via **Salesforce MCP**: `recert_status` (`Ticket__c.Recert_Status__c`), `intro_call` / `intro_call_date` (`Case.Intro_Call_Completed__c`), `packets_files` / `packet_carriers` (`ContentDocumentLink`). Snowflake-reconstructable next: `rate_increase_pct` / `rate_status`, `days_to_default`, `lf_*`, `email_due*`, `cycle_open`, `default_rec_*`, `automation_eligible`.
