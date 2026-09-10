@@ -30,6 +30,8 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 | queue_tier | Outreach-priority logic | Derived (builder) | ⚪ |
 | sf_opp_url, hippo_url, bo_url | opp/company/BO ids | Derived | ⚪ |
 
+> **`queue_tier` and `tab` are computed live in the builder** (`build_advising_hub.py`) from live fields and are **NOT persisted in the dataset** (`advising_vnext_data.json`).
+
 ## Enrollment & MRR — 🟢 live Open/PF · 🧊 Closed (`mrr.sql`, `premium_lines.sql`, Snowflake)
 | Field | Source | Via | Status |
 |---|---|---|---|
@@ -59,8 +61,10 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 |---|---|---|---|
 | default_automation | RENEWAL_AUTO_FINALIZE_RECORDS (extras) | Snowflake | 🟢 |
 | default_automation_date | RENEWAL_AUTO_FINALIZE_RECORDS | Snowflake | 🟢 |
-| auto_renewal | ADVISING_OPPORTUNITIES.REASON_FOR_ADVISING (`sf_open_signals`) | Snowflake | 🟢 |
+| auto_renewal | SNOWPLOW_FACTS.GA_TRACK_365_DAYS — event `CATEGORY='Renewals' AND ACTION='ConfirmDefaultAndSkipFlow'`, keyed `COMPANY_ID=zp_company_id` within [renewal_date−120d, +31d) (`auto_renewal.sql`) | Snowflake | 🟢 |
 | automation_eligible, rate_parse_success | RENEWAL_AUTO_FINALIZE_RECORDS + RATE_PARSING_RECORDS (`auto_finalize.sql`) | Snowflake | 🟢 |
+
+> **auto_renewal is the CUSTOMER auto-renewal** — the customer *confirmed the default package and skipped* the renewal flow (Snowplow `ConfirmDefaultAndSkipFlow`). This is **DISTINCT from `default_automation`**, which is the *system* auto-finalize flag from RENEWAL_AUTO_FINALIZE_RECORDS. It replaced the old ADVISING_OPPORTUNITIES.REASON_FOR_ADVISING derivation (unreliable, broke at FY26 Q2).
 
 ## Recommendation / SLA / timing
 | Field | Source | Via | Status |
@@ -136,10 +140,10 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 ## Summary — full live coverage (Sept 10)
 **Every field now refreshes live daily on Open/PF.** Two source systems, both run unattended by the 7:30a ET daily task:
 
-- **Snowflake (headless, in `refresh_advising_hub.py`):** identity, stage, MRR/enrollment, per-line premium deltas, rate index (rate_increase_pct/rate_status/rate_structure), rating region, funding, default automation + automation_eligible/rate_parse_success, auto-renewal, SLA (RFD/ERC/Alt), time-in-ERC, days_to_default (Time in RFD), alternates, LF (savings %/band/in_alt/quote), recommendation timing (default_rec_sent/built, cycle_open), email recency + email-due/HOOP, intro-connect/activity, recert ticket, deadlines, BoR/term, SEP, lead days, tickets/open-tickets, cases, CSAT/in-app/surveys, BO status.
+- **Snowflake (headless, in `refresh_advising_hub.py`):** identity, stage, MRR/enrollment, per-line premium deltas, rate index (rate_increase_pct/rate_status/rate_structure), rating region, funding, default automation + automation_eligible/rate_parse_success, auto-renewal (customer confirm-default-and-skip, from Snowplow GA_TRACK_365_DAYS), SLA (RFD/ERC/Alt), time-in-ERC, days_to_default (Time in RFD), alternates, LF (savings %/band/in_alt/quote), recommendation timing (default_rec_sent/built, cycle_open), email recency + email-due/HOOP, intro-connect/activity, recert ticket, deadlines, BoR/term, SEP, lead days, tickets/open-tickets, cases, CSAT/in-app/surveys, BO status.
 - **Salesforce MCP (pulled by the daily task orchestrator before the python step):** `intro_call`/`intro_call_date` (Case.Intro_Call_Completed__c + Case CreatedDate proxy), `recert_status` (Ticket__c.Recert_Status__c, latest recert ticket), `packets_files`/`packet_carriers` (ContentDocumentLink, Title ~ 'Renewal Packet', linked to the Opp). Carry-forward safety: if the SF-MCP pull is unavailable on a given run, these keep their prior values.
 
-**⚪ Derived** (computed in builder/assembler from the live fields above): queue_tier, risk, tab, survey_summary, lf_savings_band, the `tl_*` timeline fields, the alt day-count derivations, url fields.
+**⚪ Derived** (computed in builder/assembler from the live fields above): queue_tier, risk, tab, survey_summary, lf_savings_band, the `tl_*` timeline fields, the alt day-count derivations, url fields. **Note:** `queue_tier` and `tab` are computed live in `build_advising_hub.py` and are **NOT persisted** in `advising_vnext_data.json`.
 
 **🧊 Frozen by design:** all Closed-opp snapshot values (final premium, MRR before/after, enrolled before/after, outcome, close date) — only CSAT/in-app re-check.
 
