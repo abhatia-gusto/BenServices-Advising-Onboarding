@@ -247,7 +247,7 @@ function detailRow(r, span){
     ["Recert flag date", r.recert_flag_date],
     ["Recert lateness", r.recert_lateness_days!=null?`${r.recert_lateness_days}d late`:null],
     ["SEP", isY(r.sep)?`<span class="pill hot">flagged</span>`:null],
-    ["Auto-renewal", isY(r.auto_renewal)?`<span class="pill">Yes</span>`:null],
+    ["Auto-renewal (customer)", isY(r.auto_renewal)?`<span class="pill">Yes${r.auto_renewal_date?" · "+esc(r.auto_renewal_date):""}</span>`:null],
     ["Default automation", (()=>{
         if (!isY(r.default_automation)) return `No`;
         const dt = r.default_automation_date?` · ${esc(r.default_automation_date)}`:"";
