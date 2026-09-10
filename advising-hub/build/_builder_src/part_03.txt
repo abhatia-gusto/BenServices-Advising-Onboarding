@@ -1,3 +1,8 @@
+    OPEN = (OPEN===id) ? null : id;
+    render();
+  }));
+  el("body").querySelectorAll("[data-lines]").forEach(n => n.addEventListener("click", e => {
+    e.stopPropagation(); LINES_OPEN = !LINES_OPEN; render();
   }));
   const dc = el("detailCell"); if (dc) dc.addEventListener("click", e => { if(!e.target.closest("a") && !e.target.closest("th")) e.stopPropagation(); });
   const showX = total ? start+1 : 0;
@@ -413,8 +418,3 @@ function scriptVars(r){
   const ml = medLine(r)||{};
   return { live:true, r, adv:F(r.advisor||"your advisor"), ren:F(r.renewal_date||"—"),
     carrier: ml.carrier ? F(ml.carrier) : PH("carrier"), carriers: r.carriers_enrolled||"",
-    range: inc==null ? PH("X to Y") : F(lo.toFixed(0)+" to "+hi.toFixed(0)),
-    exact: inc==null ? PH("X") : F(inc.toFixed(1)),
-    rateKnown: rk, sel: r.selection_deadline ? F(r.selection_deadline) : PH("date"),
-    sub: r.submission_deadline ? F(r.submission_deadline) : PH("date"), eff:F(r.renewal_date||"—"), inc };
-}
