@@ -84,3 +84,23 @@ Each tab shows: **Opps** (after filters) · **MRR** (before on Open/PF; before *
 - **`salesforce_production_no_pii.case2` schema drift.** `case2` was stripped of `opportunity__c`, `record_type_name__c`, `isclosed`, and `reason`. `sf_activity` and `cases` were re-pointed to **`BI.CASES`** (Benefits Renewal Case), joined to `task`, so case activity and renewal-case counts are unaffected (output columns unchanged).
 - **New live daily signals.** Three previously carried-forward areas are now reconstructed from Snowflake and refreshed daily on Open/PF opps (Closed stays frozen): (1) **email recency** — last outbound / last inbound email date; (2) **SF open-signals** — `auto_renewal`, selection/submission deadlines, recert ticket, BoR/term, SEP, `lead_days`; (3) **per-line premium deltas** — successor / default / selected / finalized premium tiers and their % deltas.
 - **Still carried-forward.** Sourced next via **Salesforce MCP**: `recert_status` (`Ticket__c.Recert_Status__c`), `intro_call` / `intro_call_date` (`Case.Intro_Call_Completed__c`), `packets_files` / `packet_carriers` (`ContentDocumentLink`). Snowflake-reconstructable next: `rate_increase_pct` / `rate_status`, `days_to_default`, `lf_*`, `email_due*`, `cycle_open`, `default_rec_*`, `automation_eligible`.
+
+---
+
+## Sept 10 — full live coverage
+Every field that used to be carried-forward is now sourced live. Open/PF opps refresh daily; Closed opps stay frozen. Nothing remains genuinely-unrecoverable — the `carry_forward_not_reconstructed` list in `catalog.json` is now empty.
+
+- **Now live from Snowflake** (in `refresh_advising_hub.py` → `merge_freeze`, Open/PF branch):
+  - `rate_increase_pct` / `rate_status` / `rate_structure` — `queries/rate_index.sql`.
+  - `days_to_default` (the **Time in RFD** dwell) — `queries/time_in_rfd.sql`.
+  - `lf_savings_pct` / `lf_savings_band` / `lf_in_alt` / `lf_quote` — `queries/lf.sql`.
+  - `automation_eligible` / `rate_parse_success` — `queries/auto_finalize.sql`.
+  - `default_rec_sent` / `default_rec_built` and `cycle_open` (+ derived rec-cycle timing) — `queries/rec_timing.sql`.
+  - `email_due` / `email_due_status` / `email_due_hoop_hrs` / `email_due_hoop_days` and `email_pending*` / `email_received_date` — `queries/email_due.sql`.
+- **Now live from the Salesforce MCP** (pulled by the daily **task orchestrator** each morning *before* the python runs — the python only reads the CSVs it leaves; see `../build/sf_mcp_pull_spec.md`):
+  - `recert_status` — `Ticket__c.Recert_Status__c` (most-recent recert ticket per opp).
+  - `intro_call` / `intro_call_date` — `Case.Intro_Call_Completed__c` (checkbox); the date is a **proxy** = the CreatedDate of the completed Benefits Renewal Case (there is no dedicated intro-call date field).
+  - `packets_files` / `packet_carriers` — `ContentDocumentLink` where `ContentDocument.Title LIKE '%Renewal Packet%'`, linked to the **Opportunity**.
+- **Notes.**
+  - `lf_savings_pct` is an **enrolled-only average** of per-employee savings vs the default medical recommendation (not an all-employee average).
+  - The local LF reason-code classifier (`lf_signal_classifier.py`) is an **optional, non-portable** enrichment for the separate LF-conversion dashboard; the four hub LF fields are pure Snowflake and do **not** require it (the pipeline runs it only as a guarded step, skipped headless).

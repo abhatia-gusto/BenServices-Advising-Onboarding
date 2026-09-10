@@ -22,19 +22,50 @@
     {"id":"open_tickets","file":"open_tickets.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/open_tickets.csv","feeds":["open_tickets","open_tickets_past_sla"]},
     {"id":"email_recency","file":"email_recency.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/email_recency.csv","feeds":["last_outbound_email_date","last_inbound_email_date"]},
     {"id":"sf_open_signals","file":"sf_open_signals.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/sf_open_signals.csv","feeds":["auto_renewal","lead_days","selection_deadline","submission_deadline","bor_term","sep","recert_ticket","recert_flag_date","recert_lateness_days"]},
-    {"id":"premium_lines_delta","file":"premium_lines_delta.sql","grain":"opp x benefit_type","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/premium_delta.csv","feeds":["lines[].pr_exp_e/pr_exp_n/pr_succ/pr_dflt/pr_sel/pr_fin","lines[].d_succ/d_dflt/d_sel/d_fin"]}
+    {"id":"premium_lines_delta","file":"premium_lines_delta.sql","grain":"opp x benefit_type","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/premium_delta.csv","feeds":["lines[].pr_exp_e/pr_exp_n/pr_succ/pr_dflt/pr_sel/pr_fin","lines[].d_succ/d_dflt/d_sel/d_fin"]},
+    {"id":"rate_index","file":"rate_index.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/rate_index.csv","feeds":["rate_increase_pct (ACT/EST ladder *100)","rate_status (computed/estimate(..)/no medical)","rate_structure (Age-banded/Composite)","lines[].rate_pct (medical)"]},
+    {"id":"time_in_rfd","file":"time_in_rfd.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/time_in_rfd.csv","feeds":["days_to_default (Time in RFD dwell)"]},
+    {"id":"lf","file":"lf.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/lf.csv","feeds":["lf_savings_pct (enrolled-avg GLPR vs default)","lf_savings_band (derived)","lf_quote (rate PDF / recommendation)","lf_in_alt"]},
+    {"id":"auto_finalize","file":"auto_finalize.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/auto_finalize.csv","feeds":["automation_eligible (eligible_renewal_flag)","rate_parse_success (Y=all parse records ok / N / null)"]},
+    {"id":"rec_timing","file":"rec_timing.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/rec_timing.csv","feeds":["cycle_open","tl_cycle_open","default_rec_sent","default_rec_built","days_to_rec_cycle/time_to_default_rec_days/rfd_to_rec_sent_days (derived)"]},
+    {"id":"email_due","file":"email_due.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/email_due.csv","feeds":["email_due","email_due_status","email_due_hoop_hrs","email_due_hoop_days (hrs/9)","email_pending/email_pending_date/email_pending_days","email_received_date"]}
   ],
   "carry_forward_not_reconstructed": {
     "_note": "Fields still carried forward per-opp from the prior published dataset (frozen) because they genuinely cannot be cleanly sourced from Snowflake, or are out of the current reconstruction scope. Open/PF live-refreshed fields have been REMOVED from this list (see queries above). Anything remaining is flagged with the reason.",
     "unmappable_from_snowflake": {
-      "_note": "The originating SF object/field is not present in the DATA_WAREHOUSE_RC1 SF mirror, so these stay carried-forward.",
-      "recert_status": "SF Ticket__c.Recert_Status__c ('Recert Approved'/'Recert Failed'/...) is NOT mirrored in salesforce_production_no_pii.TICKET__C. recert_ticket/recert_flag_date/recert_lateness_days ARE now live (BI.SFDC_TICKETS open recert ticket); only the picklist status remains frozen.",
-      "packets_files / packet_carriers": "Sourced from ContentDocumentLink (Title LIKE '%Renewal Packet%'); ContentDocumentLink/ContentDocument are NOT present in salesforce_production_no_pii. No Snowflake equivalent found.",
-      "intro_call / intro_call_date": "SF Case.Intro_Call_Completed__c checkbox is NOT mirrored (case2 lost it). intro_call remains on the base-snapshot + intro_flips mechanism via assemble_vnext (semi-static). NOTE: intro_connect + connect_date (live-connect flag+date) ARE now live via sf_activity."
+      "_note": "EMPTY. The three groups that used to live here (recert_status; packets_files/packet_carriers; intro_call/intro_call_date) are NOT in the DATA_WAREHOUSE_RC1 SF mirror and are now pulled LIVE from the Salesforce MCP by the task orchestrator each morning -> see the 'salesforce_mcp' section below and sf_mcp_pull_spec.md. Nothing remains genuinely-unrecoverable here."
     },
     "out_of_scope_this_cycle": {
-      "_note": "Not part of the A-E reconstruction; still carried forward.",
-      "fields": ["lf_savings_pct","lf_savings_band (recomputed from lf_savings_pct)","lf_in_alt","automation_eligible","email_due*","cycle_open / tl_cycle_open","default_rec_sent / default_rec_built","days_to_default (RFD dwell; reconstructable from sla.sql RFD CTE)","rate_increase_pct / rate_status (from _renewal_full rate_tmpl.sql)"]
+      "_note": "Empty. The Sept-10 reconstruction wired every previously-carried Snowflake-sourced field LIVE on Open/PF (Closed stays frozen): rate_index.sql (rate_increase_pct, rate_status, rate_structure), time_in_rfd.sql (days_to_default), lf.sql (lf_savings_pct/band/quote/in_alt), auto_finalize.sql (automation_eligible, rate_parse_success), rec_timing.sql (cycle_open, tl_cycle_open, default_rec_sent, default_rec_built + derived timing), email_due.sql (email_due*, email_pending*, email_received_date). See queries above; fields populated in refresh_advising_hub.merge_freeze Open/PF branch.",
+      "fields": [],
+      "lf_classifier_note": "lf_savings_pct/band/quote/in_alt are computed purely from Snowflake (GROUP_LEVEL_PLAN_RATES enrolled-avg + medical_package_offerings). The local lf_signal_classifier.py (ANTHROPIC_API_KEY + Salesforce) only enriches LF reason codes for the separate LF-conversion dashboard; the pipeline invokes it as an OPTIONAL guarded step (skipped headless). The four hub LF fields do NOT require it."
+    }
+  },
+  "salesforce_mcp": {
+    "_note": "Three field groups that are NOT in the Snowflake SF mirror (DATA_WAREHOUSE_RC1 salesforce_production_no_pii) and are therefore pulled LIVE from the Salesforce MCP by the TASK ORCHESTRATOR each morning BEFORE the python pipeline runs (python does NOT make these calls). The orchestrator writes 3 CSVs into _renewal_vnext/out/; refresh_advising_hub.py merge_freeze reads them and populates the fields on OPEN/PF opps only. If a CSV is absent (e.g. a headless python-only run) or an opp is not in it, the prior value carries forward; Closed opps always stay frozen. Opp-id source = _renewal_vnext/advising_vnext_data.json where closed==false (~7,390 opps). Batch LinkedEntityId/Opportunity__c IN (...) at <=200 ids/query (packets: <=~50 ids/query to keep MCP output small). Full spec: sf_mcp_pull_spec.md. CSVs are company/plan grain only (flags, picklist, filenames/carriers) — no employee names/emails/phones/note text.",
+    "intro_call / intro_call_date": {
+      "object": "Case (RecordType.Name='Benefits Renewal Case')",
+      "field": "Intro_Call_Completed__c (Checkbox); intro_call_date = CreatedDate (date) of the case where the checkbox is true. NOTE: there is NO dedicated intro-call-completed date field on Case; CreatedDate of the completed Benefits Renewal Case is the proxy, matching the original pipeline's intro.json semantics.",
+      "join": "Case.Opportunity__c = opp 18-char id",
+      "soql": "SELECT Opportunity__c oid, MIN(CreatedDate) mind FROM Case WHERE RecordType.Name='Benefits Renewal Case' AND Intro_Call_Completed__c=true AND Opportunity__c IN (:batch) GROUP BY Opportunity__c",
+      "derive": "intro_call='Y' for any opp returned else 'N'; intro_call_date = MIN(CreatedDate) date-part for returned opps, else null.",
+      "out_csv": "_renewal_vnext/out/sf_mcp_intro.csv (opp_id18,intro_call,intro_call_date) — write a row for EVERY queried Open/PF opp (Y and N)."
+    },
+    "recert_status": {
+      "object": "Ticket__c (recert tickets carry RecordType.Name='Advising Fulfillment'; identified by Recert_Status__c != null)",
+      "field": "Recert_Status__c (Picklist: 'Recert Approved','Recert Failed','Sent to carrier','Advisor action needed','Customer unresponsive', ...)",
+      "join": "Ticket__c.Opportunity__c = opp 18-char id",
+      "soql": "SELECT Opportunity__c, Recert_Status__c, CreatedDate FROM Ticket__c WHERE Recert_Status__c != null AND Opportunity__c IN (:batch)",
+      "derive": "recert_status = Recert_Status__c of the MOST RECENT ticket by CreatedDate per opp (current status). Only opps with a recert ticket are emitted.",
+      "out_csv": "_renewal_vnext/out/sf_mcp_recert.csv (opp_id18,recert_status) — only opps that have a recert ticket."
+    },
+    "packets_files / packet_carriers": {
+      "object": "ContentDocumentLink / ContentDocument (renewal packet files)",
+      "field": "ContentDocument.Title, ContentDocument.CreatedDate",
+      "join": "ContentDocumentLink.LinkedEntityId = opp 18-char id (packets are linked to the OPPORTUNITY, confirmed; NOT the Case)",
+      "soql": "SELECT LinkedEntityId, ContentDocument.Title, ContentDocument.CreatedDate FROM ContentDocumentLink WHERE ContentDocument.Title LIKE '%Renewal Packet%' AND LinkedEntityId IN (:batch)   -- ContentDocumentLink requires LinkedEntityId equals/IN; batch <=~50 ids to keep output small",
+      "derive": "packets_files = raw count of matching docs per opp. packet_carriers = carrier parsed from each Title (text after the LAST date-token [regex \\d{4}-?\\d{1,2}-?\\d{1,2}] and before 'Renewal Packet'; if no date token, the whole pre-'Renewal Packet' text), keeping the latest CreatedDate per carrier, sorted by (latest_date, carrier), joined ' \\u00b7 ' as 'Carrier (YYYY-MM-DD)'. No carrier-name canonicalization (raw title text is kept, e.g. 'UnitedHealthcare CO'). Validated 80/80 files + carriers exact vs the prior dataset.",
+      "out_csv": "_renewal_vnext/out/sf_mcp_packets.csv (opp_id18,packets_files,packet_carriers) — only opps with >=1 renewal-packet file."
     }
   }
 }
