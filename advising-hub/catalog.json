@@ -1,0 +1,28 @@
+{
+  "_comment": "Canonical query catalog for the Benefits Advising Hub refresh. Each entry: id -> sql file, grain, params, out_csv (where refresh_advising_hub.py writes it, relative to BenOps folder), and the JSON field(s) it feeds in _renewal_vnext/advising_vnext_data.json. Cohort = renewal_date IN the 6 dates; substitute {{cohort_dates}} with a quoted, comma-separated date list.",
+  "params": {
+    "cohort_dates": "'2026-07-01','2026-08-01','2026-09-01','2026-10-01','2026-11-01','2026-12-01'"
+  },
+  "queries": [
+    {"id":"cohort","file":"cohort.sql","grain":"opp (SFDC_OBJECT_ID)","params":["cohort_dates"],"out_csv":"_renewal_full/out/cohort.csv","feeds":["opp_id15/18","company","renewal_date","stage","days_to_renewal","days_in_stage","advisor","pe","funding_type","blocked_reason","sep","cohort","closed","hi_renewal_id/zp_company_id mapping"]},
+    {"id":"mrr","file":"mrr.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_full/out/mrr.csv","feeds":["mrr_before","mrr_after","carrier_detail","enrolled_* before/after (per-line b/a)","has_<line>_before/after"]},
+    {"id":"extras","file":"extras.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_full/out/extras.csv","feeds":["default_automation","funding (med_funding)","num_lines","bo_status","in_app (rating)","csat","tickets_to_advising (warehouse)"]},
+    {"id":"sla","file":"sla.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_full/out/sla.csv","feeds":["rfd_sla","erc_sla","alt_sla"]},
+    {"id":"premium_lines","file":"premium_lines.sql","grain":"opp x benefit_type","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/premium_lines.csv","feeds":["lines[].enr_before/after","lines[].mrr_before/after (recomputed via price book)","funding_after","mrr/mrr_before/mrr_after (row sums)","enrollees"]},
+    {"id":"rating_region","file":"rating_region.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/rr.csv","feeds":["rating_region"]},
+    {"id":"alt","file":"alt.sql","grain":"renewal_id","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/altv.csv","feeds":["alt_requested","alt_req_date","alt_pub_count","alt_pub_first","alt_pub_last","alt_pub_carriers"]},
+    {"id":"survey_answers","file":"survey_answers.sql","grain":"opp x question","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/surveyv.csv","feeds":["survey_answered","survey_answers"]},
+    {"id":"surveys_12mo","file":"surveys_12mo.sql","grain":"company x survey","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/surv12.csv","feeds":["surveys_12mo","all_survey_count"]},
+    {"id":"inapp","file":"inapp.sql","grain":"company","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/inappv.csv","feeds":["in_app","inapp_current","in_app_comment","in_app_date"]},
+    {"id":"tickets","file":"tickets.sql","grain":"opp x ticket","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/tixv.csv","feeds":["tickets_to_advising","tickets_list"]},
+    {"id":"sf_activity","file":"sf_activity.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/sfact.csv","feeds":["last_update","intro_connect","connect_date","case_summary (activity)","n_email/n_call/n_connect"]},
+    {"id":"cases","file":"cases.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/casemeta.csv","feeds":["case_summary (renewal case counts)","n_rcase/n_open_rcase"]},
+    {"id":"open_cases_by_type","file":"open_cases_by_type.sql","grain":"opp x record_type_summary","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/opencases_bytype.csv","feeds":["open_cases_by_type","open_cases_total","case_summary (cross-type line)"]},
+    {"id":"time_in_erc","file":"time_in_erc.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/time_in_erc.csv","feeds":["time_in_erc"]},
+    {"id":"open_tickets","file":"open_tickets.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/open_tickets.csv","feeds":["open_tickets","open_tickets_past_sla"]}
+  ],
+  "carry_forward_not_reconstructed": {
+    "_note": "These JSON fields exist in the current dataset via ad-hoc patch scripts whose SQL was NOT saved to disk. refresh_advising_hub.py carries them forward per-opp from the prior published dataset (frozen). Reconstruct a clean query in a follow-up.",
+    "fields": ["per-line premium detail: pr_exp_e/pr_exp_n/pr_succ/pr_dflt/pr_sel/pr_fin and d_succ/d_dflt/d_sel/d_fin","lf_savings_pct","lf_savings_band (recomputed from lf_savings_pct)","lf_in_alt","auto_renewal","automation_eligible","lead_days","last_outbound_email_date","last_inbound_email_date","email_due*","cycle_open / tl_cycle_open","default_rec_sent / default_rec_built","days_to_default (RFD dwell; note: reconstructable from sla.sql RFD CTE — currently carried forward)","rate_increase_pct / rate_status (from _renewal_full rate_tmpl.sql, not re-pulled in the merge path)","recert_* (SF SOQL open-signal)","selection_deadline/submission_deadline (SF SOQL open-signal)","intro_call/intro_call_date (SF SOQL open-signal)","packets_files/packet_carriers (SF SOQL open-signal)"]
+  }
+}
