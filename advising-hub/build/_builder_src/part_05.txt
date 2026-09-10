@@ -1,3 +1,4 @@
+  const rfdO=outSLA("rfd_sla"), ercO=outSLA("erc_sla"), altO=outSLA("alt_sla"), tktO=outSLA("ticket_sla",5), emlO=outSLA("email_sla");
   // PREMIUM (medical)
   const medDelta = median(L.map(r=>r.rate_increase_pct));
   // FLAGS
@@ -13,11 +14,11 @@
       row("Intro complete", pct(L,r=>isY(r.intro_call))+"%")+
       row("Connect rate", connect+"%")+
       row("Email due (unanswered)", cnt(L,r=>isY(r.email_due)).toLocaleString(), true)+
+      row("Email outside SLA", emlO.v, emlO.att)+
       row("Outreach pending (no rec)", (nO?Math.round(100*cnt(O,r=>!r.default_rec_sent)/nO):0)+"%", true)
     )+
     col(
       grp("AGING (median · # &gt;14d)")+
-      row("Last outbound contact", ag1.v, ag1.att)+
       row("Last email out", ag2.v, ag2.att)+
       row("Last email in", ag3.v, ag3.att)+
       row("Last SF update", ag4.v, ag4.att)
@@ -31,6 +32,7 @@
       row("RFD outside SLA", rfdO.v, rfdO.att)+
       row("ERC outside SLA", ercO.v, ercO.att)+
       row("ALT outside SLA", altO.v, altO.att)+
+      row("Ticket outside SLA", tktO.v, tktO.att)+
       row("Alt published", pct(L,r=>!!r.alt_published_date)+"%")+
       row("Avg alt packages", (meanAlt==null?"—":meanAlt.toFixed(2)))+
       row("Days to alt published", (d2alt==null?"—":d2alt+"d"))
@@ -121,7 +123,7 @@ function ovRollup(){
   const keyOf = isTeam ? (r=>r.pe) : (r=>r.advisor);
   const map=new Map();
   scopeRows.forEach(r=>{ const key=keyOf(r); if(!key) return;
-    if(!map.has(key)) map.set(key,{name:key,live:0,openHigh:0,pfHigh:0,rfdM:0,rfdX:0,ercM:0,ercX:0,altM:0,altX:0});
+    if(!map.has(key)) map.set(key,{name:key,live:0,openHigh:0,pfHigh:0,rfdM:0,rfdX:0,ercM:0,ercX:0,altM:0,altX:0,tktM:0,tktX:0,emlM:0,emlX:0});
     const o=map.get(key), t=tabOf(r);
     if(t==="open"||t==="pf") o.live++;
     if(t==="open" && riskCached(r).tier==="High") o.openHigh++;
@@ -129,14 +131,19 @@ function ovRollup(){
     if(r.rfd_sla==="Met")o.rfdM++; else if(r.rfd_sla==="Missed")o.rfdX++;
     if(r.erc_sla==="Met")o.ercM++; else if(r.erc_sla==="Missed")o.ercX++;
     if(r.alt_sla==="Met")o.altM++; else if(r.alt_sla==="Missed")o.altX++;
+    if(r.ticket_sla==="Met")o.tktM++; else if(r.ticket_sla==="Missed")o.tktX++;
+    if(r.email_sla==="Met")o.emlM++; else if(r.email_sla==="Missed")o.emlX++;
   });
   const rows=[...map.values()].map(o=>({...o,total:o.openHigh+o.pfHigh})).sort((a,b)=>b.total-a.total);
   const max=Math.max(1, ...rows.map(o=>o.total));
   const attr = isTeam ? "data-ovpe" : "data-ovic";
   const colHead = isTeam ? "PE TEAM" : "IC";
-  const slaCell=(m,x)=>{ const e=m+x; if(!e) return `<td class="ov-rsla">—</td>`;
+  // compact single-cell SLA: RFD·ERC·ALT·TKT·EMAIL (miss %, na-excluded; "–" when no eligible)
+  const seg=(m,x,minE=1)=>{ const e=m+x; if(e<minE) return `<span class="ov-s5-na" title="no eligible">–</span>`;
     const p=Math.round(100*x/e), c=p>=55?"#c0392b":(p>=40?"#b7791f":"var(--g6)");
-    return `<td class="ov-rsla" style="color:${c}${p>=40?";font-weight:700":""}" title="${x.toLocaleString()} of ${e.toLocaleString()} missed · na excluded">${p}%</td>`; };
+    return `<span style="color:${c}${p>=40?";font-weight:700":""}" title="${x.toLocaleString()} of ${e.toLocaleString()} missed · na excluded">${p}</span>`; };
+  const slaCell=o=>`<td class="ov-rsla5" title="Outside SLA % — RFD · ERC · ALT · Ticket · Email (na excluded)">`+
+    seg(o.rfdM,o.rfdX)+`<i>·</i>`+seg(o.ercM,o.ercX)+`<i>·</i>`+seg(o.altM,o.altX)+`<i>·</i>`+seg(o.tktM,o.tktX,5)+`<i>·</i>`+seg(o.emlM,o.emlX)+`</td>`;
   const body=rows.map(o=>{ const w=(o.total/max)*150;
     return `<tr class="ov-rrow" ${attr}="${esc(o.name)}" title="${isTeam?"See this PE's roll-up":"See this IC's book"}">`+
       `<td class="ov-rname">${esc(o.name)}</td>`+
@@ -144,12 +151,12 @@ function ovRollup(){
       `<td class="ov-rhi">${o.openHigh}</td>`+
       `<td class="ov-rhi">${o.pfHigh}</td>`+
       `<td class="ov-rtotcell"><span class="ov-rtot"><span class="ov-rtot-bar"><span style="width:${w}px"></span></span><b>${o.total}</b></span></td>`+
-      slaCell(o.rfdM,o.rfdX)+slaCell(o.ercM,o.ercX)+slaCell(o.altM,o.altX)+`</tr>`;
+      slaCell(o)+`</tr>`;
   }).join("");
   return `<div class="ov-panel ov-rollup"><table class="ov-rtable">`+
-    `<thead><tr><th rowspan="2">${colHead}</th><th rowspan="2">LIVE OPPS</th><th rowspan="2">OPEN HIGH</th><th rowspan="2">PF HIGH</th><th rowspan="2">AT-RISK TOTAL →</th><th colspan="3" class="ov-rsla-grp">OUTSIDE SLA (miss %)</th></tr>`+
-    `<tr><th class="ov-rsla-sub">RFD</th><th class="ov-rsla-sub">ERC</th><th class="ov-rsla-sub">ALT</th></tr></thead>`+
-    `<tbody>${body||`<tr><td colspan="8" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div>`;
+    `<thead><tr><th>${colHead}</th><th>LIVE OPPS</th><th>OPEN HIGH</th><th>PF HIGH</th><th>AT-RISK TOTAL →</th>`+
+    `<th class="ov-rsla-grp" title="Outside SLA miss % — na excluded">OUTSIDE SLA %<div class="ov-rsla-key">RFD·ERC·ALT·TKT·EM</div></th></tr></thead>`+
+    `<tbody>${body||`<tr><td colspan="6" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div>`;
 }
 function ovSeedScope(){
   const pes=ovPEs(), ics=ovICs(null);
