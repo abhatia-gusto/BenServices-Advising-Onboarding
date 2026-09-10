@@ -89,6 +89,8 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 | last_update, last_update_date, last_contact_date | task activity (`sf_activity.sql`) | Snowflake | 🟢 |
 | intro_call, intro_call_date | Case.Intro_Call_Completed__c (+ Case CreatedDate proxy) | **Salesforce MCP** (daily task) | 🟢 |
 | email_due, email_due_hoop_days/hrs/status, email_pending/date/days, email_received_date | BENEFIT_ORDER_TOUCHPOINTS HOOP calc (`email_due.sql`) | Snowflake | 🟢 |
+| email_sla | inbound answered ≤240 HOOP-min, any-late=Missed (`email_sla.sql`) | Snowflake | 🟢 |
+| last_contact_date | SF activity last outbound touch — field kept; no longer shown in Overview insights (superseded by Last SF update) | Snowflake | 🟢 |
 
 ## Flags
 | Field | Source | Via | Status |
@@ -116,6 +118,7 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 |---|---|---|---|
 | tickets_to_advising, tickets_list | BI.SFDC_TICKETS team='Benefits Advising' (`tickets.sql`) | Snowflake | 🟢 |
 | open_tickets, open_tickets_past_sla | BI.SFDC_TICKETS status+age (`open_tickets.sql`) | Snowflake | 🟢 |
+| ticket_sla | OA→Advising ticket resolution ≤5d, any-late=Missed (`ticket_sla.sql`) | Snowflake | 🟢 |
 | bo_status | benefit order status (extras) | Snowflake | 🟢 |
 | open_cases_by_type, open_cases_total | BI.CASES by record type (`open_cases_by_type.sql`) | Snowflake | 🟢 |
 | case_summary | BI.CASES + activity (`cases.sql` + `sf_activity.sql`) | Snowflake | 🟢 |
