@@ -177,7 +177,7 @@ function cell(r,k){
     case "sep":     return isY(r.sep)?dot("bad","SEP on the opp"):DASH;
     case "bor":     return isY(r.bor_term)?dot("bad","BoR / termination"):DASH;
     case "rate":    return rateCell(r);
-    case "autoren": return isY(r.auto_renewal)?`<span title="Auto-renewed (reason for advising)">${dot("on","Auto-renewal")}</span>`:DASH;
+    case "autoren": return isY(r.auto_renewal)?`<span title="Customer auto-renewed — confirmed default &amp; skipped flow${r.auto_renewal_date?" ("+esc(r.auto_renewal_date)+")":""}">${dot("on","Auto-renewal")}</span>`:DASH;
     case "defauto": return isY(r.default_automation)?dot("on","Default automation"+(r.default_automation_date?" · completed "+r.default_automation_date:"")):DASH;
     case "intro":   return isY(r.intro_call)?`<span title="Intro complete${r.intro_call_date?" "+esc(r.intro_call_date):""}">${dot("on","Intro call complete")}</span>`:DASH;
     case "introc":  return isY(r.intro_connect)?`<span title="Live connect${r.intro_connect_date?" "+esc(r.intro_connect_date):""}">${dot("on","Intro connected")}</span>`:( r.intro_connect==null?DASH:`<span title="no live connect">${dot("warn","no live connect logged")}</span>`);
