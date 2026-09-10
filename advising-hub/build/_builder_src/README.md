@@ -11,9 +11,9 @@ cat part_01a.txt part_01b.txt part_02.txt part_03.txt part_04.txt part_05.txt > 
 Verify — the reconstructed file's git blob SHA must equal:
 
 ```
-5153ab694b1e2ac6fe1d4bd68d008d79e2465a8e
+ca048bfe970c2a34bac6afe9924f9c3a1f0bc487
 ```
 
 (`git hash-object build_advising_hub.py`). Each part was verified byte-exact against its source
 line range (part_01a = lines 1–380, part_01b = 381–760, part_02 = 761–1180, part_03 = 1181–1600,
-part_04 = 1601–1960, part_05 = 1961–2295). See `../REBUILD.md` for the full rebuild specification.
+part_04 = 1601–1960, part_05 = 1961–2301). See `../REBUILD.md` for the full rebuild specification.
