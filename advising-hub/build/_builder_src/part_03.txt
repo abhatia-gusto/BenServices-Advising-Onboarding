@@ -1,3 +1,9 @@
+      vc.map((c,i)=>{const a=pinAttr(c,i);const cv=cell(r,c.k);return `<td class="${a.cls}${c.line?" g-line":""}" style="${a.style}">${(cv===""||cv==null)?DASH:cv}</td>`;}).join("") + `</tr>` +
+      (OPEN===r.opp_id15 ? detailRow(r,vc.length) : "")
+  ).join("") : `<tr><td class="loading" colspan="${vc.length}">Nothing matches these filters.</td></tr>`;
+  el("body").querySelectorAll("tr.row").forEach(tr => tr.addEventListener("click", e => {
+    if (e.target.closest("a")) return;
+    if (e.target.closest("[data-lines]")) return;
     const id = tr.dataset.id;
     OPEN = (OPEN===id) ? null : id;
     render();
@@ -412,9 +418,3 @@ function scriptAgenda(r){
 function scriptVars(r){
   if (!r) return {live:false, adv:PH("advisor"), ren:PH("date"), carrier:PH("carrier"),
     range:PH("X to Y"), exact:PH("X"), sel:PH("date"), sub:PH("date"), eff:PH("effective date"), rateKnown:false, inc:null};
-  const inc = r.rate_increase_pct;   // already a percentage number
-  const rk = r.rate_status==="computed";
-  const lo = inc==null ? null : Math.max(0, inc - (rk?1:3));
-  const hi = inc==null ? null : inc + (rk?2:4);
-  const ml = medLine(r)||{};
-  return { live:true, r, adv:F(r.advisor||"your advisor"), ren:F(r.renewal_date||"—"),
