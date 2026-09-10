@@ -1,3 +1,4 @@
+   Per-tab risk profile computed client-side from existing row fields.
    Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
    PF    -> riskPF    (4-factor fulfillment model)
    Closed-> riskPF but marked archived. tier: >=35 High · >=18 Med · else Low. */
@@ -417,4 +418,3 @@ function render(){
   el("body").querySelectorAll("tr.row").forEach(tr => tr.addEventListener("click", e => {
     if (e.target.closest("a")) return;
     if (e.target.closest("[data-lines]")) return;
-    const id = tr.dataset.id;
