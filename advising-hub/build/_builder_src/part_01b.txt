@@ -46,6 +46,11 @@
 .ov-rname{font-weight:600}
 .ov-rnum{font-family:var(--mono);color:var(--g6)}
 .ov-rhi{font-family:var(--mono);font-weight:700;color:#c0392b}
+.ov-rsla{font-family:var(--mono);font-size:12px;text-align:center;color:var(--g6)}
+.ov-rsla-grp{text-align:center;border-left:1px solid var(--line);background:var(--g2)}
+.ov-rsla-sub{text-align:center;font-size:9px}
+.ov-rtable td.ov-rsla:nth-last-child(3){border-left:1px solid var(--line)}
+.ov-sub{font-weight:400;color:var(--g5);font-size:9px}
 .ov-rtotcell .ov-rtot{display:flex;align-items:center;gap:10px}
 .ov-rtot-bar{display:inline-block;width:150px;height:12px;background:var(--g3);border-radius:6px;overflow:hidden}
 .ov-rtot-bar span{display:block;height:12px;background:#c0392b;border-radius:6px}
@@ -56,7 +61,7 @@
 .ov-insstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:14px 4px}
 .ov-ins-col{padding:0 14px;border-right:1px solid #eef2f0}
 .ov-ins-col:last-child{border-right:none}
-.ov-3box{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.ov-3box{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 20px}
 .ov-3box>.ov-panel{width:100%}
 .ov-ins-h{font:700 15px var(--ui);color:var(--ink);margin-bottom:6px}
 .ov-ins-grp{font:700 9.5px var(--ui);letter-spacing:.05em;color:var(--g6);text-transform:uppercase;margin:12px 0 4px}
@@ -373,8 +378,3 @@ function coIcon(url, kind, title){
 
 /* ============================================================ risk engine
    Per-tab risk profile computed client-side from existing row fields.
-   Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
-   PF    -> riskPF    (4-factor fulfillment model)
-   Closed-> riskPF but marked archived. tier: >=35 High · >=18 Med · else Low. */
-const EARLY = new Set(["Open","SAL","Attempting Contact","New","Working","Nurturing"]);
-const MID   = new Set(["Engaged","ER Confirm"]);
