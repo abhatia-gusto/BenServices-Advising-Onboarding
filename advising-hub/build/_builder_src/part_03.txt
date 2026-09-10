@@ -1,3 +1,4 @@
+    const id = tr.dataset.id;
     OPEN = (OPEN===id) ? null : id;
     render();
   }));
@@ -417,4 +418,3 @@ function scriptVars(r){
   const hi = inc==null ? null : inc + (rk?2:4);
   const ml = medLine(r)||{};
   return { live:true, r, adv:F(r.advisor||"your advisor"), ren:F(r.renewal_date||"—"),
-    carrier: ml.carrier ? F(ml.carrier) : PH("carrier"), carriers: r.carriers_enrolled||"",
