@@ -112,19 +112,6 @@ sa AS (
     MAX(IFF(benefit_type='voluntary_short_term_disability', enr, NULL)) AS ENROLLED_VSTD_AFTER
   FROM sa_long GROUP BY 1
 ),
-vh_present AS (
-  SELECT ol.SFDC_OBJECT_ID, ol.benefit_type,
-    IFF(ol.renewal_stage_name='expiring','b','a') AS stg,
-    s.carrier_name AS carrier, COALESCE(s.carrier_state,'') AS st,
-    COUNT(DISTINCT s.hi_employee_id) AS enr
-  FROM ol
-  JOIN BI.DIM_HEALTH_INSURANCE_SUBSCRIPTION s
-    ON ol.policy_id = s.policy_id
-   AND ( (ol.renewal_stage_name='expiring' AND DATEADD('day',-105,ol.RENEWAL_DATE) BETWEEN s.start_date AND s.end_date)
-      OR (ol.renewal_stage_name='selected' AND s.start_date BETWEEN DATEADD('day',-30,ol.RENEWAL_DATE) AND DATEADD('day',30,ol.RENEWAL_DATE)) )
-  WHERE s.carrier_name IS NOT NULL
-  GROUP BY 1,2,3,4,5
-),
 carr_raw AS ( -- per opp x line x carrier enrolled, both windows (insured lines only)
   SELECT ol.SFDC_OBJECT_ID, ol.benefit_type,
     IFF(ol.renewal_stage_name='expiring','b','a') AS stg,
