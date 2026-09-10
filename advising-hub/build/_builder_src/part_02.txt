@@ -1,3 +1,9 @@
+  return url
+    ? `<a class="ic" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(title)}">${svg}</a>`
+    : `<span class="ic off" title="${esc(title)} — none on record">${svg}</span>`;
+}
+
+/* ============================================================ risk engine
    Per-tab risk profile computed client-side from existing row fields.
    Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
    PF    -> riskPF    (4-factor fulfillment model)
@@ -412,9 +418,3 @@ function render(){
   const shown = data.slice(start, end);
   el("body").innerHTML = shown.length ? shown.map(r =>
     `<tr class="row${OPEN===r.opp_id15?" open":""}" data-id="${esc(r.opp_id15)}">` +
-      vc.map((c,i)=>{const a=pinAttr(c,i);const cv=cell(r,c.k);return `<td class="${a.cls}${c.line?" g-line":""}" style="${a.style}">${(cv===""||cv==null)?DASH:cv}</td>`;}).join("") + `</tr>` +
-      (OPEN===r.opp_id15 ? detailRow(r,vc.length) : "")
-  ).join("") : `<tr><td class="loading" colspan="${vc.length}">Nothing matches these filters.</td></tr>`;
-  el("body").querySelectorAll("tr.row").forEach(tr => tr.addEventListener("click", e => {
-    if (e.target.closest("a")) return;
-    if (e.target.closest("[data-lines]")) return;
