@@ -116,6 +116,40 @@ def fnum(x):
     try: return float(x)
     except: return None
 
+def _dparse(s):
+    if not s or str(s) in ("None","null",""): return None
+    s = str(s).split("T")[0].split(" ")[0]
+    try: return datetime.date.fromisoformat(s)
+    except Exception: return None
+
+def _daysbetween(a, b):
+    da, db = _dparse(a), _dparse(b)
+    if not da or not db: return None
+    return (db - da).days
+
+# rate ACT/EST/STS -> (rate_increase_pct, rate_status)  [verbatim _renewal_full/assemble_full.py logic]
+def _rate_map(rr):
+    if not rr: return (None, "no medical")
+    act = fnum(rr.get("ACT")); est = fnum(rr.get("EST")); sts = rr.get("STS") or ""
+    if act is not None: return (round(act*100,1), "computed")
+    if est is not None: return (round(est*100,1), "estimate ("+(sts or "no successor")+")")
+    return (None, (sts or "no medical"))
+
+def _lf_band(p):   # repull_patch.py bands (p is a fraction)
+    if p is None: return None
+    if p > 0.10: return "High"
+    if p >= 0.05: return "Medium"
+    if p > 0: return "Low"
+    return "No"
+
+def _lf_quote_txt(x):
+    if not x: return None
+    rp = int(fnum(x.get("HAS_RATE_PDF")) or 0); rec = int(fnum(x.get("HAS_LF_REC")) or 0)
+    if rp and rec: return "LF plan available — rate PDF + recommendation"
+    if rp: return "LF plan available — rate PDF"
+    if rec: return "LF plan available — recommendation"
+    return None
+
 # ----------------------------------------------------------------- steps
 def ensure_venv():
     if not os.path.exists(VENV_PY):
@@ -188,6 +222,26 @@ def run_queries(resume=False):
             try: con.close()
             except Exception: pass
 
+def lf_classifier():
+    """OPTIONAL, NOT-PORTABLE: refresh the local LF-signal classifier (reason codes for the
+    separate LF-conversion dashboard), mirroring lf_refresh.py. The four hub LF fields
+    (lf_savings_pct/band/quote/in_alt) are Snowflake-derived and DO NOT need this. Runs only
+    when ANTHROPIC_API_KEY + Salesforce creds + the classifier's id list are present on this
+    machine; otherwise it is skipped. Never fatal to the hub refresh."""
+    clf  = os.path.join(HERE, "lf_signal_classifier.py")
+    ids  = os.path.join(HERE, "all_ids.txt")
+    have_creds = bool(os.environ.get("ANTHROPIC_API_KEY")) and (
+        os.environ.get("SF_SESSION_ID") or os.environ.get("SF_USERNAME"))
+    if not (os.path.exists(clf) and os.path.exists(ids) and have_creds):
+        print("  LF classifier: SKIP (headless / no ANTHROPIC_API_KEY+SF creds). "
+              "Hub LF fields are Snowflake-derived and unaffected.", flush=True)
+        return
+    try:
+        subprocess.run([sys.executable, clf, "--ids", ids], cwd=HERE, check=False, timeout=1800)
+        print("  LF classifier: ran (signal_enrich.json refreshed).", flush=True)
+    except Exception as e:
+        print(f"  LF classifier: WARN non-fatal ({e}); continuing.", flush=True)
+
 def backup_prior():
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     bak = DATA + f".bak_refresh_{ts}"
@@ -244,6 +298,47 @@ def merge_freeze(prior_path):
     if not premd_failed:
         for r in _rd(os.path.join(VNEXT,"out","premium_delta.csv")):
             premd[(r["OPP"], r["BENEFIT_TYPE"])] = r
+
+    # Sept-10 reconstruction: rate index, RFD dwell, LF, auto-finalize, rec timing, email due.
+    # All Open/PF-live, Closed-frozen (carry forward on pull failure).
+    rate_failed = "rate_index"    in failed
+    rfd_failed  = "time_in_rfd"   in failed
+    lf_failed   = "lf"            in failed
+    auto_failed = "auto_finalize" in failed
+    rect_failed = "rec_timing"    in failed
+    edue_failed = "email_due"     in failed
+    ratev = {} if rate_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","rate_index.csv"))}
+    rfdv  = {} if rfd_failed  else {r["OPP"]: fnum(r.get("TIME_IN_RFD")) for r in _rd(os.path.join(VNEXT,"out","time_in_rfd.csv"))}
+    lfv   = {} if lf_failed   else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","lf.csv"))}
+    autov = {} if auto_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","auto_finalize.csv"))}
+    rectv = {} if rect_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","rec_timing.csv"))}
+    eduev = {} if edue_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","email_due.csv"))}
+
+    # --- Salesforce MCP live fields (NOT in the Snowflake mirror) ---
+    # intro_call/intro_call_date (SF Case.Intro_Call_Completed__c), recert_status
+    # (SF Ticket__c.Recert_Status__c), packets_files/packet_carriers (SF ContentDocumentLink
+    # renewal packets). These 3 CSVs are produced each morning by the TASK ORCHESTRATOR via
+    # the Salesforce MCP (see sf_mcp_pull_spec.md / hub_queries/catalog.json -> salesforce_mcp),
+    # NOT by this python. Open/PF opps present in a CSV are refreshed live; anything absent
+    # (incl. a headless python-only run with no CSVs) carries forward the prior value, and
+    # Closed opps always stay frozen.
+    def _rd_opt(p):
+        return _rd(p) if (os.path.exists(p) and os.path.getsize(p) > 0) else []
+    OUTV = os.path.join(VNEXT, "out")
+    sfmcp_intro = {r["opp_id18"]: ((r.get("intro_call") or None), (r.get("intro_call_date") or None))
+                   for r in _rd_opt(os.path.join(OUTV, "sf_mcp_intro.csv"))}
+    sfmcp_recert = {r["opp_id18"]: (r.get("recert_status") or None)
+                    for r in _rd_opt(os.path.join(OUTV, "sf_mcp_recert.csv"))}
+    sfmcp_pk = {r["opp_id18"]: ((r.get("packets_files") or None), (r.get("packet_carriers") or None))
+                for r in _rd_opt(os.path.join(OUTV, "sf_mcp_packets.csv"))}
+    if sfmcp_intro or sfmcp_recert or sfmcp_pk:
+        print(f"  SF-MCP live fields: intro={len(sfmcp_intro)} recert={len(sfmcp_recert)} "
+              f"packets={len(sfmcp_pk)}", flush=True)
+    else:
+        print("  SF-MCP live fields: no CSVs present -> all 3 groups carry forward (Open/PF)", flush=True)
+
+    TODAY_ISO = datetime.date.today().isoformat()
+    EMAIL_DUE_PENDING = ("Pending response", "Pending (Missed SLA - aging)")
     def _iround(x):
         v = fnum(x); return int(round(v)) if v is not None else None
     PR_INT = [("pr_exp_e","PR_EXP_E"),("pr_exp_n","PR_EXP_N"),("pr_succ","PR_SUCC"),
@@ -336,6 +431,74 @@ def merge_freeze(prior_path):
                     pr = premd.get((oid, l.get("benefit_type")))
                     for jf,cf in PR_INT: l[jf] = _iround(pr.get(cf)) if pr else None
                     for jf,cf in PR_DEC: l[jf] = fnum(pr.get(cf)) if pr else None
+            # --- Sept-10 reconstructed LIVE fields (Open/PF refresh; Closed frozen) ---
+            if not rate_failed:                          # rate index -> P3 rate signal + risk
+                rr = ratev.get(oid)
+                pct, rstatus = _rate_map(rr)
+                row["rate_increase_pct"] = pct
+                row["rate_status"] = rstatus
+                row["rate_structure"] = (rr.get("RATE_STRUCTURE") or None) if rr else None
+                for l in row.get("lines") or []:         # medical line mirrors opp rate_pct
+                    if l.get("benefit_type") == "medical": l["rate_pct"] = pct
+            if not rfd_failed:
+                row["days_to_default"] = rfdv.get(oid)   # Time in RFD dwell (None if never RFD)
+            if not lf_failed:                            # P2 LF (savings % = Snowflake, no classifier)
+                x = lfv.get(oid)
+                p = fnum(x.get("LF_SAVINGS_PCT")) if x else None
+                row["lf_savings_pct"] = p
+                row["lf_savings_band"] = _lf_band(p)
+                row["lf_quote"] = _lf_quote_txt(x)
+                row["lf_in_alt"] = ("Y" if (x and int(fnum(x.get("HAS_LF_ALT")) or 0)) else "N")
+            if not auto_failed:
+                x = autov.get(oid)
+                row["automation_eligible"] = ("Y" if (x and int(fnum(x.get("ELIGIBLE_RENEWAL_FLAG")) or 0)) else "N")
+                if x and str(x.get("PARSE_RECORD_COUNT")) not in ("", "None", "0", "0.0"):
+                    sr = fnum(x.get("PARSE_SUCCESS_RATE"))
+                    row["rate_parse_success"] = "Y" if (sr is not None and sr >= 1.0) else "N"
+                else:
+                    row["rate_parse_success"] = None
+            if not rect_failed:                          # recommendation-cycle dates + derived timing
+                x = rectv.get(oid) or {}
+                cycle_open   = x.get("CYCLE_OPEN") or None
+                create_date  = x.get("CREATE_DATE") or None
+                rec_sent     = x.get("DEFAULT_REC_SENT") or None
+                rfd_date     = x.get("RFD_DATE") or None
+                default_built= x.get("DEFAULT_BUILT") or None
+                base_open    = cycle_open or create_date
+                row["cycle_open"]    = cycle_open
+                row["tl_cycle_open"] = cycle_open or create_date
+                row["default_rec_sent"]  = rec_sent
+                row["default_rec_built"] = default_built
+                row["tl_rec_sent"]     = rec_sent
+                row["tl_default_built"]= default_built
+                row["days_to_rec_cycle"]        = _daysbetween(base_open, rec_sent)
+                row["time_to_default_rec_days"] = _daysbetween(base_open, rec_sent)
+                row["rfd_to_rec_sent_days"]     = _daysbetween(rfd_date, rec_sent) if rfd_date else None
+            if not edue_failed:                          # HOOP email-due (Open/PF only) + pending
+                x = eduev.get(oid)
+                st = (x.get("EMAIL_STATUS") if x else None) or None
+                row["email_due_status"] = st
+                row["email_due"] = "Y" if st in EMAIL_DUE_PENDING else "N"
+                hh = fnum(x.get("HOOP_HRS")) if x else None
+                row["email_due_hoop_hrs"]  = round(hh, 1) if hh is not None else None
+                row["email_due_hoop_days"] = round(hh / 9.0, 1) if hh is not None else None
+                la = (x.get("LAST_AWAITING") if x else None) or None
+                row["email_pending"]      = "Y" if la else "N"
+                row["email_pending_date"] = la
+                row["email_pending_days"] = _daysbetween(la, TODAY_ISO) if la else None
+                row["email_received_date"]= la if (row["email_due"] == "Y" and la) else None
+            # --- Salesforce-MCP live fields (Open/PF refresh; Closed frozen). Carry forward
+            #     the prior/assembler value when the opp is absent from the CSV. ---
+            if oid in sfmcp_intro:
+                ic, icd = sfmcp_intro[oid]
+                row["intro_call"] = ic or "N"
+                row["intro_call_date"] = icd
+            if oid in sfmcp_recert:
+                row["recert_status"] = sfmcp_recert[oid]
+            if oid in sfmcp_pk:
+                pf, pc = sfmcp_pk[oid]
+                row["packets_files"] = int(fnum(pf) or 0)
+                row["packet_carriers"] = pc
         else:                                           # CLOSED — frozen snapshot
             stat["closed"] += 1
             for k in FROZEN_CLOSED: row[k] = p.get(k)   # restore frozen numerics/premium
@@ -460,6 +623,7 @@ def main():
     n_opps = None; prior_bak = None
     try:
         with step("venv"):        ensure_venv()
+        with step("lf_classifier"): lf_classifier()
         if not skip_pull:
             with step("pull"):    run_queries(resume=resume_pull or pull_only)
         if pull_only:
