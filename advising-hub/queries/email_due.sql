@@ -1,14 +1,91 @@
--- email_due: latest inbound touchpoint SLA status (HOOP business-hours) + pending-awaiting
--- date, per cohort opp. Inner = AB Email SLA v8 (Redash 179297); pend = ep.sql-style awaiting.
--- Feeds: email_due, email_due_status, email_due_hoop_hrs (=hoop_hrs), email_due_hoop_days
---   (=hoop_hrs/9), email_received_date / email_pending* (from last_awaiting). current_date() = live.
-select sla.sfdc_opportunity_id opp,
-  sla.inbound_email_response_status email_status,
-  sla.elapsed_hoop_hrs_since_pending hoop_hrs,
-  to_char(sla.touchpoint_start_ts) tp_ts,
-  pend.last_customer_email,
-  pend.last_awaiting
+-- email_due: latest advising-attributed inbound status + pending-awaiting date, per cohort opp.
+--
+-- ATTRIBUTION: mirrors the certified email-SLA dashboard (email-sla-dashboard-v10) getAttr()
+-- ownership ladder + TEAM_RENAME, applied per inbound touchpoint on top of the canonical
+-- advising-performance/queries/email_sla.sql "AB Email SLA v8" (Redash 179297) row source.
+-- Per inbound TP (already channel=Email, direction=Inbound, carrier_case_flag=false,
+-- case type<>'Carrier Submission', case_status_at_tp<>'Closed' from the v8 inbound CTE):
+--   1) no benefit order at TP                              -> opp owner subteam at TP
+--   2) BO exists & status IN ('With Sales','With Advising') -> opp owner subteam at TP
+--      (handoff), EXCEPT Benefits BYB / Benefits BoR record types -> BO owner (broker)
+--   2b) BO linked now but none at TP (no at-TP owner+status) -> opp owner subteam at TP
+--   3) BO exists, any other status                          -> BO owner subteam at TP
+-- Owner/subteam prefer the at-TP value, fall back to current (exactly as v10). The subteam
+-- is normalized via TEAM_RENAME (Customer Advising->Benefits Advising, Onboarding Advocacy->
+-- New Plan & Renewal Onboarding, Group Operations Fulfillment->Group Fulfillment, Premier
+-- Dedicated Care/Premier Care->Premier Dedicated Service Advising). An email counts toward
+-- the advising opp ONLY when the attributed (renamed) subteam = 'Benefits Advising'. This
+-- REPLACES the old blunt benefit_order->opp rollup / "any-advising-touch" OR filter.
+-- Grain: one row per opp. Company/plan grain only — no PII. current_date()/current_timestamp()
+-- = live (evaluated at refresh time).
+-- Picks the LATEST advising-attributed inbound per opp (email_status, hoop_hrs). email_due is
+-- derived downstream (merge_freeze): Y only when that status is Pending (aging/missed) AND the
+-- case is NOT currently Closed (case_closed=0). LAST_AWAITING = latest advising-attributed
+-- inbound still awaiting a reply (Pending response / Pending (Missed SLA - aging)); feeds
+-- email_pending*/email_received_date. Feeds: email_due, email_due_status, email_due_hoop_hrs
+-- (=hoop_hrs), email_due_hoop_days (=hoop_hrs/9), email_pending*, email_received_date.
+select a.sfdc_opportunity_id as opp,
+  a.inbound_email_response_status as email_status,
+  a.elapsed_hoop_hrs_since_pending as hoop_hrs,
+  to_char(a.touchpoint_start_ts) as tp_ts,
+  to_char(a.last_awaiting_ts::date) as last_awaiting,
+  case when cc.status = 'Closed' then 1 else 0 end as case_closed
 from (
+  select w.*,
+    max(case when w.inbound_email_response_status in ('Pending response','Pending (Missed SLA - aging)')
+             then w.touchpoint_start_ts end)
+      over (partition by w.sfdc_opportunity_id) as last_awaiting_ts
+  from (
+select z.*,
+    -- attributed (renamed) subteam per the v10 dashboard getAttr() ladder:
+    case
+      -- (1) no benefit order at TP -> opp owner subteam
+      when z.rt is null then
+        case when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown') else 'Unassigned' end
+      -- (2) BO exists, handoff status (With Sales/With Advising) -> opp owner (broker BYB/BoR excepted)
+      when z.bos in ('With Sales','With Advising') and coalesce(z.rt,'') not in ('Benefits BYB','Benefits BoR') then
+        case when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+             when z.bo_person is not null then coalesce(z.bo_sub,'BO Owner — Subteam Unknown')
+             else 'Unassigned' end
+      -- (2b) P1 fix: BO linked now but none at TP (no at-TP owner AND no at-TP status) -> opp owner
+      when z.bo_at_person is null and z.bos is null and z.opp_person is not null then
+        coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+      -- (3) default -> BO owner subteam (opp fallback)
+      else
+        case when z.bo_person is not null then coalesce(z.bo_sub,'BO Owner — Subteam Unknown')
+             when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+             else 'Unassigned' end
+    end as attributed_subteam
+  from (
+    select sla.*,
+      nullif(trim(sla.bo_record_type),'') as rt,
+      nullif(trim(sla.benefit_order_status_at_tp_start_ts),'') as bos,
+      nullif(trim(sla.bo_owner_name_at_tp),'') as bo_at_person,
+      coalesce(nullif(trim(sla.bo_owner_name_at_tp),''), nullif(trim(sla.current_benefit_order_owner_name),'')) as bo_person,
+      coalesce(nullif(trim(sla.opp_owner_name_at_tp),''), nullif(trim(sla.current_opportunity_owner_name),'')) as opp_person,
+      case case when nullif(trim(sla.bo_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.bo_owner_subteam_at_tp),''), nullif(trim(sla.bo_owner_subteam),''))
+         else nullif(trim(sla.bo_owner_subteam),'') end
+        when 'Onboarding Advocacy' then 'New Plan & Renewal Onboarding'
+        when 'Customer Advising' then 'Benefits Advising'
+        when 'Group Operations Fulfillment' then 'Group Fulfillment'
+        when 'Premier Dedicated Care' then 'Premier Dedicated Service Advising'
+        when 'Premier Care' then 'Premier Dedicated Service Advising'
+        else case when nullif(trim(sla.bo_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.bo_owner_subteam_at_tp),''), nullif(trim(sla.bo_owner_subteam),''))
+         else nullif(trim(sla.bo_owner_subteam),'') end end as bo_sub,
+      case case when nullif(trim(sla.opp_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.opp_owner_subteam_at_tp),''), nullif(trim(sla.opp_owner_subteam),''))
+         else nullif(trim(sla.opp_owner_subteam),'') end
+        when 'Onboarding Advocacy' then 'New Plan & Renewal Onboarding'
+        when 'Customer Advising' then 'Benefits Advising'
+        when 'Group Operations Fulfillment' then 'Group Fulfillment'
+        when 'Premier Dedicated Care' then 'Premier Dedicated Service Advising'
+        when 'Premier Care' then 'Premier Dedicated Service Advising'
+        else case when nullif(trim(sla.opp_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.opp_owner_subteam_at_tp),''), nullif(trim(sla.opp_owner_subteam),''))
+         else nullif(trim(sla.opp_owner_subteam),'') end end as opp_sub
+    from (
 -- ============================================================
 -- AB Email SLA — Advising, OA, BYB & BT
 -- Version: v8
@@ -711,24 +788,14 @@ where
             and i.sfdc_benefit_order_id is not null
         )
     )
-
 ) sla
-left join (
-    select sfdc_opportunity_id opp,
-      max(touchpoint_start_ts)::date last_customer_email,
-      max(case when inbound_email_response_status='Pending response' and not has_future_outbound_reply_flag
-               then touchpoint_start_ts end)::date last_awaiting
-    from bi.benefit_order_touchpoints
-    where direction='Inbound' and is_benops_inbound_email_sla_scope=true
-      and sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities
+  ) z
+  ) w
+  where w.attributed_subteam = 'Benefits Advising'
+    and w.sfdc_opportunity_id is not null
+    and w.sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities
                                   where renewal_date in ({{cohort_dates}}))
-    group by 1
-) pend on pend.opp = sla.sfdc_opportunity_id
-where sla.sfdc_opportunity_id is not null
-  and ( sla.opp_owner_subteam_at_tp ilike '%Advising%'
-        or sla.case_owner_subteam_at_tp ilike '%Advising%'
-        or sla.advocate_sub_team ilike '%Advising%'
-        or sla.opp_owner_subteam ilike '%Advising%' )
-  and sla.sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities
-                                  where renewal_date in ({{cohort_dates}}))
-qualify row_number() over (partition by sla.sfdc_opportunity_id order by sla.touchpoint_start_ts desc, sla.touchpoint_object_id desc)=1
+) a
+left join bi.cases cc on cc.id = a.sfdc_case_id
+qualify row_number() over (partition by a.sfdc_opportunity_id
+           order by a.touchpoint_start_ts desc, a.touchpoint_object_id desc) = 1
