@@ -15,7 +15,7 @@
     {"id":"surveys_12mo","file":"surveys_12mo.sql","grain":"company x survey","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/surv12.csv","feeds":["surveys_12mo","all_survey_count"]},
     {"id":"inapp","file":"inapp.sql","grain":"company","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/inappv.csv","feeds":["in_app","inapp_current","in_app_comment","in_app_date"]},
     {"id":"tickets","file":"tickets.sql","grain":"opp x ticket","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/tixv.csv","feeds":["tickets_to_advising","tickets_list"]},
-    {"id":"sf_activity","file":"sf_activity.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/sfact.csv","feeds":["last_update","intro_connect","connect_date","case_summary (activity)","n_email/n_call/n_connect"]},
+    {"id":"sf_activity","file":"sf_activity.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/sfact.csv","feeds":["last_update","intro_connect","connect_date","last_call_date","last_connect_date","last_call_disp","case_summary (activity)","n_email/n_call/n_connect"]},
     {"id":"cases","file":"cases.sql","grain":"opp (open/PF only)","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/casemeta.csv","feeds":["case_summary (renewal case counts)","n_rcase/n_open_rcase"]},
     {"id":"open_cases_by_type","file":"open_cases_by_type.sql","grain":"opp x record_type_summary","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/opencases_bytype.csv","feeds":["open_cases_by_type","open_cases_total","case_summary (cross-type line)"]},
     {"id":"time_in_erc","file":"time_in_erc.sql","grain":"opp","params":["cohort_dates"],"out_csv":"_renewal_vnext/out/time_in_erc.csv","feeds":["time_in_erc"]},
