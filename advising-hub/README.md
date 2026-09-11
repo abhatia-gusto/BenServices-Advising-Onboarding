@@ -54,6 +54,7 @@ At the top of each tab: **tiles** (how many opps, total MRR, how many at risk), 
 ### Customer Contact — "are we in touch"
 - **Intro (done)** and **Intro Connect** (did we actually reach a live person), **Last email out** and **Last email in** (days since), **Received** (an unanswered customer email) and **Email due**, **Last Update**.
 - **In the drill:** the same, with dates and "N days ago." Use this to spot who's gone quiet.
+- **Email attribution matches the Email SLA dashboard:** an inbound email only counts as *yours* (advising) while advising owns the work — the opp owner, and the benefit order status is "With Advising" or "With Sales." Once the order moves on (BO status "Ready for Confirmation," fulfillment, etc.), its emails belong to the **benefit-order owner's** team (e.g. New Plan & Renewal), not advising. Carrier-Submission and closed-at-arrival cases are excluded. So "Email due" and "Email outside SLA" reflect only advising-owned emails, opp-for-opp with the dashboard.
 
 ### Flags
 - **LF** (level-funded savings band: High / Medium / Low / No) — and in the drill, **Recommended in Alt** (did we actually put the LF option in front of them).
