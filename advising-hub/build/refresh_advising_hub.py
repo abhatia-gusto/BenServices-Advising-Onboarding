@@ -26,7 +26,7 @@ Chain:
                     opp count > 15000; embedded HUB JSON parses; compute at_risk_high (High
                     tier via the builder's exact riskOf logic, run under node) + mrr_total.
                     Any failure => DO NOT publish; raise.
-  7. publish      — push_html.py advising_hub_vnext.html benefits-advising-hub $HUB_PUBLISH_TOKEN
+  7. publish      — push_html.py advising_hub_vnext.html benefits-advising-hub V4OnvupXVeifrDj0
                     (skipped with --no-publish).
   8. status       — print + write advising_hub_refresh_status.json for the scheduler DM.
 
@@ -65,7 +65,8 @@ OVERLAY = ["tab","outcome","closed_on","rating_region","survey_answered","survey
            "alt_requested","alt_req_date","alt_pub_count","alt_pub_first","alt_pub_last",
            "alt_pub_carriers","in_app","in_app_comment","in_app_date","surveys_12mo",
            "tickets_to_advising","tickets_list","mrr_before","mrr_after","intro_call",
-           "intro_call_date","intro_connect","connect_date","last_update","case_summary",
+           "intro_call_date","intro_connect","connect_date","last_update",
+           "last_call_date","last_connect_date","last_call_disp","case_summary",
            "csat_comment"]
 # closed = frozen: restore these from the prior published snapshot after the overlay
 FROZEN_CLOSED = ["mrr","mrr_before","mrr_after","enrollees","funding_after","closed_on",
@@ -85,7 +86,7 @@ Q_OVERLAY = {
     "inapp": ["in_app","in_app_comment","in_app_date"],
     "tickets": ["tickets_to_advising","tickets_list"],
     "alt": ["alt_requested","alt_req_date","alt_pub_count","alt_pub_first","alt_pub_last","alt_pub_carriers"],
-    "sf_activity": ["last_update","intro_connect","connect_date","case_summary","intro_call","intro_call_date"],
+    "sf_activity": ["last_update","intro_connect","connect_date","last_call_date","last_connect_date","last_call_disp","case_summary","intro_call","intro_call_date"],
     "cases": ["case_summary"],
     "mrr": ["mrr_before","mrr_after"],
 }
@@ -166,7 +167,7 @@ def _connect():
     import snowflake.connector as sf
     raw = open(PATENV).read()
     tok = re.search(r'(?:SNOWFLAKE_PAT|PAT)\s*=\s*(\S+)', raw).group(1).strip().strip('"').strip("'")
-    return sf.connect(account="GUSTO-WAREHOUSE", user=os.environ.get("SNOWFLAKE_USER",""),
+    return sf.connect(account="GUSTO-WAREHOUSE", user="aman.bhatia@gusto.com",
         authenticator="PROGRAMMATIC_ACCESS_TOKEN", token=tok, region="us-west-2",
         warehouse="GUSTIE_ADHOC_WH", database="DATA_WAREHOUSE_RC1")
 
@@ -578,9 +579,10 @@ function riskOpen(r){const bl=(r.blocked_reason||"");const sigs=[];
  const early=EARLY.has(r.stage)?1:MID.has(r.stage)?0.5:0;const dtr=r.days_to_renewal;
  const unwSev=early*(dtr==null?0.2:dtr<=30?1:dtr<=45?0.8:dtr<=60?0.5:0.2);sigs.push({w:15,sev:unwSev});
  const tbSev=/Pending Termination|BoR Away/i.test(bl)?1:/BoR Incomplete/i.test(bl)?0.7:0;sigs.push({w:15,sev:tbSev});
- const so=_daysSince(r.last_outbound_email_date);const siSev=so==null?0.75:so>14?1:so>7?0.5:so>4?0.25:0;sigs.push({w:12,sev:siSev});
+ const so=_daysSince(r.last_outbound_email_date);const siFire=(so==null)||(so>21);sigs.push({k:"silence",w:0,sev:siFire?1:0});
  const inc=r.rate_increase_pct;const rtSev=inc==null?0:inc>=30?1:inc>=20?0.6:inc>=15?0.3:0;sigs.push({w:12,sev:rtSev});
- const si=_daysSince(r.last_inbound_email_date);const nrSev=si==null?(r.last_outbound_email_date?0.8:0.4):si>21?1:si>14?0.6:si>7?0.3:0;sigs.push({w:10,sev:nrSev});
+ const si=_daysSince(r.last_inbound_email_date);const nrFire=(si==null)||(si>21);sigs.push({k:"noresp",w:0,sev:nrFire?1:0});
+ const sc=_daysSince(r.last_connect_date);const ccFire=(sc==null)||(sc>21);sigs.push({k:"callconnect",w:0,sev:ccFire?1:0});
  const ld=r.lead_days;const lgSev=ld==null?0:ld<60?1:ld<75?0.5:0;sigs.push({w:10,sev:lgSev});
  const dis=r.days_in_stage;const stSev=dis==null?0:dis>21?1:dis>14?0.66:dis>7?0.33:0;sigs.push({w:10,sev:stSev});
  sigs.push({w:10,sev:isY(r.intro_call)?0:1});
@@ -591,7 +593,9 @@ function riskOpen(r){const bl=(r.blocked_reason||"");const sigs=[];
  const rl=r.recert_lateness_days;const rcSev=(rl>0)?(rl>60?1:rl>30?0.7:rl>14?0.4:0.25):((r.recert_ticket||r.recert_status||/recert/i.test(bl))?0.5:0);sigs.push({w:8,sev:rcSev});
  {const band=r.lf_savings_band;const posit=(band==="High"||band==="Medium"||band==="Low");const inAlt=(r.lf_in_alt==="Y");const sev=(posit&&!inAlt)?(band==="High"?1:band==="Medium"?0.7:0.4):0;sigs.push({w:6,sev:sev});}
  sigs.push({w:6,sev:isY(r.sep)?1:0});
- const WTOTAL_OPEN=150;let acc=0;sigs.forEach(s=>{acc+=s.w*s.sev;});return Math.round(100*acc/WTOTAL_OPEN);}
+ const WTOTAL_OPEN=128;let acc=0;sigs.forEach(s=>{acc+=s.w*s.sev;});
+ const goneQuiet=["silence","noresp","callconnect"].reduce((n,k)=>{const s=sigs.find(x=>x.k===k);return n+(s&&s.sev>0?1:0);},0);
+ return {score:Math.round(100*acc/WTOTAL_OPEN), goneQuiet};}
 function riskPF(r){const sigs=[];
  const cur=(r.in_app_date&&r.cycle_open&&r.in_app_date>=r.cycle_open);const ia=parseFloat(r.inapp_current);const cmt=!!r.in_app_comment;
  const seSev=(cur&&(!isNaN(ia)||cmt))?(ia<=2?1:ia<=3?0.7:(cmt?0.7:0)):0;sigs.push({w:30,sev:seSev});
@@ -600,8 +604,11 @@ function riskPF(r){const sigs=[];
  const dd=dUntil(r.submission_deadline);const w1Sev=(dd!=null&&dd>=0&&dd<=7)?1:(dd!=null&&dd>=8&&dd<=14)?0.5:0;sigs.push({w:30,sev:w1Sev});
  const inc=r.rate_increase_pct;const arSev=isY(r.auto_renewal)?(inc>=20?1:inc>=14?0.6:0.3):0;sigs.push({w:20,sev:arSev});
  const WTOTAL_PF=130;let acc=0;sigs.forEach(s=>{acc+=s.w*s.sev;});return Math.round(100*acc/WTOTAL_PF);}
-function riskOf(r){const t=tabOf(r);let score;if(t==="open")score=riskOpen(r);else score=riskPF(r);
- return score>=35?"High":score>=18?"Med":"Low";}
+function riskOf(r){const t=tabOf(r);
+ if(t==="open"){const b=riskOpen(r);let tier=b.score>=35?"High":b.score>=18?"Med":"Low";
+   const floor=b.goneQuiet>=3?"High":b.goneQuiet>=1?"Med":"Low";const RANK={Low:0,Med:1,High:2};
+   if(RANK[floor]>RANK[tier])tier=floor;return tier;}
+ const score=riskPF(r);return score>=35?"High":score>=18?"Med":"Low";}
 // active at-risk (High) = Open + Pending Fulfillment; Closed risk is archived/frozen in the builder.
 let hi=0;for(const r of HUB){const t=tabOf(r);if(t!=="closed"&&riskOf(r)==="High")hi++;}
 console.log(hi);
@@ -642,7 +649,7 @@ def verify(n_opps):
 
 def publish():
     r = subprocess.run([VENV_PY, os.path.join(HERE,"push_html.py"), HTML,
-                        "benefits-advising-hub", os.environ.get("HUB_PUBLISH_TOKEN","")], cwd=HERE)
+                        "benefits-advising-hub", "V4OnvupXVeifrDj0"], cwd=HERE)
     if r.returncode != 0:
         raise SystemExit("push_html.py failed")
 
