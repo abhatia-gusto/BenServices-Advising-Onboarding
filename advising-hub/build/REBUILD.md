@@ -1,6 +1,6 @@
 # REBUILD.md — 1:1 rebuild spec for `build_advising_hub.py`
 
-A section-by-section specification detailed enough to reconstruct `build_advising_hub.py` from scratch and get a byte-equivalent dashboard. Section numbers map to the code top-to-bottom. The canonical builder source is committed alongside this file as ordered part files under `build/_builder_src/` (concatenate in name order → byte-identical to the original; git blob SHA `63fb706e0fbf3c06c6cfab09014012c5a01f4613`). The risk engine is also reproduced verbatim inside `build/refresh_advising_hub.py` (`RISK_JS`), which the pipeline uses to count at-risk-High during verify — keep the two in sync.
+A section-by-section specification detailed enough to reconstruct `build_advising_hub.py` from scratch and get a byte-equivalent dashboard. Section numbers map to the code top-to-bottom. The canonical builder source is committed alongside this file as the single file `build/build_advising_hub.py` (git blob SHA `63fb706e0fbf3c06c6cfab09014012c5a01f4613`). The risk engine is also reproduced verbatim inside `build/refresh_advising_hub.py` (`RISK_JS`), which the pipeline uses to count at-risk-High during verify — keep the two in sync.
 
 ---
 
@@ -12,7 +12,7 @@ A section-by-section specification detailed enough to reconstruct `build_advisin
 - Serialize: `data_json = json.dumps(data, separators=(",",":"))` then `data_json = data_json.replace("</","<\\/")` (so `</script>` can't close the embedding block).
 - Emit model: one big Python raw-string `TEMPLATE = r"""...html..."""` containing the entire page with two placeholders `__GUIDEHTML__` and `__HUBDATA__`. Final 3 lines: `html = TEMPLATE.replace("__GUIDEHTML__", guide_html).replace("__HUBDATA__", data_json)`, `open(OUT,"w").write(html)`, and a `print(f"wrote {OUT} ({len(html)/1024:.0f} KB) opps={n_opps} lines={n_lines}")`.
 - Single-file HTML: the data ships as `<script id="hubdata" type="application/json">__HUBDATA__</script>`; the app logic is one `<script>…</script>` right after it. No external JS/CSS except Google Fonts (Bricolage Grotesque + JetBrains Mono).
-- The source is ~162 KB / ~2,340 lines, stored as six byte-exact slices under `build/_builder_src/` cut at line ranges: part_01a = 1–380, part_01b = 381–760, part_02 = 761–1180, part_03 = 1181–1600, part_04 = 1601–1960, part_05 = 1961–end.
+- The source is ~162 KB / ~2,340 lines, committed as the single file `build/build_advising_hub.py` (git blob SHA `63fb706e0fbf3c06c6cfab09014012c5a01f4613`; earlier revisions stored it as byte-exact slices under `build/_builder_src/`, now retired).
 
 ## 1. `md_to_html(md)` + Read Me injection
 
@@ -79,7 +79,7 @@ Constants: `EARLY = {"Open","SAL","Attempting Contact","New","Working","Nurturin
 14. `recert` w8 on `recert_lateness_days`: >60→1, >30→0.7, >14→0.4, >0→0.25; else (recert_ticket|recert_status|/recert/ in blocked)→0.5 else 0.
 15. `lfpend` w6: `band∈{High,Medium,Low}` and `lf_in_alt!=="Y"` → High1/Med0.7/Low0.4; else 0.
 16. `sepgr` w6: `isY(sep)?1:0`.
-`WTOTAL_OPEN=128` (150 − the three now-weight-0 recency signals + 6 for callconnect never added; the constant is 128); `score=round(100*Σ(w·sev)/128)`. `goneQuiet` = count of {silence,noresp,callconnect} with sev>0 (0–3). `firing`=sev>0 sorted by `w·sev` desc (the weight-0 recency signals still appear in `firing`/`reasons` so the drill can list them); returns `{score, reasons, firing, goneQuiet}`.
+`WTOTAL_OPEN=128`; `score=round(100*Σ(w·sev)/128)`. `goneQuiet` = count of {silence,noresp,callconnect} with sev>0 (0–3). `firing`=sev>0 sorted by `w·sev` desc (the weight-0 recency signals still appear in `firing`/`reasons` so the drill can list them); returns `{score, reasons, firing, goneQuiet}`.
 
 **`riskPF(r)`** — 5 factors (unchanged): `sentiment` w30, `ticket` w30 (`tickets_to_advising`), `recert` w20, `within1wk` w30 (`dUntil(submission_deadline)` 0–7→1 / 8–14→0.5), `autoren` w20 (`isY(auto_renewal)`× rate band). `WTOTAL_PF=130`.
 
