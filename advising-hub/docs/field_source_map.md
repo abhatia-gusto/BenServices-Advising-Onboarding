@@ -88,12 +88,12 @@ Every field in `advising_vnext_data.json` (129 top-level + 20 per-line), its dat
 ## Customer Contact
 | Field | Source | Via | Status |
 |---|---|---|---|
-| last_outbound_email_date, last_inbound_email_date | BENEFIT_ORDER_TOUCHPOINTS (`email_recency.sql`) | Snowflake | 🟢 |
+| last_outbound_email_date, last_inbound_email_date | BENEFIT_ORDER_TOUCHPOINTS, **advising-attributed** (`email_recency.sql`); opp-keyed via `coalesce(tp.sfdc_opportunity_id,c.sfdc_opportunity_id)` | Snowflake | 🟢 |
 | intro_connect, connect_date, intro_connect_date | BI.CASES + task activity (`sf_activity.sql`) | Snowflake | 🟢 |
 | last_update, last_update_date, last_contact_date | task activity (`sf_activity.sql`) | Snowflake | 🟢 |
 | intro_call, intro_call_date | Case.Intro_Call_Completed__c (+ Case CreatedDate proxy) | **Salesforce MCP** (daily task) | 🟢 |
-| email_due, email_due_hoop_days/hrs/status, email_pending/date/days, email_received_date | BENEFIT_ORDER_TOUCHPOINTS HOOP calc (`email_due.sql`) | Snowflake | 🟢 |
-| email_sla | inbound answered ≤240 HOOP-min, any-late=Missed (`email_sla.sql`) | Snowflake | 🟢 |
+| email_due, email_due_hoop_days/hrs/status, email_pending/date/days, email_received_date | BENEFIT_ORDER_TOUCHPOINTS HOOP calc, **advising-attributed + case-open-now** (`email_due.sql`) | Snowflake | 🟢 |
+| email_sla | inbound answered ≤240 HOOP-min, any-late=Missed — **advising-attributed only** (dashboard ownership ladder) (`email_sla.sql`) | Snowflake | 🟢 |
 | last_contact_date | SF activity last outbound touch — field kept; no longer shown in Overview insights (superseded by Last SF update) | Snowflake | 🟢 |
 
 ## Flags
