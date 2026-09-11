@@ -1,36 +1,86 @@
--- email_sla: per-opp Met/Missed/na for the inbound-email RESPONSE SLA (240 HOOP-minutes).
+-- email_sla: per-opp Met/Missed/na for the inbound-email RESPONSE SLA (240 HOOP-min), advising-attributed only.
 --
--- Reuses the performance dashboard's email-SLA logic verbatim (advising-performance/queries/
---   email_sla.sql "AB Email SLA v8", Redash 179297) via the exact same v8 body embedded in
---   email_due.sql — same touchpoints source (bi.benefit_order_touchpoints inbound emails),
---   same HOOP business-hours timing, same 240-HOOP-minute (4-hour) target, same automated-
---   reply filtering and gap-based clearing. Inbound is scoped to the renewal cohort opps and
---   an Advising sub-team (opp/case/advocate owner ilike '%Advising%'), identical to email_due.
---
--- Per-touchpoint status (inbound_email_response_status) rolls up to the opp:
---   * MISSED (breached): 'Responded (Past SLA)' (answered late) OR
---     'Pending (Missed SLA - aging)' (still unanswered past the 240-HOOP-min target).
---   * eligible inbound = any status other than 'Not response required' (i.e. a reply was
---     required: Within-SLA, Past-SLA, Pending, Cleared, or Responded-unknown).
---   Opp roll-up (one row per opp with >= 1 inbound touchpoint):
---     Missed if ANY eligible inbound breached; Met if >= 1 eligible inbound and none breached;
---     na if the opp had inbound touchpoints but NONE required a reply.
---   Opps with no inbound touchpoint at all are absent from this CSV and default to na
---   downstream (merge_freeze).
---
--- Grain: one row per opp (SFDC_OPPORTUNITY_ID -> opp). Company/plan grain only — no PII.
--- Feeds JSON: email_sla. current_date()/current_timestamp() = live (evaluated at refresh time).
-select sla.sfdc_opportunity_id as opp,
+-- ATTRIBUTION: mirrors the certified email-SLA dashboard (email-sla-dashboard-v10) getAttr()
+-- ownership ladder + TEAM_RENAME, applied per inbound touchpoint on top of the canonical
+-- advising-performance/queries/email_sla.sql "AB Email SLA v8" (Redash 179297) row source.
+-- Per inbound TP (already channel=Email, direction=Inbound, carrier_case_flag=false,
+-- case type<>'Carrier Submission', case_status_at_tp<>'Closed' from the v8 inbound CTE):
+--   1) no benefit order at TP                              -> opp owner subteam at TP
+--   2) BO exists & status IN ('With Sales','With Advising') -> opp owner subteam at TP
+--      (handoff), EXCEPT Benefits BYB / Benefits BoR record types -> BO owner (broker)
+--   2b) BO linked now but none at TP (no at-TP owner+status) -> opp owner subteam at TP
+--   3) BO exists, any other status                          -> BO owner subteam at TP
+-- Owner/subteam prefer the at-TP value, fall back to current (exactly as v10). The subteam
+-- is normalized via TEAM_RENAME (Customer Advising->Benefits Advising, Onboarding Advocacy->
+-- New Plan & Renewal Onboarding, Group Operations Fulfillment->Group Fulfillment, Premier
+-- Dedicated Care/Premier Care->Premier Dedicated Service Advising). An email counts toward
+-- the advising opp ONLY when the attributed (renamed) subteam = 'Benefits Advising'. This
+-- REPLACES the old blunt benefit_order->opp rollup / "any-advising-touch" OR filter.
+-- Grain: one row per opp. Company/plan grain only — no PII. current_date()/current_timestamp()
+-- = live (evaluated at refresh time).
+-- Opp roll-up over advising-attributed inbounds: Missed if ANY is Responded (Past SLA) or
+-- Pending (Missed SLA - aging); else Met if >=1 is Responded (Within SLA); else na. Cleared,
+-- 'Pending response', 'Responded (Response time unknown)' and 'Not response required' are
+-- excluded from Met/Missed (Met = Met/(Met+Missed)). Feeds JSON: email_sla.
+select attr.sfdc_opportunity_id as opp,
   case
-    when sum(case when sla.inbound_email_response_status is not null
-                   and sla.inbound_email_response_status <> 'Not response required'
-                  then 1 else 0 end) = 0 then 'na'
-    when sum(case when sla.inbound_email_response_status in
-                   ('Responded (Past SLA)', 'Pending (Missed SLA - aging)')
-                  then 1 else 0 end) > 0 then 'Missed'
-    else 'Met'
+    when sum(case when attr.inbound_email_response_status in
+               ('Responded (Past SLA)','Pending (Missed SLA - aging)') then 1 else 0 end) > 0 then 'Missed'
+    when sum(case when attr.inbound_email_response_status = 'Responded (Within SLA)'
+               then 1 else 0 end) > 0 then 'Met'
+    else 'na'
   end as email_sla
 from (
+select z.*,
+    -- attributed (renamed) subteam per the v10 dashboard getAttr() ladder:
+    case
+      -- (1) no benefit order at TP -> opp owner subteam
+      when z.rt is null then
+        case when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown') else 'Unassigned' end
+      -- (2) BO exists, handoff status (With Sales/With Advising) -> opp owner (broker BYB/BoR excepted)
+      when z.bos in ('With Sales','With Advising') and coalesce(z.rt,'') not in ('Benefits BYB','Benefits BoR') then
+        case when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+             when z.bo_person is not null then coalesce(z.bo_sub,'BO Owner — Subteam Unknown')
+             else 'Unassigned' end
+      -- (2b) P1 fix: BO linked now but none at TP (no at-TP owner AND no at-TP status) -> opp owner
+      when z.bo_at_person is null and z.bos is null and z.opp_person is not null then
+        coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+      -- (3) default -> BO owner subteam (opp fallback)
+      else
+        case when z.bo_person is not null then coalesce(z.bo_sub,'BO Owner — Subteam Unknown')
+             when z.opp_person is not null then coalesce(z.opp_sub,'Opp Owner — Subteam Unknown')
+             else 'Unassigned' end
+    end as attributed_subteam
+  from (
+    select sla.*,
+      nullif(trim(sla.bo_record_type),'') as rt,
+      nullif(trim(sla.benefit_order_status_at_tp_start_ts),'') as bos,
+      nullif(trim(sla.bo_owner_name_at_tp),'') as bo_at_person,
+      coalesce(nullif(trim(sla.bo_owner_name_at_tp),''), nullif(trim(sla.current_benefit_order_owner_name),'')) as bo_person,
+      coalesce(nullif(trim(sla.opp_owner_name_at_tp),''), nullif(trim(sla.current_opportunity_owner_name),'')) as opp_person,
+      case case when nullif(trim(sla.bo_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.bo_owner_subteam_at_tp),''), nullif(trim(sla.bo_owner_subteam),''))
+         else nullif(trim(sla.bo_owner_subteam),'') end
+        when 'Onboarding Advocacy' then 'New Plan & Renewal Onboarding'
+        when 'Customer Advising' then 'Benefits Advising'
+        when 'Group Operations Fulfillment' then 'Group Fulfillment'
+        when 'Premier Dedicated Care' then 'Premier Dedicated Service Advising'
+        when 'Premier Care' then 'Premier Dedicated Service Advising'
+        else case when nullif(trim(sla.bo_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.bo_owner_subteam_at_tp),''), nullif(trim(sla.bo_owner_subteam),''))
+         else nullif(trim(sla.bo_owner_subteam),'') end end as bo_sub,
+      case case when nullif(trim(sla.opp_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.opp_owner_subteam_at_tp),''), nullif(trim(sla.opp_owner_subteam),''))
+         else nullif(trim(sla.opp_owner_subteam),'') end
+        when 'Onboarding Advocacy' then 'New Plan & Renewal Onboarding'
+        when 'Customer Advising' then 'Benefits Advising'
+        when 'Group Operations Fulfillment' then 'Group Fulfillment'
+        when 'Premier Dedicated Care' then 'Premier Dedicated Service Advising'
+        when 'Premier Care' then 'Premier Dedicated Service Advising'
+        else case when nullif(trim(sla.opp_owner_name_at_tp),'') is not null
+         then coalesce(nullif(trim(sla.opp_owner_subteam_at_tp),''), nullif(trim(sla.opp_owner_subteam),''))
+         else nullif(trim(sla.opp_owner_subteam),'') end end as opp_sub
+    from (
 -- ============================================================
 -- AB Email SLA — Advising, OA, BYB & BT
 -- Version: v8
@@ -733,13 +783,11 @@ where
             and i.sfdc_benefit_order_id is not null
         )
     )
-
 ) sla
-where sla.sfdc_opportunity_id is not null
-  and ( sla.opp_owner_subteam_at_tp ilike '%Advising%'
-        or sla.case_owner_subteam_at_tp ilike '%Advising%'
-        or sla.advocate_sub_team ilike '%Advising%'
-        or sla.opp_owner_subteam ilike '%Advising%' )
-  and sla.sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities
+  ) z
+) attr
+where attr.attributed_subteam = 'Benefits Advising'
+  and attr.sfdc_opportunity_id is not null
+  and attr.sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities
                                   where renewal_date in ({{cohort_dates}}))
-group by sla.sfdc_opportunity_id
+group by attr.sfdc_opportunity_id
