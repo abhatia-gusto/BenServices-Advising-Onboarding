@@ -87,3 +87,6 @@ Each tab shows: **Opps** (after filters) · **MRR** (before on Open/PF; before *
 ---
 
 *Companion to `Advising_Hub_Daily_Refresh_PLAN.md`, `Advising_Hub_Risk_Profile_PLAN.md`, and `Default_Automation_CALC_reference.md`.*
+
+## Sept 11 — email attribution aligned to dashboard
+`email_sla` / `email_due` / `recency` now attribute an inbound to advising **only** via the Email SLA dashboard ownership ladder: (1) no benefit order → **opp owner**; (2) BO status **With Sales / With Advising** → **opp owner** (BYB / BoR → **broker BO owner**); (3) BO otherwise → **BO owner** — evaluated on the **point-in-time subteam**, with team names normalized, and **Carrier-Submission + closed-at-arrival cases excluded**. An inbound counts toward the opp only when the attributed subteam = **"Benefits Advising"**. `email_due` additionally requires the case to be **open now**.
