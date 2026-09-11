@@ -497,8 +497,12 @@ def merge_freeze(prior_path):
             if not edue_failed:                          # HOOP email-due (Open/PF only) + pending
                 x = eduev.get(oid)
                 st = (x.get("EMAIL_STATUS") if x else None) or None
+                # email_due.sql now attributes each inbound to a subteam via the dashboard
+                # ownership ladder and emits only the LATEST advising-attributed inbound.
+                # CASE_CLOSED=1 => that inbound's case is Closed NOW => not "due" even if pending.
+                closed_now = (str(x.get("CASE_CLOSED")).strip() in ("1","1.0","True","true")) if x else False
                 row["email_due_status"] = st
-                row["email_due"] = "Y" if st in EMAIL_DUE_PENDING else "N"
+                row["email_due"] = "Y" if (st in EMAIL_DUE_PENDING and not closed_now) else "N"
                 hh = fnum(x.get("HOOP_HRS")) if x else None
                 row["email_due_hoop_hrs"]  = round(hh, 1) if hh is not None else None
                 row["email_due_hoop_days"] = round(hh / 9.0, 1) if hh is not None else None
