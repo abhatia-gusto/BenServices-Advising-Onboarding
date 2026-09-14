@@ -58,32 +58,15 @@ Utility: `medLine(r)` = the `lines[]` entry with `benefit_type==="medical"`; `PI
 
 **Cell formatting / color rules** (`cell(r,k)`): `tier` → live `tierChip` on Open, greyed `.chip.arch` on PF/Closed. `risk` → `.rsc` chip colored by tier + top reasons. `rate` → `%` with `t-gold` ≥15, `t-warn` ≥20, `t-bad` ≥30. `lastout` days-ago `t-bad` >14 / `t-warn` >7; `lastin` `t-bad` >21 / `t-warn` >14. `lastupd` shows the last call date + disposition tag. Blank → `DASH`.
 
-## 6. RISK MODELS (verbatim)
+## 6. RISK MODELS (verbatim — keep in sync with refresh_advising_hub.py RISK_JS)
 
-Constants: `EARLY = {"Open","SAL","Attempting Contact","New","Working","Nurturing"}`; `MID = {"Engaged","ER Confirm"}`; `_daysSince(s)=-dUntil(s)`.
+**Domain model (Sept 2026 v-next-2).** Each signal = `weight × severity`; severity scales ABOVE 1 (to ×2) for worsening durations/magnitudes. `score = round(Σ weight·sev)`, capped 100. Tiers **High ≥30 / Med ≥21 / Low ≤20** (both Open & PF). Helpers: `_durScale(d)=d>90?2:d>45?1.5:1`; `_slaScale(dw,thr,a,b)=dw>b?2:dw>a?1.5:dw>thr?1:0`; `_survAvg` (surveys_12mo mean, excl. "App: NPS Survey"); `EARLY_SET={SAL,Ready for Default Package,Open}`.
 
-**`riskOpen(r)`** — pushes `{key,w,sev,reason}` signals. The three "gone quiet" recency signals are **binary and weight 0** — they don't add to the numeric score; instead they drive the tier via the floor override in `riskOf` (§below). All others are weighted EYO-2 signals:
-1. `unworked` w15: `early=EARLY?1:MID?0.5:0`; `sev = early*(dtr==null?0.2 : dtr<=30?1 : dtr<=45?0.8 : dtr<=60?0.5 : 0.2)`.
-2. `termbor` w15: `/Pending Termination|BoR Away/i`→1; `/BoR Incomplete/i`→0.7; else 0.
-3. **`silence` w0 (gone-quiet #1)** on `last_outbound_email_date`: `sev = 1` if `_daysSince>21` **or null** (never emailed), else 0.
-4. `rate` w12 on `rate_increase_pct`: ≥30→1; ≥20→0.6; ≥15→0.3; else 0.
-5. **`noresp` w0 (gone-quiet #2)** on `last_inbound_email_date`: `sev = 1` if `_daysSince>21` **or null**, else 0.
-6. **`callconnect` w0 (gone-quiet #3)** on `last_connect_date`: `sev = 1` if `_daysSince>21` **or null**, else 0.
-7. `lategen` w10 on `lead_days`: <60→1; <75→0.5; else 0.
-8. `stagnant` w10 on `days_in_stage`: >21→1; >14→0.66; >7→0.33; else 0.
-9. `nointro` w10: `isY(intro_call)?0:1`.
-10. `deadline` w10 on `dUntil(selection_deadline)`: <0→1; ≤7→0.6; ≤14→0.3; else 0.
-11. `subdl` w10 on `dUntil(submission_deadline)`: same mapping.
-12. `packet` w8: `/Packet Needed/i`→1; else `((packets_files==0||null)&&packet_carriers)?0.4:0`.
-13. `altsla` w8: only if `alt_requested_date`; `gap = alt_published_date?days_to_alt:_daysSince(alt_requested_date)`; `>3→1, ==3→0.5, else 0`.
-14. `recert` w8 on `recert_lateness_days`: >60→1, >30→0.7, >14→0.4, >0→0.25; else (recert_ticket|recert_status|/recert/ in blocked)→0.5 else 0.
-15. `lfpend` w6: `band∈{High,Medium,Low}` and `lf_in_alt!=="Y"` → High1/Med0.7/Low0.4; else 0.
-16. `sepgr` w6: `isY(sep)?1:0`.
-`WTOTAL_OPEN=128`; `score=round(100*Σ(w·sev)/128)`. `goneQuiet` = count of {silence,noresp,callconnect} with sev>0 (0–3). `firing`=sev>0 sorted by `w·sev` desc (the weight-0 recency signals still appear in `firing`/`reasons` so the drill can list them); returns `{score, reasons, firing, goneQuiet}`.
+**`riskOpen(r)` — 3 equal domains @ 33.3.** *Customer contact (5 × 6.667):* `reply` (fires only if we have an outbound AND no inbound in 21d — corrected; `_durScale`), `silence` (no outbound 21d+/null, `_durScale`), `callconnect` (no connect 21d+/null, `_durScale`), `stagnant` (`days_in_stage` >21 `_durScale`/>14 .66/>7 .33), `nointro`. *Plan & cost (5 × 6.667):* `rate` (≥60→2,≥45→1.5,≥30→1,≥20→.6,≥15→.3), `lfpend` (High1/Med.7/Low.4 not-in-alt), `termbor` (1/.7), `recert` (lateness >120→2…>0→.25, else flagged .5), `sepgr`. *Timeline & SLA (8 × 4.167):* `subdl` (passed ≥14d→2/≥7d→1.5/passed→1; ≤7d→.7; ≤21d→.4), `rfdsla` (`days_to_default` `_slaScale(,5,15,30)`; else rfd_sla Missed→1), `ercsla` (`time_in_erc` `_slaScale(,5,15,30)`; else erc_sla Missed→1), `altsla` (gap >21→2/>10→1.5/>3→1/==3→.5), `survey` (avg ≤1.5→2/≤2→1.5/≤3→1), `early` (stage∈EARLY_SET AND dtr≤45→1), `lategen` (<60→1/<75→.5), `packet` (Packet Needed→1; shortfall→.4). `goneQuiet` = count of {reply,silence,callconnect} firing.
 
-**`riskPF(r)`** — 5 factors (unchanged): `sentiment` w30, `ticket` w30 (`tickets_to_advising`), `recert` w20, `within1wk` w30 (`dUntil(submission_deadline)` 0–7→1 / 8–14→0.5), `autoren` w20 (`isY(auto_renewal)`× rate band). `WTOTAL_PF=130`.
+**`riskPF(r)` — 4 equal domains @ 25.** Sentiment 25 (in-app this cycle ≤1→1/≤2→.85/≤3→.6; comment-only .6); Service load 3 × 8.333 (`ticket` ≥5→1.5/≥3→1/2→.7/1→.4; `ticketsla` Missed→1; `recert` status≠Approved → lateness >90→2/>60→1.5/else 1); Cost 25 (`autoren` isY× rate ≥45→2/≥30→1.5/≥20→1/≥14→.6/else .3); Timeline 25 (`within1wk` passed ≥14→2/≥7→1.5/passed→1; ≤7→1; ≤14→.5).
 
-**`riskOf(r)`**: open→riskOpen; pf→riskPF; closed→riskPF with `archived=true`. Base `tier = score>=35?"High" : score>=18?"Med" : "Low"`. **Gone-quiet floor override (Open only):** `floor = goneQuiet>=3?"High" : goneQuiet>=1?"Med" : "Low"`; `tier = max(score-tier, floor)` by rank {Low:0,Med:1,High:2}. So 3-of-3 quiet forces at least High, 1–2 at least Med, and substantive weighted risk can still raise (never lower) the tier. **`riskCached(r)`** memoizes on `r.__risk`.
+**`riskOf(r)`**: open→riskOpen; pf→riskPF; closed→riskPF `archived=true` (re-scored once on the new scale, then frozen). Base tier by score (30/21). **Contact floor (Open only):** `floor = goneQuiet>=3?"High" : goneQuiet>=2?"Med" : "Low"`; `tier=max(score-tier,floor)`. `riskCached(r)` memoizes on `r.__risk`.
 
 ## 7. KPIs
 
@@ -118,7 +101,7 @@ State: `OVSCOPE={mode:"team",peSel,icSel}`, `OVSTAGE`, `OVRISK={open,pf}`. `OV_H
 - **PREMIUM (medical)**: median Δ (excludes no-rate opps), **≥15%**, **≥20%** — both computed as **% of the whole live book** (all Open+PF, including the ~4% with no rate data), NOT only customers with a rate change.
 - **FLAGS**: LF available %, auto-renewal %, default automation %, recert open, packet needed, BoR/Term.
 
-`ovRiskOpenTiers(O)` = P1–P5 bars (red overlay = High). `ovRiskTierBox(rows,title,boxKey,LABELMAP)` = High/Med/Low bars with an expandable "what's driving it" factor panel. `ovRollup()` = PE-team / IC table (LIVE OPPS / OPEN HIGH / PF HIGH / AT-RISK TOTAL + a compact OUTSIDE SLA % cell). `ovDrill()` applies scope + tier/risk to the grid `SEL`s and `showTab(tab)`.
+`ovRiskOpenTiers(O)` = P1–P5 bars (red overlay = High). `ovRiskTierBox(rows,title,boxKey,LABELMAP)` = High/Med/Low bars with an expandable "what's driving it" factor panel. `ovScoreboards()` = two always-shown panels (no PE/IC/Team toggle) — a fixed **PE scoreboard** and a scrollable **IC table**, each split into a **Risk** section (Opps Open/PF, High) and a separate **Outside SLA %** section (RFD·ERC·ALT·Tkt·Email, na-excluded); every column sortable; a name search filters both; row-click focuses the Overview, shown as a removable coral 'Filtered by' chip. `ovDrill()` applies scope + tier/risk to the grid `SEL`s and `showTab(tab)`.
 
 ## 14. Tabs + init (`showTab`)
 
@@ -126,4 +109,4 @@ State: `OVSCOPE={mode:"team",peSel,icSel}`, `OVSTAGE`, `OVRISK={open,pf}`. `OV_H
 
 ## 15. Color thresholds (quick reference)
 
-Premium Δ / rate: **≥15% gold, ≥20% orange (`t-warn`), ≥30% red (`t-bad`)** — grid cell, drill headline, per-line table; Overview premium insights report **≥15%** / **≥20%** as **% of the whole live book**. Deadlines: past→`t-bad`, ≤7d→`t-warn`. Grid aging cells: outbound email >14/>7, inbound >21/>14. Overview CONTACT panel + all three gone-quiet **risk** signals use the **21-day** threshold (null counts as quiet). Days-in-stage >21/>14. Tickets: ≥2 warn (tix), ≥1 warn/bad. Risk tiers: score High ≥35 / Med ≥18 / Low; **plus** the Open gone-quiet floor (3 quiet→High, 1–2→Med).
+Premium Δ / rate: **≥15% gold, ≥20% orange (`t-warn`), ≥30% red (`t-bad`)** — grid cell, drill headline, per-line table; Overview premium insights report **≥15%** / **≥20%** as **% of the whole live book**. Deadlines: past→`t-bad`, ≤7d→`t-warn`. Grid aging cells: outbound email >14/>7, inbound >21/>14. Overview CONTACT panel + all three gone-quiet **risk** signals use the **21-day** threshold (null counts as quiet). Days-in-stage >21/>14. Tickets: ≥2 warn (tix), ≥1 warn/bad. Risk tiers: score **High ≥30 / Med 21–29 / Low ≤20** (both Open & PF); **plus** the Open contact floor (3 of 3 quiet→High, 2 of 3→Med). Duration/magnitude signals scale to ×2.

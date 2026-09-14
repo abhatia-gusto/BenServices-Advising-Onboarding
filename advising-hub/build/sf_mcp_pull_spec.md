@@ -83,3 +83,14 @@ WHERE ContentDocument.Title LIKE '%Renewal Packet%'
 Run: `python3 refresh_advising_hub.py --no-publish` (the orchestrator publishes at the end).
 `merge_freeze` reads the 3 CSVs and sets the fields on Open/PF opps; absent opps/CSVs carry forward;
 Closed stays frozen. Expect the log line: `SF-MCP live fields: intro=… recert=… packets=…`.
+
+---
+
+## 4th group (Sept 2026): SEP Risk Level — SF `Opportunity`
+
+A new field, pulled live like the others (not in the Snowflake mirror). 1/1 renewals only — blank for non-1/1 opps.
+- **Field:** `Opportunity.SEP_Risk_Level__c` (picklist; e.g. "Yes - Participation and Contribution", "No"). Mirrors HI Carrier Metadata (BBO-3872), medical carrier only.
+- **CSV:** `_renewal_vnext/out/sf_mcp_sep.csv` → `opp_id18,sep_risk_level` (only opps with a non-null value).
+- **SOQL:** `SELECT Id oid, SEP_Risk_Level__c sep FROM Opportunity WHERE Id IN (<opp_id18 batch, closed==false>)` — batch 500/query.
+- **Pull scripts:** `build/_pull/gen_soql.py` (group `sep`) and `build/_pull/build_csvs.py` (writes `sf_mcp_sep.csv`).
+- **Merge:** `refresh_advising_hub.py merge_freeze` reads `sf_mcp_sep.csv`, sets `sep_risk_level` on Open/PF (carry-forward if absent; Closed frozen). Shown as the "SEP risk" column (all tabs) + a drill row. Display-only for now — not yet a risk signal.
