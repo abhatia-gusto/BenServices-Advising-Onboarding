@@ -212,7 +212,7 @@ def run_queries(resume=False):
         json.dump(failed, open(FAILED_PATH,"w"))
         crit = [f for f in failed if f in CRITICAL_Q]
         if crit:
-            raise SystemExit(f"critical query/queries failed: {crit}")
+            raise RuntimeError(f"critical query/queries failed: {crit}")
         if failed:
             print(f"  NOTE: {len(failed)} non-critical query(ies) failed -> carried forward: {failed}", flush=True)
     finally:
@@ -254,7 +254,7 @@ def run_assemble():
     env = os.environ.copy()
     r = subprocess.run([VENV_PY, os.path.join(VNEXT, "assemble_vnext.py")], cwd=HERE, env=env)
     if r.returncode != 0:
-        raise SystemExit("assemble_vnext.py failed")
+        raise RuntimeError("assemble_vnext.py failed")
 
 def _rd(path):
     import csv; csv.field_size_limit(10**7)
@@ -343,11 +343,13 @@ def merge_freeze(prior_path):
                    for r in _rd_opt(os.path.join(OUTV, "sf_mcp_intro.csv"))}
     sfmcp_recert = {r["opp_id18"]: (r.get("recert_status") or None)
                     for r in _rd_opt(os.path.join(OUTV, "sf_mcp_recert.csv"))}
+    sfmcp_sep = {r["opp_id18"]: (r.get("sep_risk_level") or None)
+                 for r in _rd_opt(os.path.join(OUTV, "sf_mcp_sep.csv"))}
     sfmcp_pk = {r["opp_id18"]: ((r.get("packets_files") or None), (r.get("packet_carriers") or None))
                 for r in _rd_opt(os.path.join(OUTV, "sf_mcp_packets.csv"))}
-    if sfmcp_intro or sfmcp_recert or sfmcp_pk:
+    if sfmcp_intro or sfmcp_recert or sfmcp_sep or sfmcp_pk:
         print(f"  SF-MCP live fields: intro={len(sfmcp_intro)} recert={len(sfmcp_recert)} "
-              f"packets={len(sfmcp_pk)}", flush=True)
+              f"sep={len(sfmcp_sep)} packets={len(sfmcp_pk)}", flush=True)
     else:
         print("  SF-MCP live fields: no CSVs present -> all 3 groups carry forward (Open/PF)", flush=True)
 
@@ -523,6 +525,8 @@ def merge_freeze(prior_path):
                 row["intro_call_date"] = icd
             if oid in sfmcp_recert:
                 row["recert_status"] = sfmcp_recert[oid]
+            if oid in sfmcp_sep:
+                row["sep_risk_level"] = sfmcp_sep[oid]
             if oid in sfmcp_pk:
                 pf, pc = sfmcp_pk[oid]
                 row["packets_files"] = int(fnum(pf) or 0)
@@ -553,7 +557,7 @@ def merge_freeze(prior_path):
 def run_build():
     r = subprocess.run([VENV_PY, BUILDER], cwd=HERE)
     if r.returncode != 0:
-        raise SystemExit("build_advising_hub.py failed")
+        raise RuntimeError("build_advising_hub.py failed")
 
 # ----------------------------------------------------------------- verify
 def _extract_hub_json(src):
@@ -572,45 +576,125 @@ const dayDiff=(a,b)=>Math.round((a-b)/86400000);
 const dUntil=s=>s?dayDiff(D(s),TODAY):null;
 const isY=v=>v==="Y";
 const tabOf=r=>{const s=r.stage||"";return TAB_CLOSED.has(s)?"closed":(s==="Pending Fulfillment"?"pf":"open");};
-const EARLY=new Set(["Open","SAL","Attempting Contact","New","Working","Nurturing"]);
-const MID=new Set(["Engaged","ER Confirm"]);
-const _daysSince=s=>{const d=dUntil(s);return d==null?null:-d;};
-function riskOpen(r){const bl=(r.blocked_reason||"");const sigs=[];
- const early=EARLY.has(r.stage)?1:MID.has(r.stage)?0.5:0;const dtr=r.days_to_renewal;
- const unwSev=early*(dtr==null?0.2:dtr<=30?1:dtr<=45?0.8:dtr<=60?0.5:0.2);sigs.push({w:15,sev:unwSev});
- const tbSev=/Pending Termination|BoR Away/i.test(bl)?1:/BoR Incomplete/i.test(bl)?0.7:0;sigs.push({w:15,sev:tbSev});
- const so=_daysSince(r.last_outbound_email_date);const siFire=(so==null)||(so>21);sigs.push({k:"silence",w:0,sev:siFire?1:0});
- const inc=r.rate_increase_pct;const rtSev=inc==null?0:inc>=30?1:inc>=20?0.6:inc>=15?0.3:0;sigs.push({w:12,sev:rtSev});
- const si=_daysSince(r.last_inbound_email_date);const nrFire=(si==null)||(si>21);sigs.push({k:"noresp",w:0,sev:nrFire?1:0});
- const sc=_daysSince(r.last_connect_date);const ccFire=(sc==null)||(sc>21);sigs.push({k:"callconnect",w:0,sev:ccFire?1:0});
- const ld=r.lead_days;const lgSev=ld==null?0:ld<60?1:ld<75?0.5:0;sigs.push({w:10,sev:lgSev});
- const dis=r.days_in_stage;const stSev=dis==null?0:dis>21?1:dis>14?0.66:dis>7?0.33:0;sigs.push({w:10,sev:stSev});
- sigs.push({w:10,sev:isY(r.intro_call)?0:1});
- const dd=dUntil(r.selection_deadline);const dlSev=dd==null?0:dd<0?1:dd<=7?0.6:dd<=14?0.3:0;sigs.push({w:10,sev:dlSev});
- const sd=dUntil(r.submission_deadline);const sdSev=sd==null?0:sd<0?1:sd<=7?0.6:sd<=14?0.3:0;sigs.push({w:10,sev:sdSev});
- const pkSev=/Packet Needed/i.test(bl)?1:((r.packets_files==0||r.packets_files==null)&&r.packet_carriers)?0.4:0;sigs.push({w:8,sev:pkSev});
- let asSev=0;if(r.alt_requested_date){let gap=r.alt_published_date?(r.days_to_alt):_daysSince(r.alt_requested_date);gap=gap==null?0:gap;asSev=gap>3?1:gap==3?0.5:0;}sigs.push({w:8,sev:asSev});
- const rl=r.recert_lateness_days;const rcSev=(rl>0)?(rl>60?1:rl>30?0.7:rl>14?0.4:0.25):((r.recert_ticket||r.recert_status||/recert/i.test(bl))?0.5:0);sigs.push({w:8,sev:rcSev});
- {const band=r.lf_savings_band;const posit=(band==="High"||band==="Medium"||band==="Low");const inAlt=(r.lf_in_alt==="Y");const sev=(posit&&!inAlt)?(band==="High"?1:band==="Medium"?0.7:0.4):0;sigs.push({w:6,sev:sev});}
- sigs.push({w:6,sev:isY(r.sep)?1:0});
- const WTOTAL_OPEN=128;let acc=0;sigs.forEach(s=>{acc+=s.w*s.sev;});
- const goneQuiet=["silence","noresp","callconnect"].reduce((n,k)=>{const s=sigs.find(x=>x.k===k);return n+(s&&s.sev>0?1:0);},0);
- return {score:Math.round(100*acc/WTOTAL_OPEN), goneQuiet};}
-function riskPF(r){const sigs=[];
- const cur=(r.in_app_date&&r.cycle_open&&r.in_app_date>=r.cycle_open);const ia=parseFloat(r.inapp_current);const cmt=!!r.in_app_comment;
- const seSev=(cur&&(!isNaN(ia)||cmt))?(ia<=2?1:ia<=3?0.7:(cmt?0.7:0)):0;sigs.push({w:30,sev:seSev});
- const tk=r.tickets_to_advising||0;const tkSev=tk>=3?1:tk==2?0.7:tk==1?0.4:0;sigs.push({w:30,sev:tkSev});
- const rcSev=(r.recert_status&&r.recert_status!=="Recert Approved")?1:0;sigs.push({w:20,sev:rcSev});
- const dd=dUntil(r.submission_deadline);const w1Sev=(dd!=null&&dd>=0&&dd<=7)?1:(dd!=null&&dd>=8&&dd<=14)?0.5:0;sigs.push({w:30,sev:w1Sev});
- const inc=r.rate_increase_pct;const arSev=isY(r.auto_renewal)?(inc>=20?1:inc>=14?0.6:0.3):0;sigs.push({w:20,sev:arSev});
- const WTOTAL_PF=130;let acc=0;sigs.forEach(s=>{acc+=s.w*s.sev;});return Math.round(100*acc/WTOTAL_PF);}
-function riskOf(r){const t=tabOf(r);
- if(t==="open"){const b=riskOpen(r);let tier=b.score>=35?"High":b.score>=18?"Med":"Low";
-   const floor=b.goneQuiet>=3?"High":b.goneQuiet>=1?"Med":"Low";const RANK={Low:0,Med:1,High:2};
-   if(RANK[floor]>RANK[tier])tier=floor;return tier;}
- const score=riskPF(r);return score>=35?"High":score>=18?"Med":"Low";}
+/* ============================================================ risk engine
+   Per-tab risk profile computed client-side from existing row fields.
+   Open  -> riskOpen  (3 equal domains @ 33.3: contact / plan&cost / timeline&SLA)
+   PF    -> riskPF    (4 equal domains @ 25: sentiment / service / cost / timeline)
+   Closed-> riskPF but marked archived.
+   Scaling: duration/magnitude signals scale up to x2 as they worsen (marked in reasons).
+   Tiers: score>=30 High · >=21 Med · else Low.
+   Contact floor (Open only): 3 of 3 contact signals -> at least High; 2 of 3 -> at least Med. */
+const EARLY_SET = new Set(["SAL","Ready for Default Package","Open"]);
+function _daysSince(s){ const d=dUntil(s); return d==null?null:-d; }   // days since a past date
+function _durScale(d){ return d>90?2.0 : d>45?1.5 : 1.0; }            // recency / dwell escalator
+function _slaScale(dw,thr,a,b){ return dw>b?2.0 : dw>a?1.5 : dw>thr?1.0 : 0; }
+function _num(x){ const v=parseFloat(x); return isNaN(v)?null:v; }
+function _survAvg(r){ const a=r.surveys_12mo; if(!Array.isArray(a)) return null;
+  let s=0,n=0; a.forEach(it=>{ if(it && it.survey!=="App: NPS Survey"){ const v=parseFloat(it.rating); if(!isNaN(v)){ s+=v; n++; } } });
+  return n? s/n : null; }
+const WC=100/3/5, WT=100/3/8, WPF=25, WSVC=25/3;
+function riskOpen(r){
+  const bl=(r.blocked_reason||""); const sigs=[];
+  const so=_daysSince(r.last_outbound_email_date), si=_daysSince(r.last_inbound_email_date), sc=_daysSince(r.last_connect_date);
+  const haveOut = r.last_outbound_email_date!=null;
+  // ---- Customer contact (5 x 6.7) ----
+  const replyFire = haveOut && (si==null || si>21);
+  sigs.push({key:"reply", w:WC, sev: replyFire? _durScale(si!=null?si:(so!=null?so:22)) : 0, reason:(si==null?`No customer reply since we reached out`:`No customer reply in ${si} days`)});
+  const silFire = (so==null || so>21);
+  sigs.push({key:"silence", w:WC, sev: silFire? _durScale(so!=null?so:22) : 0, reason:(so==null?`No outbound email logged`:`No outbound email in ${so} days`)});
+  const connFire = (sc==null || sc>21);
+  sigs.push({key:"callconnect", w:WC, sev: connFire? _durScale(sc!=null?sc:22) : 0, reason:(sc==null?`No live call connect logged`:`No live call connect in ${sc} days`)});
+  const dis=r.days_in_stage;
+  const stSev = dis==null?0 : dis>21?_durScale(dis) : dis>14?0.66 : dis>7?0.33 : 0;
+  sigs.push({key:"stagnant", w:WC, sev:stSev, reason:`${r.days_in_stage} days in ${r.stage}`});
+  sigs.push({key:"nointro", w:WC, sev:isY(r.intro_call)?0:1, reason:`intro call not completed`});
+  // ---- Plan & cost attributes (5 x 6.7) ----
+  const inc=r.rate_increase_pct;
+  const rtSev = inc==null?0 : inc>=60?2 : inc>=45?1.5 : inc>=30?1 : inc>=20?0.6 : inc>=15?0.3 : 0;
+  sigs.push({key:"rate", w:WC, sev:rtSev, reason:`rate increase ${r.rate_increase_pct}%`});
+  { const band=r.lf_savings_band; const posit=(band==="High"||band==="Medium"||band==="Low"); const inAlt=(r.lf_in_alt==="Y");
+    const sev=(posit&&!inAlt)?(band==="High"?1:band==="Medium"?0.7:0.4):0;
+    sigs.push({key:"lfpend", w:WC, sev:sev, reason:`level-funded savings (${band}) not in an alt`}); }
+  const tbSev=/Pending Termination|BoR Away/i.test(bl)?1:/BoR Incomplete/i.test(bl)?0.7:0;
+  sigs.push({key:"termbor", w:WC, sev:tbSev, reason:`term / BoR-away — ${bl}`});
+  const rl=r.recert_lateness_days;
+  const rcSev=(rl>0)?(rl>120?2:rl>90?1.5:rl>60?1:rl>30?0.7:rl>14?0.4:0.25):((r.recert_ticket||r.recert_status||/recert/i.test(bl))?0.5:0);
+  sigs.push({key:"recert", w:WC, sev:rcSev, reason:(rl>0?`recertification ${rl} days late`:`recertification flagged`)});
+  sigs.push({key:"sepgr", w:WC, sev:isY(r.sep)?1:0, reason:`SEP / GR flagged`});
+  // ---- Timeline & SLA (8 x 4.2) ----
+  const sd=dUntil(r.submission_deadline);
+  const sdSev = sd==null?0 : sd<0?( -sd>=14?2 : -sd>=7?1.5 : 1) : sd<=7?0.7 : sd<=21?0.4 : 0;
+  sigs.push({key:"subdl", w:WT, sev:sdSev, reason:(sd<0?`submission deadline passed ${-sd}d ago`:`submission deadline in ${sd}d`)});
+  const rfd=_num(r.days_to_default);
+  const rfdSev = rfd!=null? _slaScale(rfd,5,15,30) : (r.rfd_sla==="Missed"?1:0);
+  sigs.push({key:"rfdsla", w:WT, sev:rfdSev, reason:(rfd!=null?`${Math.round(rfd)} days in Ready-for-Default (SLA 5)`:`RFD SLA missed`)});
+  const erc=_num(r.time_in_erc);
+  const ercSev = erc!=null? _slaScale(erc,5,15,30) : (r.erc_sla==="Missed"?1:0);
+  sigs.push({key:"ercsla", w:WT, sev:ercSev, reason:(erc!=null?`${Math.round(erc)} days in ER Confirm (SLA 5)`:`ERC SLA missed`)});
+  let asSev=0, agap=null;
+  if (r.alt_requested_date){ let gap = r.alt_published_date ? r.days_to_alt : _daysSince(r.alt_requested_date); gap=gap==null?0:gap; agap=gap;
+    asSev = gap>3?(gap>21?2:gap>10?1.5:1) : gap==3?0.5 : 0; }
+  sigs.push({key:"altsla", w:WT, sev:asSev, reason:(agap!=null?`alternates ${agap}d unpublished (SLA 3)`:`alternates SLA`)});
+  const sa=_survAvg(r);
+  const svSev = (sa!=null && sa<=3)?(sa<=1.5?2:sa<=2?1.5:1):0;
+  sigs.push({key:"survey", w:WT, sev:svSev, reason:(sa!=null?`avg survey ${sa.toFixed(1)} over 12 months`:`low survey`)});
+  const dtr=r.days_to_renewal;
+  const esSev=(EARLY_SET.has(r.stage) && dtr!=null && dtr<=45)?1:0;
+  sigs.push({key:"early", w:WT, sev:esSev, reason:`early stage (${r.stage}), ${dtr}d to renewal`});
+  const ld=r.lead_days;
+  sigs.push({key:"lategen", w:WT, sev: ld==null?0:ld<60?1:ld<75?0.5:0, reason:`short lead time (${r.lead_days}d)`});
+  const pkSev=/Packet Needed/i.test(bl)?1:((r.packets_files==0||r.packets_files==null)&&r.packet_carriers)?0.4:0;
+  sigs.push({key:"packet", w:WT, sev:pkSev, reason:`renewal packet missing`});
+  let acc=0; sigs.forEach(s=>{ acc += s.w*s.sev; });
+  const score=Math.min(100, Math.round(acc));
+  const goneQuiet=["reply","silence","callconnect"].reduce((n,k)=>{const s=sigs.find(x=>x.key===k);return n+(s&&s.sev>0?1:0);},0);
+  const firing=sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
+  return {score, reasons:firing.map(s=>s.reason), firing, goneQuiet};
+}
+function riskPF(r){
+  const sigs=[];
+  // ---- Sentiment (25) ----
+  const cur=(r.in_app_date && r.cycle_open && r.in_app_date>=r.cycle_open);
+  const ia=parseFloat(r.inapp_current); const cmt=!!r.in_app_comment;
+  const seSev = cur ? (!isNaN(ia)?(ia<=1?1:ia<=2?0.85:ia<=3?0.6:0):(cmt?0.6:0)) : 0;
+  sigs.push({key:"sentiment", w:WPF, sev:seSev, reason:`in-app sentiment ${r.inapp_current} this cycle`});
+  // ---- Service load (3 x 8.3) ----
+  const tk=r.tickets_to_advising||0;
+  const tkSev = tk>=5?1.5 : tk>=3?1 : tk==2?0.7 : tk==1?0.4 : 0;
+  sigs.push({key:"ticket", w:WSVC, sev:tkSev, reason:`${r.tickets_to_advising} open OA→advising ticket${r.tickets_to_advising==1?"":"s"}`});
+  sigs.push({key:"ticketsla", w:WSVC, sev:(r.ticket_sla==="Missed"?1:0), reason:`a ticket is past its SLA`});
+  const rl=r.recert_lateness_days;
+  const rcSev=(r.recert_status && r.recert_status!=="Recert Approved")?((rl>90)?2:(rl>60)?1.5:1):0;
+  sigs.push({key:"recert", w:WSVC, sev:Math.min(rcSev,2), reason:`recert still open (${r.recert_status})`});
+  // ---- Cost (25) ----
+  const inc=r.rate_increase_pct;
+  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=14?0.6:0.3):0;
+  sigs.push({key:"autoren", w:WPF, sev:Math.min(arSev,2), reason:(inc!=null?`auto-renewing into a ${inc}% increase`:"auto-renewal")});
+  // ---- Timeline (25) ----
+  const dd=dUntil(r.submission_deadline);
+  const w1Sev = dd==null?0 : dd<0?(-dd>=14?2:-dd>=7?1.5:1) : dd<=7?1 : dd<=14?0.5 : 0;
+  sigs.push({key:"within1wk", w:WPF, sev:w1Sev, reason:(dd!=null?`fulfillment in ${dd} day${dd==1?"":"s"}`:"fulfillment deadline")});
+  let acc=0; sigs.forEach(s=>{ acc += s.w*s.sev; });
+  const score=Math.min(100, Math.round(acc));
+  const firing=sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
+  return {score, reasons:firing.map(s=>s.reason), firing};
+}
+function riskOf(r){
+  const t=tabOf(r); let base, archived=false;
+  if (t==="open") base=riskOpen(r);
+  else if (t==="pf") base=riskPF(r);
+  else { base=riskPF(r); archived=true; }
+  const score=base.score;
+  let tier = score>=30?"High" : score>=21?"Med" : "Low";
+  if (t==="open" && base.goneQuiet!=null){
+    const floor = base.goneQuiet>=3?"High" : base.goneQuiet>=2?"Med" : "Low";
+    const RANK={Low:0,Med:1,High:2};
+    if (RANK[floor] > RANK[tier]) tier=floor;
+  }
+  return {score, tier, reasons:base.reasons, firing:base.firing||[], archived, goneQuiet:base.goneQuiet};
+}
 // active at-risk (High) = Open + Pending Fulfillment; Closed risk is archived/frozen in the builder.
-let hi=0;for(const r of HUB){const t=tabOf(r);if(t!=="closed"&&riskOf(r)==="High")hi++;}
+let hi=0;for(const r of HUB){const t=tabOf(r);if(t!=="closed"&&riskOf(r).tier==="High")hi++;}
 console.log(hi);
 """
 
@@ -651,7 +735,7 @@ def publish():
     r = subprocess.run([VENV_PY, os.path.join(HERE,"push_html.py"), HTML,
                         "benefits-advising-hub", "V4OnvupXVeifrDj0"], cwd=HERE)
     if r.returncode != 0:
-        raise SystemExit("push_html.py failed")
+        raise RuntimeError("push_html.py failed")
 
 # ----------------------------------------------------------------- main
 def main():

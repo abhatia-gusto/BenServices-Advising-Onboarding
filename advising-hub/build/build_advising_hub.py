@@ -62,8 +62,61 @@ def md_to_html(md):
     flush_para(); close_ul()
     return "\n".join(out)
 
+RISK_VISUAL_HTML = """
+<div style="border:.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0 6px;background:var(--card)">
+  <div style="font-size:11px;color:var(--g6);margin-bottom:10px"><b style="color:var(--gold)">&#9650;</b> scales up to &times;2 as it worsens &middot; unmarked = on / off</div>
+  <div style="font-weight:600;font-size:12px;margin:2px 0 6px">Open &mdash; three equal areas, 33.3 pts each</div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:10px 12px">
+      <div style="font-weight:600;font-size:13px">Customer contact</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:6px">33.3 pts &middot; 6.7 each</div>
+      <div style="font-size:12px;line-height:1.85">No customer reply &middot; 21d+ <b style="color:var(--gold)">&#9650;</b><br>No email outbound &middot; 21d+ <b style="color:var(--gold)">&#9650;</b><br>No live call connect &middot; 21d+ <b style="color:var(--gold)">&#9650;</b><br>Days in stage &middot; 21d+ <b style="color:var(--gold)">&#9650;</b><br>Intro call not completed</div>
+    </div>
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:10px 12px">
+      <div style="font-weight:600;font-size:13px">Plan &amp; cost</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:6px">33.3 pts &middot; 6.7 each</div>
+      <div style="font-size:12px;line-height:1.85">Rate increase &middot; &ge;15% <b style="color:var(--gold)">&#9650;</b><br>LF savings not in an alt<br>Term / BoR-away<br>Recert lateness &middot; past due <b style="color:var(--gold)">&#9650;</b><br>SEP / GR</div>
+    </div>
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:10px 12px">
+      <div style="font-weight:600;font-size:13px">Timeline &amp; SLA</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:6px">33.3 pts &middot; 4.2 each</div>
+      <div style="font-size:12px;line-height:1.85">Submission deadline &middot; &le;21d / passed <b style="color:var(--gold)">&#9650;</b><br>RFD SLA breach &middot; &gt;5d <b style="color:var(--gold)">&#9650;</b><br>ERC SLA breach &middot; &gt;5d <b style="color:var(--gold)">&#9650;</b><br>Alternates SLA breach &middot; &gt;3d <b style="color:var(--gold)">&#9650;</b><br>Low survey &middot; avg &le;3 (12mo) <b style="color:var(--gold)">&#9650;</b><br>Early stage near renewal &middot; &le;45d<br>Short lead time &middot; &lt;60d<br>Renewal packet missing</div>
+    </div>
+  </div>
+  <div style="display:flex;height:26px;border-radius:8px;overflow:hidden;margin-top:12px;border:.5px solid var(--line)">
+    <div style="flex:20;background:#e8f5ee;color:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px">Low &middot; 0&ndash;20</div>
+    <div style="flex:9;background:var(--cream);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px">Med &middot; 21&ndash;29</div>
+    <div style="flex:70;background:var(--coral-20);color:var(--coral-dk);display:flex;align-items:center;justify-content:center;font-size:12px">High &middot; 30+</div>
+  </div>
+  <div style="font-weight:600;font-size:12px;margin:14px 0 6px">PF &amp; Closed &mdash; four equal areas, 25 pts each</div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
+      <div style="font-weight:600;font-size:12px">Sentiment</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:5px">25 pts</div>
+      <div style="font-size:12px;line-height:1.8">In-app sentiment this cycle &middot; rating &le;3 <b style="color:var(--gold)">&#9650;</b></div>
+    </div>
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
+      <div style="font-weight:600;font-size:12px">Service load</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:5px">25 pts &middot; 8.3 each</div>
+      <div style="font-size:12px;line-height:1.8">Open advising tickets &middot; &ge;1 <b style="color:var(--gold)">&#9650;</b><br>Ticket SLA breached &middot; past SLA<br>Recert still open &middot; not Approved <b style="color:var(--gold)">&#9650;</b></div>
+    </div>
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
+      <div style="font-weight:600;font-size:12px">Cost</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:5px">25 pts</div>
+      <div style="font-size:12px;line-height:1.8">Auto-renew into an increase &middot; &ge;14% <b style="color:var(--gold)">&#9650;</b></div>
+    </div>
+    <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
+      <div style="font-weight:600;font-size:12px">Timeline</div>
+      <div style="font-size:11px;color:var(--g6);margin-bottom:5px">25 pts</div>
+      <div style="font-size:12px;line-height:1.8">Fulfillment &middot; &le;7d / passed <b style="color:var(--gold)">&#9650;</b></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--g6);margin-top:8px">Same tier bands (High 30+, Med 21&ndash;29, Low &le;20) for both. Contact floor on Open: 3 of 3 contact signals &rarr; at least High, 2 of 3 &rarr; at least Med.</div>
+</div>
+"""
 guide_html = md_to_html(open(GUIDE_PATH, encoding="utf-8").read()) if os.path.exists(GUIDE_PATH) \
     else "<p>Guide unavailable.</p>"
+guide_html = guide_html.replace("<p>[[RISK_VISUAL]]</p>", RISK_VISUAL_HTML).replace("[[RISK_VISUAL]]", RISK_VISUAL_HTML)
 
 TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
@@ -240,7 +293,7 @@ tr.row.open td{background:var(--teal-tint)}
 .lfsav.lfs-lo{background:var(--cream);color:#a9812f}
 .lfsav.lfs-no{background:var(--g3);color:var(--g6)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g4)}
-.dot.on{background:var(--teal)}
+.dot.on{background:var(--green)}
 .dot.warn{background:var(--gold)}
 .dot.bad{background:var(--coral)}
 .pend{display:inline-flex;align-items:center;gap:5px}
@@ -314,9 +367,9 @@ table.lines tr.tot td.prem-fin{background:var(--cream-2)}
 .tl .step .bar{height:3px;background:var(--teal-tint);position:absolute;top:8px;left:50%;right:-50%;z-index:0}
 .tl .step:last-child .bar{display:none}
 .tl .dotm{width:17px;height:17px;border-radius:50%;border:2px solid var(--teal);background:var(--card);z-index:1}
-.tl .step.done .dotm{background:var(--teal)}
+.tl .step.done .dotm{background:var(--green)}
 .tl .step.end .dotm{width:19px;height:19px}
-.tl .step.won .dotm{background:var(--teal);border-color:var(--teal-dk)}
+.tl .step.won .dotm{background:var(--green);border-color:var(--green)}
 .tl .step.lost .dotm{background:var(--card);border-color:var(--coral);border-width:3px}
 .tl .step .tlab{font:600 9.5px var(--ui);letter-spacing:.03em;text-transform:uppercase;color:var(--g6);margin-top:6px;text-align:center;line-height:1.2}
 .tl .step .tdt{font:600 11px var(--mono);color:var(--ink);margin-top:2px}
@@ -524,8 +577,9 @@ table.lines tr.tot td.prem-fin{background:var(--cream-2)}
       <div id="mdStage"></div>
       <div id="mdTier"></div>
       <div id="mdCohort"></div>
-      <div class="fld"><label>Risk</label><div id="mdRisk"></div></div>
+      <div id="mdRisk"></div>
       <div class="spacer"></div>
+      <button id="clearFilters" title="Reset all filters and search" style="align-self:center;font-size:12px;padding:5px 11px;border:.5px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;white-space:nowrap">Clear filters</button>
     </div>
     <div class="tbltop" id="tblTop"><div class="tbltop-inner" id="tblTopInner"></div></div>
     <div class="tblwrap" id="tblwrap">
@@ -684,6 +738,7 @@ const BASE_COLS = [
   {k:"lfsav",  g:"flags", t:"LF savings",s:r=>{const b=r.lf_savings_band;return b==="High"?4:b==="Medium"?3:b==="Low"?2:b==="No"?1:-1;}},
   {k:"recert", g:"flags", t:"Recert",   s:r=>hasRecert(r)?1:0},
   {k:"sep",    g:"flags", t:"SEP",      s:r=>isY(r.sep)?1:0},
+  {k:"seprisk",g:"flags", t:"SEP risk", s:r=>r.sep_risk_level||""},
   {k:"bor",    g:"flags", t:"BoR/Term", s:r=>isY(r.bor_term)?1:0},
   {k:"autoren",g:"flags", t:"Auto-renewal",s:r=>isY(r.auto_renewal)?1:0},
   {k:"defauto",g:"flags", t:"Default automation",s:r=>isY(r.default_automation)?1:0},
@@ -704,7 +759,8 @@ const BASE_COLS = [
      ttl:()=>"Opp create → first recommendation sent (days)"},
   {k:"trfd",    g:"rec",  t:"Time in RFD",s:r=>r.days_to_default??99999,
      ttl:()=>"Time in RFD (SLO) — days in Ready-for-Default-Package"},
-  {k:"altreq",  g:"rec",  t:"Alt requested",s:r=>(isY(r.alt_requested)||r.alt_requested_date)?1:0},
+  {k:"altreq",  g:"rec",  t:"Alt requested",s:r=>(isY(r.alt_requested)||r.alt_requested_date||r.alt_req_date)?1:0},
+  {k:"altreqdate",g:"rec",t:"Alt req date",s:r=>r.alt_req_date||r.alt_requested_date||""},
   {k:"altcreated",g:"rec",t:"Alt created", s:r=>r.alt_created??-1},
   {k:"altpub",  g:"rec",  t:"Alt published",s:r=>r.alt_published_date||""},
   {k:"days2alt",g:"rec",  t:"Days to alt",  s:r=>r.days_to_alt??99999},
@@ -774,135 +830,122 @@ function coIcon(url, kind, title){
 
 /* ============================================================ risk engine
    Per-tab risk profile computed client-side from existing row fields.
-   Open  -> riskOpen  (EYO 2 pre-selection model, tickets intentionally removed)
-   PF    -> riskPF    (4-factor fulfillment model)
-   Closed-> riskPF but marked archived. tier: >=35 High · >=18 Med · else Low. */
-const EARLY = new Set(["Open","SAL","Attempting Contact","New","Working","Nurturing"]);
-const MID   = new Set(["Engaged","ER Confirm"]);
+   Open  -> riskOpen  (3 equal domains @ 33.3: contact / plan&cost / timeline&SLA)
+   PF    -> riskPF    (4 equal domains @ 25: sentiment / service / cost / timeline)
+   Closed-> riskPF but marked archived.
+   Scaling: duration/magnitude signals scale up to x2 as they worsen (marked in reasons).
+   Tiers: score>=30 High · >=21 Med · else Low.
+   Contact floor (Open only): 3 of 3 contact signals -> at least High; 2 of 3 -> at least Med. */
+const EARLY_SET = new Set(["SAL","Ready for Default Package","Open"]);
 function _daysSince(s){ const d=dUntil(s); return d==null?null:-d; }   // days since a past date
+function _durScale(d){ return d>90?2.0 : d>45?1.5 : 1.0; }            // recency / dwell escalator
+function _slaScale(dw,thr,a,b){ return dw>b?2.0 : dw>a?1.5 : dw>thr?1.0 : 0; }
+function _num(x){ const v=parseFloat(x); return isNaN(v)?null:v; }
+function _survAvg(r){ const a=r.surveys_12mo; if(!Array.isArray(a)) return null;
+  let s=0,n=0; a.forEach(it=>{ if(it && it.survey!=="App: NPS Survey"){ const v=parseFloat(it.rating); if(!isNaN(v)){ s+=v; n++; } } });
+  return n? s/n : null; }
+const WC=100/3/5, WT=100/3/8, WPF=25, WSVC=25/3;
 function riskOpen(r){
-  const bl = (r.blocked_reason||"");
-  const sigs = [];
-  // unworked (15)
-  const early = EARLY.has(r.stage)?1: MID.has(r.stage)?0.5:0;
-  const dtr = r.days_to_renewal;
-  const unwSev = early * (dtr==null?0.2 : dtr<=30?1 : dtr<=45?0.8 : dtr<=60?0.5 : 0.2);
-  sigs.push({key:"unworked", w:15, sev:unwSev, reason:`unworked close to renewal — still in ${r.stage}, ${r.days_to_renewal<0?Math.abs(r.days_to_renewal)+" days past renewal":r.days_to_renewal+" days to renewal"}`});
-  // termbor (15)
-  const tbSev = /Pending Termination|BoR Away/i.test(bl)?1 : /BoR Incomplete/i.test(bl)?0.7 : 0;
-  sigs.push({key:"termbor", w:15, sev:tbSev, reason:`blocked: term/BOR away — ${bl}`});
-  // silence — gone-quiet #1: no outbound email in 21+ days (null = fire). Weight 0: drives the tier via the gone-quiet floor override, not the weighted score.
-  const so = _daysSince(r.last_outbound_email_date);
-  const siFire = (so==null) || (so>21);
-  sigs.push({key:"silence", w:0, sev:siFire?1:0, reason:(so==null?`No recent email outreach — no outbound email logged`:`No recent email outreach — ${so} days since we emailed`)});
-  // rate (12)
-  const inc = r.rate_increase_pct;
-  const rtSev = inc==null?0 : inc>=30?1 : inc>=20?0.6 : inc>=15?0.3 : 0;
-  sigs.push({key:"rate", w:12, sev:rtSev, reason:`rate increase ${r.rate_increase_pct}%`});
-  // noresp — gone-quiet #2: no inbound customer reply in 21+ days (null = fire). Weight 0 (see silence).
-  const si = _daysSince(r.last_inbound_email_date);
-  const nrFire = (si==null) || (si>21);
-  sigs.push({key:"noresp", w:0, sev:nrFire?1:0, reason:(si==null?`No recent customer response — no reply logged`:`No recent customer response — ${si} days since they replied`)});
-  // callconnect — gone-quiet #3: no live call connect in 21+ days (null = fire). Weight 0 (see silence).
-  const sc=_daysSince(r.last_connect_date);
-  const ccFire = (sc==null) || (sc>21);
-  sigs.push({key:"callconnect", w:0, sev:ccFire?1:0, reason:(sc==null?`No recent call connects — no live connect logged`:`No recent call connects — ${sc} days since a live connect`)});
-  // lategen (10)  — negative lead_days counts as <60 -> 1
-  const ld = r.lead_days;
-  const lgSev = ld==null?0 : ld<60?1 : ld<75?0.5 : 0;
-  sigs.push({key:"lategen", w:10, sev:lgSev, reason:`late-generated opp (${r.lead_days}d lead)`});
-  // stagnant (10)
-  const dis = r.days_in_stage;
-  const stSev = dis==null?0 : dis>21?1 : dis>14?0.66 : dis>7?0.33 : 0;
-  sigs.push({key:"stagnant", w:10, sev:stSev, reason:`days in SFDC stage — ${r.days_in_stage} days in ${r.stage}`});
-  // nointro (10)
-  sigs.push({key:"nointro", w:10, sev:isY(r.intro_call)?0:1, reason:`intro call not complete`});
-  // (label parity: OV_OPEN_FACTOR_LABEL uses EYO 2 phrasing)
-  // deadline (10) — selection deadline
-  const dd = dUntil(r.selection_deadline);
-  const dlSev = dd==null?0 : dd<0?1 : dd<=7?0.6 : dd<=14?0.3 : 0;
-  sigs.push({key:"deadline", w:10, sev:dlSev, reason:(dd<0?`selection deadline passed ${-dd}d ago`:`selection deadline in ${dd}d`)});   // EYO 2: "Selection deadline"
-  // subdl (10) — submission deadline, same mapping
-  const sd = dUntil(r.submission_deadline);
-  const sdSev = sd==null?0 : sd<0?1 : sd<=7?0.6 : sd<=14?0.3 : 0;
-  sigs.push({key:"subdl", w:10, sev:sdSev, reason:(sd<0?`submission deadline passed ${-sd}d ago`:`submission deadline in ${sd}d`)});   // EYO 2: "Submission deadline"
-  // packet (8)
-  const pkSev = /Packet Needed/i.test(bl)?1 : ((r.packets_files==0||r.packets_files==null)&&r.packet_carriers)?0.4 : 0;
-  sigs.push({key:"packet", w:8, sev:pkSev, reason:`renewal packet missing`});   // EYO 2: "Renewal packet missing"
-  // altsla (8)
-  let asSev = 0;
-  if (r.alt_requested_date){
-    let gap = r.alt_published_date ? (r.days_to_alt) : _daysSince(r.alt_requested_date);
-    gap = gap==null?0:gap;
-    asSev = gap>3?1 : gap==3?0.5 : 0;
-  }
-  sigs.push({key:"altsla", w:8, sev:asSev, reason:`alternates requested > 3d`});
-  // recert (8)
-  const rl = r.recert_lateness_days;
-  const rcSev = (rl>0)? (rl>60?1:rl>30?0.7:rl>14?0.4:0.25) : ((r.recert_ticket||r.recert_status||/recert/i.test(bl))?0.5:0);
-  sigs.push({key:"recert", w:8, sev:rcSev, reason:(rl>0?`recertification ${rl} days late`:`recertification flagged`)});
-  // lfpend (6) — LF savings available but not yet recommended in an alt package (LF-dash definition)
-  { const band=r.lf_savings_band; const posit=(band==="High"||band==="Medium"||band==="Low");
-    const inAlt=(r.lf_in_alt==="Y");
-    const sev = (posit && !inAlt) ? (band==="High"?1:band==="Medium"?0.7:0.4) : 0;
-    sigs.push({key:"lfpend", w:6, sev:sev, reason:`level-funded quote pending — LF savings (${band}) not yet recommended in an alt`}); }
-  // sepgr (6)
-  sigs.push({key:"sepgr", w:6, sev:isY(r.sep)?1:0, reason:`SEP / GR flagged`});   // EYO 2: "SEP / GR"
-  const WTOTAL_OPEN = 128;   // 158 - 30: silence/noresp/callconnect now weight 0; the 3 "gone quiet" signals drive the tier via the floor override in riskOf(), not the weighted score.
+  const bl=(r.blocked_reason||""); const sigs=[];
+  const so=_daysSince(r.last_outbound_email_date), si=_daysSince(r.last_inbound_email_date), sc=_daysSince(r.last_connect_date);
+  const haveOut = r.last_outbound_email_date!=null;
+  // ---- Customer contact (5 x 6.7) ----
+  const replyFire = haveOut && (si==null || si>21);
+  sigs.push({key:"reply", w:WC, sev: replyFire? _durScale(si!=null?si:(so!=null?so:22)) : 0, reason:(si==null?`No customer reply since we reached out`:`No customer reply in ${si} days`)});
+  const silFire = (so==null || so>21);
+  sigs.push({key:"silence", w:WC, sev: silFire? _durScale(so!=null?so:22) : 0, reason:(so==null?`No outbound email logged`:`No outbound email in ${so} days`)});
+  const connFire = (sc==null || sc>21);
+  sigs.push({key:"callconnect", w:WC, sev: connFire? _durScale(sc!=null?sc:22) : 0, reason:(sc==null?`No live call connect logged`:`No live call connect in ${sc} days`)});
+  const dis=r.days_in_stage;
+  const stSev = dis==null?0 : dis>21?_durScale(dis) : dis>14?0.66 : dis>7?0.33 : 0;
+  sigs.push({key:"stagnant", w:WC, sev:stSev, reason:`${r.days_in_stage} days in ${r.stage}`});
+  sigs.push({key:"nointro", w:WC, sev:isY(r.intro_call)?0:1, reason:`intro call not completed`});
+  // ---- Plan & cost attributes (5 x 6.7) ----
+  const inc=r.rate_increase_pct;
+  const rtSev = inc==null?0 : inc>=60?2 : inc>=45?1.5 : inc>=30?1 : inc>=20?0.6 : inc>=15?0.3 : 0;
+  sigs.push({key:"rate", w:WC, sev:rtSev, reason:`rate increase ${r.rate_increase_pct}%`});
+  { const band=r.lf_savings_band; const posit=(band==="High"||band==="Medium"||band==="Low"); const inAlt=(r.lf_in_alt==="Y");
+    const sev=(posit&&!inAlt)?(band==="High"?1:band==="Medium"?0.7:0.4):0;
+    sigs.push({key:"lfpend", w:WC, sev:sev, reason:`level-funded savings (${band}) not in an alt`}); }
+  const tbSev=/Pending Termination|BoR Away/i.test(bl)?1:/BoR Incomplete/i.test(bl)?0.7:0;
+  sigs.push({key:"termbor", w:WC, sev:tbSev, reason:`term / BoR-away — ${bl}`});
+  const rl=r.recert_lateness_days;
+  const rcSev=(rl>0)?(rl>120?2:rl>90?1.5:rl>60?1:rl>30?0.7:rl>14?0.4:0.25):((r.recert_ticket||r.recert_status||/recert/i.test(bl))?0.5:0);
+  sigs.push({key:"recert", w:WC, sev:rcSev, reason:(rl>0?`recertification ${rl} days late`:`recertification flagged`)});
+  sigs.push({key:"sepgr", w:WC, sev:isY(r.sep)?1:0, reason:`SEP / GR flagged`});
+  // ---- Timeline & SLA (8 x 4.2) ----
+  const sd=dUntil(r.submission_deadline);
+  const sdSev = sd==null?0 : sd<0?( -sd>=14?2 : -sd>=7?1.5 : 1) : sd<=7?0.7 : sd<=21?0.4 : 0;
+  sigs.push({key:"subdl", w:WT, sev:sdSev, reason:(sd<0?`submission deadline passed ${-sd}d ago`:`submission deadline in ${sd}d`)});
+  const rfd=_num(r.days_to_default);
+  const rfdSev = rfd!=null? _slaScale(rfd,5,15,30) : (r.rfd_sla==="Missed"?1:0);
+  sigs.push({key:"rfdsla", w:WT, sev:rfdSev, reason:(rfd!=null?`${Math.round(rfd)} days in Ready-for-Default (SLA 5)`:`RFD SLA missed`)});
+  const erc=_num(r.time_in_erc);
+  const ercSev = erc!=null? _slaScale(erc,5,15,30) : (r.erc_sla==="Missed"?1:0);
+  sigs.push({key:"ercsla", w:WT, sev:ercSev, reason:(erc!=null?`${Math.round(erc)} days in ER Confirm (SLA 5)`:`ERC SLA missed`)});
+  let asSev=0, agap=null;
+  if (r.alt_requested_date){ let gap = r.alt_published_date ? r.days_to_alt : _daysSince(r.alt_requested_date); gap=gap==null?0:gap; agap=gap;
+    asSev = gap>3?(gap>21?2:gap>10?1.5:1) : gap==3?0.5 : 0; }
+  sigs.push({key:"altsla", w:WT, sev:asSev, reason:(agap!=null?`alternates ${agap}d unpublished (SLA 3)`:`alternates SLA`)});
+  const sa=_survAvg(r);
+  const svSev = (sa!=null && sa<=3)?(sa<=1.5?2:sa<=2?1.5:1):0;
+  sigs.push({key:"survey", w:WT, sev:svSev, reason:(sa!=null?`avg survey ${sa.toFixed(1)} over 12 months`:`low survey`)});
+  const dtr=r.days_to_renewal;
+  const esSev=(EARLY_SET.has(r.stage) && dtr!=null && dtr<=45)?1:0;
+  sigs.push({key:"early", w:WT, sev:esSev, reason:`early stage (${r.stage}), ${dtr}d to renewal`});
+  const ld=r.lead_days;
+  sigs.push({key:"lategen", w:WT, sev: ld==null?0:ld<60?1:ld<75?0.5:0, reason:`short lead time (${r.lead_days}d)`});
+  const pkSev=/Packet Needed/i.test(bl)?1:((r.packets_files==0||r.packets_files==null)&&r.packet_carriers)?0.4:0;
+  sigs.push({key:"packet", w:WT, sev:pkSev, reason:`renewal packet missing`});
   let acc=0; sigs.forEach(s=>{ acc += s.w*s.sev; });
-  const score = Math.round(100*acc/WTOTAL_OPEN);
-  // gone-quiet count (0-3): how many of the 3 recency signals fired (>21d or null). Used by riskOf() to floor the tier: 3 -> High, 1-2 -> Med, 0 -> no floor.
-  const goneQuiet = ["silence","noresp","callconnect"].reduce((n,k)=>{ const s=sigs.find(x=>x.key===k); return n + (s && s.sev>0 ? 1 : 0); },0);
-  const firing = sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
-  const reasons = firing.map(s=>s.reason);
-  return {score, reasons, firing, goneQuiet};
+  const score=Math.min(100, Math.round(acc));
+  const goneQuiet=["reply","silence","callconnect"].reduce((n,k)=>{const s=sigs.find(x=>x.key===k);return n+(s&&s.sev>0?1:0);},0);
+  const firing=sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
+  return {score, reasons:firing.map(s=>s.reason), firing, goneQuiet};
 }
 function riskPF(r){
-  const sigs = [];
-  // sentiment (30)
-  const cur = (r.in_app_date && r.cycle_open && r.in_app_date >= r.cycle_open);
-  const ia = parseFloat(r.inapp_current);
-  const cmt = !!r.in_app_comment;
-  const seSev = (cur && (!isNaN(ia)||cmt)) ? (ia<=2?1 : ia<=3?0.7 : (cmt?0.7:0)) : 0;
-  sigs.push({key:"sentiment", w:30, sev:seSev, reason:`in-app sentiment ${r.inapp_current} this cycle`});
-  // ticket (30)
-  const tk = r.tickets_to_advising||0;
-  const tkSev = tk>=3?1 : tk==2?0.7 : tk==1?0.4 : 0;
-  sigs.push({key:"ticket", w:30, sev:tkSev, reason:`${r.tickets_to_advising} open OA→advising ticket${r.tickets_to_advising==1?"":"s"}`});
-  // recert (20)
-  const rcSev = (r.recert_status && r.recert_status!=="Recert Approved")?1:0;
-  sigs.push({key:"recert", w:20, sev:rcSev, reason:`recert still open (${r.recert_status})`});
-  // within1wk (30)
-  const dd = dUntil(r.submission_deadline);
-  const w1Sev = (dd!=null&&dd>=0&&dd<=7)?1 : (dd!=null&&dd>=8&&dd<=14)?0.5 : 0;
-  sigs.push({key:"within1wk", w:30, sev:w1Sev, reason:`fulfillment in ${dUntil(r.submission_deadline)} day${dUntil(r.submission_deadline)==1?"":"s"}`});
-  // autoren (20) — auto-renewing into a rate increase
-  const inc = r.rate_increase_pct;
-  const arSev = isY(r.auto_renewal) ? (inc>=20?1 : inc>=14?0.6 : 0.3) : 0;
-  sigs.push({key:"autoren", w:20, sev:arSev, reason:(inc!=null ? `auto-renewing into a ${inc}% increase` : "auto-renewal")});
-  const WTOTAL_PF = 130;
+  const sigs=[];
+  // ---- Sentiment (25) ----
+  const cur=(r.in_app_date && r.cycle_open && r.in_app_date>=r.cycle_open);
+  const ia=parseFloat(r.inapp_current); const cmt=!!r.in_app_comment;
+  const seSev = cur ? (!isNaN(ia)?(ia<=1?1:ia<=2?0.85:ia<=3?0.6:0):(cmt?0.6:0)) : 0;
+  sigs.push({key:"sentiment", w:WPF, sev:seSev, reason:`in-app sentiment ${r.inapp_current} this cycle`});
+  // ---- Service load (3 x 8.3) ----
+  const tk=r.tickets_to_advising||0;
+  const tkSev = tk>=5?1.5 : tk>=3?1 : tk==2?0.7 : tk==1?0.4 : 0;
+  sigs.push({key:"ticket", w:WSVC, sev:tkSev, reason:`${r.tickets_to_advising} open OA→advising ticket${r.tickets_to_advising==1?"":"s"}`});
+  sigs.push({key:"ticketsla", w:WSVC, sev:(r.ticket_sla==="Missed"?1:0), reason:`a ticket is past its SLA`});
+  const rl=r.recert_lateness_days;
+  const rcSev=(r.recert_status && r.recert_status!=="Recert Approved")?((rl>90)?2:(rl>60)?1.5:1):0;
+  sigs.push({key:"recert", w:WSVC, sev:Math.min(rcSev,2), reason:`recert still open (${r.recert_status})`});
+  // ---- Cost (25) ----
+  const inc=r.rate_increase_pct;
+  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=14?0.6:0.3):0;
+  sigs.push({key:"autoren", w:WPF, sev:Math.min(arSev,2), reason:(inc!=null?`auto-renewing into a ${inc}% increase`:"auto-renewal")});
+  // ---- Timeline (25) ----
+  const dd=dUntil(r.submission_deadline);
+  const w1Sev = dd==null?0 : dd<0?(-dd>=14?2:-dd>=7?1.5:1) : dd<=7?1 : dd<=14?0.5 : 0;
+  sigs.push({key:"within1wk", w:WPF, sev:w1Sev, reason:(dd!=null?`fulfillment in ${dd} day${dd==1?"":"s"}`:"fulfillment deadline")});
   let acc=0; sigs.forEach(s=>{ acc += s.w*s.sev; });
-  const score = Math.round(100*acc/WTOTAL_PF);
-  const firing = sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
-  const reasons = firing.map(s=>s.reason);
-  return {score, reasons, firing};
+  const score=Math.min(100, Math.round(acc));
+  const firing=sigs.filter(s=>s.sev>0).sort((a,b)=>(b.w*b.sev)-(a.w*a.sev));
+  return {score, reasons:firing.map(s=>s.reason), firing};
 }
 function riskOf(r){
-  const t = tabOf(r); let base, archived=false;
-  if (t==="open") base = riskOpen(r);
-  else if (t==="pf") base = riskPF(r);
-  else { base = riskPF(r); archived = true; }
-  const score = base.score;
-  let tier = score>=35?"High" : score>=18?"Med" : "Low";
-  // Gone-quiet floor override (Open only): 3 of 3 recency signals -> at least High; 1-2 -> at least Med; 0 -> no floor.
-  // Acts as a floor (max) so substantive weighted risk can still raise the tier but gone-quiet can't lower it.
+  const t=tabOf(r); let base, archived=false;
+  if (t==="open") base=riskOpen(r);
+  else if (t==="pf") base=riskPF(r);
+  else { base=riskPF(r); archived=true; }
+  const score=base.score;
+  let tier = score>=30?"High" : score>=21?"Med" : "Low";
   if (t==="open" && base.goneQuiet!=null){
-    const floor = base.goneQuiet>=3?"High" : base.goneQuiet>=1?"Med" : "Low";
-    const RANK = {Low:0, Med:1, High:2};
-    if (RANK[floor] > RANK[tier]) tier = floor;
+    const floor = base.goneQuiet>=3?"High" : base.goneQuiet>=2?"Med" : "Low";
+    const RANK={Low:0,Med:1,High:2};
+    if (RANK[floor] > RANK[tier]) tier=floor;
   }
   return {score, tier, reasons:base.reasons, firing:base.firing||[], archived, goneQuiet:base.goneQuiet};
 }
+
 // memoize per row (tabOf + TODAY are stable for the page life) to avoid recompute
 function riskCached(r){ if(!r.__risk) r.__risk = riskOf(r); return r.__risk; }
 
@@ -957,6 +1000,9 @@ function cell(r,k){
                       return `<span class="lfsav ${cls}" title="LF savings ${b}${pct} vs current">${b}</span>`; }
     case "recert":  return hasRecert(r)?`<span class="badge rc" title="${esc(r.recert_status||"recert")}">${esc(r.recert_status||"Recert")}</span>`:DASH;
     case "sep":     return isY(r.sep)?dot("bad","SEP on the opp"):DASH;
+    case "seprisk": { const v=r.sep_risk_level; if(!v) return DASH;
+                      const short=/^yes/i.test(v)?"Yes":/^no/i.test(v)?"No":v;
+                      return `<span class="badge ${/^yes/i.test(v)?"rc":""}" title="${esc(v)} (1/1 renewals only)">${esc(short)}</span>`; }
     case "bor":     return isY(r.bor_term)?dot("bad","BoR / termination"):DASH;
     case "rate":    return rateCell(r);
     case "autoren": return isY(r.auto_renewal)?`<span title="Customer auto-renewed — confirmed default &amp; skipped flow${r.auto_renewal_date?" ("+esc(r.auto_renewal_date)+")":""}">${dot("on","Auto-renewal")}</span>`:DASH;
@@ -987,6 +1033,7 @@ function cell(r,k){
                       if (n==null) return DASH;
                       return n>0 ? `<span class="num" title="draft alternate packages created (dates in drill-down)">${n}</span>` : `<span class="t-ok" title="no draft alternate packages">0</span>`; }
     case "altpub":  return r.alt_published_date?`<span class="num" title="first non-default package published">${esc(r.alt_published_date)}</span>`:DASH;
+    case "altreqdate": { const d=r.alt_req_date||r.alt_requested_date; return d?`<span class="num" title="alternate requested date">${esc(d)}</span>`:DASH; }
     case "days2alt":{ const d=r.days_to_alt; if(d==null) return DASH;
                       const noAlt = !isY(r.alt_requested) && !r.alt_requested_date;
                       if(d===0 && noAlt) return `<span class="t-ok" title="no alternate requested">0</span>`;
@@ -1101,7 +1148,7 @@ function buildFilters(){
   DROPS.pe     = multiDrop("mdPE",    "PE",              peI,  SEL.pe,     onChange);
   DROPS.stage  = multiDrop("mdStage", "Stage",           stI,  SEL.stage,  onChange);
   DROPS.tier   = multiDrop("mdTier",  "Outreach priority",tiI,  SEL.tier,   onChange);
-  DROPS.cohort = multiDrop("mdCohort","Cohort · Renewal",coI,  SEL.cohort, onChange);
+  DROPS.cohort = multiDrop("mdCohort","Renewal date",coI,  SEL.cohort, onChange);
   const riskItems=[{key:"High",label:"High"},{key:"Med",label:"Medium"},{key:"Low",label:"Low"}];
   SEL.risk.clear(); riskItems.forEach(i=>SEL.risk.add(i.key));
   DROPS.risk = multiDrop("mdRisk","Risk",riskItems,SEL.risk,onChange);
@@ -1448,6 +1495,7 @@ function detailRow(r, span){
     ["LF savings", r.lf_savings_band?`${esc(r.lf_savings_band)}${r.lf_savings_pct!=null?` · ${(r.lf_savings_pct*100).toFixed(1)}%`:""} vs current`:(r.lf_savings_pct!=null?`${(r.lf_savings_pct*100).toFixed(1)}% vs current`:null)],
     ["Recommended in Alt", (r.lf_quote||r.lf_savings_band)?(r.lf_in_alt==="Y"?`<span class="badge gr">Yes</span>`:`<span class="t-ok">No</span>`):null],
     ["Recert", hasRecert(r)?`<span class="pill hot">${esc(r.recert_status||"flagged")}</span>`:null],
+    ["SEP risk", r.sep_risk_level?`<span class="pill">${esc(r.sep_risk_level)}</span>`:null],
     ["Recert flag date", r.recert_flag_date],
     ["Recert lateness", r.recert_lateness_days!=null?`${r.recert_lateness_days}d late`:null],
     ["SEP", isY(r.sep)?`<span class="pill hot">flagged</span>`:null],
@@ -1471,7 +1519,7 @@ function detailRow(r, span){
     ["Time in RFD (SLO)", r.days_to_default!=null?`${r.days_to_default.toFixed(1)}d <span class="t-ok">days in Ready-for-Default-Package</span>`:null],
     ["Time in ERC", r.time_in_erc!=null?`${(+r.time_in_erc).toFixed(1)}d <span class="t-ok">days in ER Confirm</span>`:null],
     ["RFD → rec sent", r.rfd_to_rec_sent_days!=null?`${r.rfd_to_rec_sent_days}d`:null],
-    ["Alt requested", r.alt_requested_date?`${esc(r.alt_requested_date)}${r.alt_requested_days!=null?` · +${r.alt_requested_days}d from cycle open`:""}`:null],
+    ["Alt requested", (r.alt_req_date||r.alt_requested_date)?`${esc(r.alt_req_date||r.alt_requested_date)}${r.alt_requested_days!=null?` · +${r.alt_requested_days}d from cycle open`:""}`:null],
     ["Alt created", r.alt_created_date?`${esc(r.alt_created_date)}${r.alt_created_days!=null?` · +${r.alt_created_days}d from cycle open`:""}`:null],
     ["Alt published", r.alt_published_date?`${esc(r.alt_published_date)}${r.alt_published_days!=null?` · +${r.alt_published_days}d ${esc(r.alt_published_basis||"")}`:""}`:null]
   ];
@@ -1564,9 +1612,9 @@ function detailRow(r, span){
   if (tabOf(r)==="open"){
     const firing = rk.firing||[];
     // did the "gone quiet" floor set this tier? (tier is higher than the weighted score alone would give)
-    const scoreTier = rk.score>=35?"High" : rk.score>=18?"Med" : "Low";
+    const scoreTier = rk.score>=30?"High" : rk.score>=21?"Med" : "Low";
     const RANK={Low:0,Med:1,High:2};
-    const gqDrove = (rk.goneQuiet>=1) && (RANK[rk.tier] > RANK[scoreTier]);
+    const gqDrove = (rk.goneQuiet>=2) && (RANK[rk.tier] > RANK[scoreTier]);
     const gqNote = gqDrove ? ` Tier set to ${rk.tier} by "gone quiet" (${rk.goneQuiet} of 3 channels: no email 21d+, no reply, no connect).` : "";
     if (!firing.length){
       rkSentence = `${rk.tier} risk (${rk.score}). No advising-cycle risk signals — recent contact, no rate/deadline/flag issues.`;
@@ -1614,7 +1662,7 @@ function detailRow(r, span){
 /* ============================================================ Customer Positioning talk track */
 let SCRIPT_ROW = null;
 let LAST_TABLE_TAB = "open";
-const TIER_NAMES = {1:"Default Automation",2:"Level-funded available",3:"Above-market rate",4:"Data gap",5:"Selection deadline"};
+const TIER_NAMES = {1:"Default Automation",2:"Level-funded available",3:"Above-market rate",4:"$0 MRR / 0 enrollees",5:"Selection deadline"};
 const F  = v => `<strong class="fill">${esc(v)}</strong>`;
 const PH = v => `<em>[${esc(v)}]</em>`;
 function scriptAgenda(r){
@@ -1649,7 +1697,6 @@ function buildScript(r){
     sep:    !r || isY(r.sep),
     recert: !r || hasRecert(r),
     lf:     !r || !!r.lf_quote,
-    k401:   !r,                       // retirement mandate not in this dataset — struck through when live
     packet: !!r && /Renewal Packet/i.test(r.blocked_reason||""),
     term:   !!r && isY(r.bor_term)
   };
@@ -1657,7 +1704,7 @@ function buildScript(r){
   const ml = r ? (medLine(r)||{}) : {};
   const flow = [["Value statement",true],["Upfront contract",true],["Discovery",true],["Cost preview",true],
     ["Above market*",on.high],["SEP*",on.sep],["Timeline",true],["Recert*",on.recert],
-    ["Packet ask*",on.packet],["Retirement*",on.k401],["LF tease*",on.lf],["Book the next step",true]];
+    ["Packet ask*",on.packet],["LF tease*",on.lf],["Book the next step",true]];
   let h = "";
   h += `<div class="eyebrow">Benefits Renewals Advising</div>`;
   h += `<h1>Call positioning${r ? " — "+esc(r.company) : ""}</h1>`;
@@ -1773,16 +1820,6 @@ function buildScript(r){
       <div class="say"><span class="lab">Sample line</span>
         "One thing holding up your build on my side — I'm still waiting on your renewal packet from ${v.carrier}. I'll email the specifics today. If I can have that back by ${PH("date")} I can keep us ahead of ${v.sel}."</div></div>`;
 
-  if (on.k401) h += `<div class="cond"><span class="badge">Only if · retirement mandate risk</span>
-      <h4>Retirement — state mandate check</h4>
-      <p class="trigger">Trigger: no retirement plan on file for this company and at least one state threshold met.</p>
-      <p style="font-size:13px;margin:0 0 9px">Raise it as a question, never as a determination. We can see that no retirement plan runs through Gusto payroll; we cannot see a plan they hold entirely outside Gusto, and mandate thresholds count employees <em>in that state</em>.</p>
-      <ul class="beats"><li>Ask whether they offer a retirement plan today — do not assume they don't.</li>
-        <li>If they don't, mention their state may require one, by name.</li>
-        <li>Offer to loop in the right person. Do not quote deadlines or penalties.</li></ul>
-      <div class="say"><span class="lab">Sample line</span>
-        "One quick unrelated thing while I have you — do you offer a retirement plan for your team today, either through Gusto or somewhere else? … Got it. The reason I ask is that ${PH("your state's program")} may apply to a business your size, and I'd rather flag it now than have you hear about it from the state. I'm not the expert on it — if it's useful I can connect you with someone here who is."</div>
-      <div class="twarn"><span class="lab">Don't:</span> tell them they are non-compliant, quote a penalty, or give a deadline.</div></div>`;
 
   if (on.lf) h += `<div class="beat"><div class="num">6</div><h3>Tease level funded</h3>
       <div class="meta">30 seconds · Plant, don't pitch</div>
@@ -1903,7 +1940,7 @@ function buildScriptSearch(){
 let OVSCOPE = {mode:"team", peSel:new Set(), icSel:new Set()};
 let OVSTAGE = null;                 // null=all · "open" · "pf" · "closed" — stage-tile filter
 let OVRISK  = {open:null, pf:null}; // expanded risk tier per box ("High"/"Med"/"Low"/null)
-const OV_TIER_LABEL = {1:"Default Automation",2:"Level-funded available",3:"Above-market rate",4:"Data gap",5:"Selection deadline"};
+const OV_TIER_LABEL = {1:"Default Automation",2:"Level-funded available",3:"Above-market rate",4:"$0 MRR / 0 enrollees",5:"Selection deadline"};
 const OV_HI="#c0392b", OV_MED="#e0a83e", OV_LO="#5aa87f";
 const OV_PF_FACTORS = [
   ["autoren",  "Auto-renewing into increase"],
@@ -1958,7 +1995,7 @@ function ovStageCards(g){
     return `<div class="${cls(stage)}" data-ovstage="${stage}" title="Click to focus the Overview on ${label}${OVSTAGE===stage?" (click again to clear)":""}"><div class="ov-card-h">${label}</div>`+
       `<div class="ov-card-n">${n.toLocaleString()} <span class="ov-card-u">opps</span></div>`+
       `<div class="ov-card-mrr">${money(sumB(arr))||"$0"} <span class="ov-card-u">MRR before</span></div>`+
-      `<div class="ov-card-risk"><span class="ov-hi-dot"></span>${h.length.toLocaleString()} at risk · ${pct}% · ${money(sumB(h))||"$0"} MRR</div></div>`;
+      `<div class="ov-card-risk"><span class="ov-hi-dot"></span>${h.length.toLocaleString()} at High risk · ${pct}% High · ${money(sumB(h))||"$0"} MRR</div></div>`;
   };
   const closed = (stage,arr) => {
     const n=arr.length;
@@ -1993,6 +2030,15 @@ function ovInsights(L,O){
   const terc  = median(L.map(r=>r.time_in_erc));
   const meanAlt = mean(L.map(r=>r.alt_created));
   const d2alt = median(L.filter(r=>r.alt_published_date).map(r=> r.alt_published_days!=null?r.alt_published_days:r.days_to_alt ));
+  const reqDateOf = r => r.alt_req_date || r.alt_requested_date;
+  const reqAlt = r => isY(r.alt_requested) || !!reqDateOf(r);
+  const nReq = cnt(L,reqAlt), nPub = cnt(L,r=>!!r.alt_published_date), nReqPub = cnt(L,r=>reqAlt(r)&&r.alt_published_date);
+  const avgReq = nReq? L.filter(reqAlt).reduce((s,r)=>s+(r.alt_created||0),0)/nReq : null;
+  const avgTot = L.length? L.reduce((s,r)=>s+(r.alt_created||0),0)/L.length : null;
+  const daysAltFrom = (r,base) => { const bd = base==="req"? reqDateOf(r) : r.cycle_open; const du=dUntil(bd); if(du==null) return null;
+    const end = r.alt_published_date? dUntil(r.alt_published_date) : 0; const d=end-du; return d<0?0:d; };
+  const d2altReq = median(L.filter(reqAlt).map(r=>daysAltFrom(r,"req")).filter(x=>x!=null));
+  const d2altTot = median(L.map(r=>daysAltFrom(r,"cyc")).filter(x=>x!=null));
   // % outside SLA (na-excluded — same denominator as the Advising SLA dashboard: opps that reached the stage)
   const outSLA = (f,minE=1) => { const m=cnt(L,r=>r[f]==="Met"), x=cnt(L,r=>r[f]==="Missed"), e=m+x;
     return e>=minE? {pct:`${Math.round(100*x/e)}%`, cnt:`· ${x.toLocaleString()} of ${e.toLocaleString()}`, att:(100*x/e)>=40} : {pct:"—",cnt:"",att:false}; };
@@ -2022,19 +2068,22 @@ function ovInsights(L,O){
       rowc("Connected (call)", within21("last_connect_date")+"%", medAge("last_connect_date"))
     )+
     col(
-      grp("RECOMMENDATION &amp; SLA")+
-      row("Default rec sent", pct(L,r=>!!r.default_rec_sent)+"%")+
-      row("Days to default (create→sent)", (d2def==null?"—":d2def+"d"))+
-      row("Time in RFD", (trfd==null?"—":trfd+"d"))+
-      row("Time in ERC", (terc==null?"—":terc+"d"))+
+      grp("SLA &middot; of opps that reached the stage")+
       rowc("RFD outside SLA", rfdO.pct, rfdO.cnt, rfdO.att)+
       rowc("ERC outside SLA", ercO.pct, ercO.cnt, ercO.att)+
       rowc("ALT outside SLA", altO.pct, altO.cnt, altO.att)+
       rowc("Ticket outside SLA", tktO.pct, tktO.cnt, tktO.att)+
-      rowc("Alt requested", pct(L,r=>isY(r.alt_requested))+"%", `· ${cnt(L,r=>isY(r.alt_requested)).toLocaleString()} of ${L.length.toLocaleString()}`)+
-      rowc("Alt published", pct(L,r=>!!r.alt_published_date)+"%", `· ${cnt(L,r=>!!r.alt_published_date).toLocaleString()} of ${L.length.toLocaleString()}`)+
-      row("Avg alt packages", (meanAlt==null?"—":meanAlt.toFixed(2)))+
-      row("Days to alt published", (d2alt==null?"—":d2alt+"d"))
+      grp("RECOMMENDATION")+
+      row("Default rec sent", pct(L,r=>!!r.default_rec_sent)+"%")+
+      row("Days to default (create→sent)", (d2def==null?"—":d2def+"d"))+
+      grp("ALTERNATES")+
+      rowc("Alt requested", pct(L,reqAlt)+"%", `· ${nReq.toLocaleString()} of ${L.length.toLocaleString()}`)+
+      rowc("Alt published · % of requested", (nReq?Math.round(100*nReqPub/nReq):0)+"%", `· ${nReqPub.toLocaleString()} of ${nReq.toLocaleString()}`)+
+      rowc("Alt published · % of total", (L.length?Math.round(100*nPub/L.length):0)+"%", `· ${nPub.toLocaleString()} of ${L.length.toLocaleString()}`)+
+      row("Avg alt packages · of requested", (avgReq==null?"—":avgReq.toFixed(2)))+
+      row("Avg alt packages · of total", (avgTot==null?"—":avgTot.toFixed(2)))+
+      row("Median days to alt published · of requested", (d2altReq==null?"—":d2altReq+"d"))+
+      row("Median days to alt published · of total", (d2altTot==null?"—":d2altTot+"d"))
     )+
     col(
       grp("PREMIUM (medical)")+
@@ -2048,8 +2097,8 @@ function ovInsights(L,O){
       row("Auto-renewal", pct(L,r=>isY(r.auto_renewal))+"%")+
       row("Default automation", pct(L,r=>isY(r.default_automation))+"%")+
       row("Recert open", recertOpen.toLocaleString(), true)+
-      row("Packet needed", packetNeeded.toLocaleString(), true)+
-      row("BoR / Term", borTerm.toLocaleString(), true)
+      row("BoR / Term", borTerm.toLocaleString(), true)+
+      row("SEP", cnt(L,r=>isY(r.sep)).toLocaleString(), true)
     )+
     `</div></div>`;
 }
@@ -2157,6 +2206,74 @@ function ovRollup(){
     `<th class="ov-rsla-grp" title="Outside SLA miss % — na excluded">OUTSIDE SLA %<div class="ov-rsla-key">RFD·ERC·ALT·TKT·EM</div></th></tr></thead>`+
     `<tbody>${body||`<tr><td colspan="6" class="t-ok" style="padding:16px 14px">No rows in scope.</td></tr>`}</tbody></table></div></div>`;
 }
+// ---- Unified scoreboards: always show PE (fixed) + IC (scroll), 5-column SLA. One shared SLA calc (na-excluded). ----
+function _slaOut(m,x,minE){ const e=m+x; if(e<(minE||1)) return '<span style="color:var(--g5)">–</span>';
+  const p=Math.round(100*x/e); const c=p>=55?"var(--coral)":(p>=40?"var(--gold)":"var(--g6)");
+  return `<span style="color:${c}${p>=40?';font-weight:600':''}" title="${x.toLocaleString()} of ${e.toLocaleString()} that reached the stage breached the SLA">${p}</span>`; }
+function _sbAgg(rows,keyFn){ const map=new Map();
+  rows.forEach(r=>{ const key=keyFn(r); if(!key) return; const t=tabOf(r);
+    if(!map.has(key)) map.set(key,{name:key,live:0,high:0,atrisk:0,rfdM:0,rfdX:0,ercM:0,ercX:0,altM:0,altX:0,tktM:0,tktX:0,emlM:0,emlX:0});
+    const o=map.get(key);
+    if(t==="open"||t==="pf"){ o.live++; if(riskCached(r).tier==="High"){o.high++;o.atrisk++;} }
+    const bump=(f,mk,xk)=>{ if(r[f]==="Met")o[mk]++; else if(r[f]==="Missed")o[xk]++; };
+    bump("rfd_sla","rfdM","rfdX"); bump("erc_sla","ercM","ercX"); bump("alt_sla","altM","altX");
+    bump("ticket_sla","tktM","tktX"); bump("email_sla","emlM","emlX");
+  });
+  return [...map.values()].sort((a,b)=>b.high-a.high); }
+let SB_L=[], SBQ="";
+const SBSORT={pe:{k:"high",dir:-1}, ic:{k:"high",dir:-1}};
+function _pctOf(m,x,minE){ const e=m+x; return e<(minE||1)? -1 : Math.round(100*x/e); }
+function _sbVal(o,k){ switch(k){
+  case "name": return o.name.toLowerCase();
+  case "live": return o.live; case "high": return o.high;
+  case "rfd": return _pctOf(o.rfdM,o.rfdX,1); case "erc": return _pctOf(o.ercM,o.ercX,1);
+  case "alt": return _pctOf(o.altM,o.altX,1); case "tkt": return _pctOf(o.tktM,o.tktX,5);
+  case "eml": return _pctOf(o.emlM,o.emlX,1); default: return 0; } }
+function _sbTable2(rows,head,attr,grain,scroll){
+  const st=SBSORT[grain];
+  let rs=rows.filter(o=> !SBQ || o.name.toLowerCase().includes(SBQ.toLowerCase()));
+  rs.sort((a,b)=>{ const va=_sbVal(a,st.k), vb=_sbVal(b,st.k);
+    return (typeof va==="string") ? st.dir*va.localeCompare(vb) : st.dir*(va-vb); });
+  const arrow=k=> st.k===k? (st.dir<0?" ▾":" ▴") : "";
+  const stick = scroll ? "position:sticky;top:0;z-index:2;" : "";
+  const TH="padding:7px 6px;"+stick+"background:var(--card);border-bottom:.5px solid var(--line);cursor:pointer;-webkit-user-select:none;user-select:none";
+  const GH="padding:6px 6px;font:700 9px var(--ui);letter-spacing:.05em;text-transform:uppercase;color:var(--g6);border-bottom:.5px solid var(--g2);background:var(--card)";
+  const h=(k,lab)=>`<th style="text-align:right;${TH}" data-sbsort="${grain}:${k}" title="Sort by ${lab}">${lab}${arrow(k)}</th>`;
+  const groupRow=`<tr><th style="${GH}"></th>`+
+    `<th colspan="2" style="text-align:center;${GH}">Risk</th>`+
+    `<th colspan="5" style="text-align:center;${GH}">Outside SLA %</th></tr>`;
+  const colRow=`<tr style="font-size:10px;color:var(--g6)">`+
+    `<th style="text-align:left;${TH}" data-sbsort="${grain}:name" title="Sort by name">${head}${arrow("name")}</th>`+
+    h("live","Opps (Open/PF)")+h("high","High risk")+
+    h("rfd","RFD")+h("erc","ERC")+h("alt","ALT")+h("tkt","TKT")+h("eml","Email")+`</tr>`;
+  const CT="text-align:right;padding:5px 6px;border-top:.5px solid var(--line);font-family:var(--mono)";
+  const body=rs.map(o=>`<tr class="ov-rrow" ${attr}="${esc(o.name)}" style="cursor:pointer" title="Focus the overview on ${esc(o.name)}">`+
+    `<td style="padding:5px 6px;border-top:.5px solid var(--line)">${esc(o.name)}</td>`+
+    `<td style="${CT}">${o.live}</td>`+
+    `<td style="${CT};color:${o.high?'var(--coral)':'var(--g6)'}">${o.high}</td>`+
+    `<td style="${CT}">${_slaOut(o.rfdM,o.rfdX,1)}</td><td style="${CT}">${_slaOut(o.ercM,o.ercX,1)}</td>`+
+    `<td style="${CT}">${_slaOut(o.altM,o.altX,1)}</td><td style="${CT}">${_slaOut(o.tktM,o.tktX,5)}</td>`+
+    `<td style="${CT}">${_slaOut(o.emlM,o.emlX,1)}</td></tr>`).join("")
+    ||`<tr><td colspan="8" style="padding:12px;color:var(--g6)">No matches.</td></tr>`;
+  const inner=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead>${groupRow}${colRow}</thead><tbody>${body}</tbody></table>`;
+  return scroll? `<div style="max-height:320px;overflow-y:auto;border:.5px solid var(--line);border-radius:8px">${inner}</div>`:inner;
+}
+function ovScoreboards(){
+  const L=SB_L; const pe=_sbAgg(L,r=>r.pe), ic=_sbAgg(L,r=>r.advisor);
+  const note=`<span style="font-weight:400;color:var(--g6);font-size:11px">· Outside SLA % = of opps that reached the stage; red &ge;55%, amber &ge;40% &middot; click a column to sort</span>`;
+  const search=`<input id="sbSearch" type="text" placeholder="Search PE or IC by name…" value="${esc(SBQ)}" style="width:260px;max-width:100%;padding:7px 11px;border:.5px solid var(--line);border-radius:8px;font-size:13px;background:var(--card);margin-bottom:8px">`;
+  return search+ovChips(true)+
+    `<div class="ov-panel"><div class="ov-panel-h">PE scoreboard ${note}</div>`+
+    _sbTable2(pe,"PE TEAM","data-ovpe","pe",false)+`</div>`+
+    `<div class="ov-panel" style="margin-top:12px"><div class="ov-panel-h">ICs <span style="font-weight:400;color:var(--g6);font-size:11px">&middot; scrolls &middot; click a name to focus, a column to sort</span></div>`+
+    _sbTable2(ic,"IC","data-ovic","ic",true)+`</div>`;
+}
+function renderScoreboards(){
+  const w=el("ovSbWrap"); if(!w) return;
+  const a=document.activeElement, wasS=a&&a.id==="sbSearch", caret=wasS?a.selectionStart:0;
+  w.innerHTML=ovScoreboards();
+  if(wasS){ const s=el("sbSearch"); if(s){ s.focus(); try{s.setSelectionRange(caret,caret);}catch(e){} } }
+}
 function ovSeedScope(){
   const pes=ovPEs(), ics=ovICs(null);
   const peSet=new Set(pes), icSet=new Set(ics);
@@ -2189,29 +2306,30 @@ function ovRenderBody(){
     title=`Overview · IC — ${esc(ovScopeLabel(OVSCOPE.icSel,ics.length,"IC"))}`;
     sub=`Their book only · ${allRows.length.toLocaleString()} renewals${stageNote} · Open ${gAll.open.length} · PF ${gAll.pf.length} · Closed ${gAll.closed.length}`;
   }
-  const O=g.open, P=g.pf, L=O.concat(P);
+  const O=g.open, P=g.pf, L=O.concat(P); SB_L=L;
   const insstrip=ovInsights(L,O);
   const threebox=`<div class="ov-3box">${ovRiskOpenTiers(O)}${ovRiskTierBox(O,"Open — risk","open",OV_OPEN_FACTOR_LABEL)}${ovRiskTierBox(P,"PF — risk","pf",OV_PF_FACTOR_LABEL)}</div>`;
   el("ovBody").innerHTML =
-    `<div class="ov-title">${title}</div><div class="ov-sub">${sub}</div>`+
-    ovStageCards(gAll)+insstrip+threebox+ovRollup();
+    ovChips()+`<div class="ov-title">${title}</div><div class="ov-sub">${sub}</div>`+
+    ovStageCards(gAll)+insstrip+threebox+'<div id="ovSbWrap">'+ovScoreboards()+'</div>';
+}
+function ovChips(hideHint){
+  const chips=[];
+  const pill="background:var(--card);border:1px solid var(--coral);color:var(--coral-dk);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:8px;margin-right:8px";
+  const xs="cursor:pointer;font-weight:700";
+  const add=(lab,key)=>chips.push(`<span style="${pill}">${lab} <b data-ovclear="${key}" style="${xs}" title="Remove filter">×</b></span>`);
+  if (OVSCOPE.mode==="pe" && OVSCOPE.peSel.size) add(`PE: ${esc([...OVSCOPE.peSel].join(", "))}`,"pe");
+  if (OVSCOPE.mode==="ic" && OVSCOPE.icSel.size) add(`IC: ${esc([...OVSCOPE.icSel].join(", "))}`,"ic");
+  if (OVSTAGE) add(`Stage: ${OVSTAGE==="pf"?"Pending Fulfillment":OVSTAGE.charAt(0).toUpperCase()+OVSTAGE.slice(1)}`,"stage");
+  if (!chips.length) return hideHint ? "" : `<div style="padding:2px 0 12px;color:var(--g6);font-size:12px">Overview is read-only — click a PE, an IC, or a stage below to focus it. Filters here don't affect the other tabs.</div>`;
+  return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;background:var(--coral-20);border-radius:8px;padding:8px 12px;margin:2px 0 12px">`+
+    `<span style="font:700 10px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--coral-dk)">Filtered by:</span>`+
+    chips.join("")+`</div>`;
 }
 function renderOverview(){
   ovSeedScope();
   const pes=ovPEs(), ics=ovICs(null);
-  el("ovScope").innerHTML = ovScopeBar();
-  // scope-chip wiring (rebuilt with the scope bar); switching mode seeds that mode's set to ALL
-  el("ovScope").querySelectorAll(".ov-chip").forEach(b=>b.addEventListener("click",()=>{
-    const m=b.dataset.ovmode; OVSCOPE.mode=m;
-    if (m==="pe") ovPEs().forEach(p=>OVSCOPE.peSel.add(p));
-    if (m==="ic") ovICs(null).forEach(a=>OVSCOPE.icSel.add(a));
-    renderOverview();
-  }));
-  // scope multi-select drops — onChange updates the BODY only (keeps the menu open on toggle-to-none)
-  if (OVSCOPE.mode==="pe" && el("ovPeDrop"))
-    multiDrop("ovPeDrop","PE(s)",pes.map(p=>({key:p,label:p})),OVSCOPE.peSel,ovRenderBody);
-  if (OVSCOPE.mode==="ic" && el("ovIcDrop"))
-    multiDrop("ovIcDrop","IC(s)",ics.map(a=>({key:a,label:a})),OVSCOPE.icSel,ovRenderBody);
+  el("ovScope").innerHTML = "";   // scope toggle removed — overview focus is click-driven (removable chips in the body)
   ovRenderBody();
 }
 function ovDrill(opts){
@@ -2230,7 +2348,17 @@ function ovDrill(opts){
   showTab(tab);
 }
 // delegated clicks on the Overview body (bound once — the element persists)
+el("ovBody").addEventListener("input", e => { if(e.target && e.target.id==="sbSearch"){ SBQ=e.target.value; renderScoreboards(); } });
 el("ovBody").addEventListener("click", e => {
+  const cl=e.target.closest("[data-ovclear]");
+  if(cl){ const w=cl.dataset.ovclear;
+    if(w==="pe"){OVSCOPE.mode="team";OVSCOPE.peSel.clear();}
+    else if(w==="ic"){OVSCOPE.mode="team";OVSCOPE.icSel.clear();}
+    else if(w==="stage"){OVSTAGE=null;}
+    ovRenderBody(); return; }
+  const sb=e.target.closest("[data-sbsort]");
+  if(sb){ const parts=sb.dataset.sbsort.split(":"); const st=SBSORT[parts[0]]; const k=parts[1];
+    if(st.k===k) st.dir*=-1; else { st.k=k; st.dir=(k==="name")?1:-1; } renderScoreboards(); return; }
   // stage-tile filter toggle (null=all · click again clears)
   const sc=e.target.closest("[data-ovstage]");
   if(sc){ const s=sc.dataset.ovstage; OVSTAGE = (OVSTAGE===s)?null:s; ovRenderBody(); return; }
@@ -2299,6 +2427,15 @@ el("tSample").addEventListener("change", () => el("scriptDoc").classList.toggle(
 
 /* ============================================================ wiring + init */
 el("fSearch").addEventListener("input", () => { OPEN=null; PAGE=1; persist(); render(); });
+el("clearFilters").addEventListener("click", () => {
+  el("fSearch").value="";
+  const all=(set,items)=>{ set.clear(); (items||[]).forEach(i=>set.add(i.key)); };
+  all(SEL.adv,DROPS.adv&&DROPS.adv.items); all(SEL.pe,DROPS.pe&&DROPS.pe.items);
+  all(SEL.stage,DROPS.stage&&DROPS.stage.items); all(SEL.tier,DROPS.tier&&DROPS.tier.items);
+  all(SEL.cohort,DROPS.cohort&&DROPS.cohort.items); all(SEL.risk,DROPS.risk&&DROPS.risk.items);
+  Object.keys(DROPS).forEach(k=>{ const d=DROPS[k]; if(d&&d.sync) d.sync(); });
+  OPEN=null; PAGE=1; persist(); render();
+});
 (function(){
   const top = el("tblTop"), wrap = el("tblwrap");
   if (!top || !wrap) return;
@@ -2329,6 +2466,10 @@ showTab("overview");   // Overview is the default landing tab
 </html>
 """
 
+import datetime as _dt
+_PUBTS = _dt.datetime.now().strftime("%b %d, %Y")
+_footer = f'<div style="text-align:center;font:500 12px var(--ui);color:var(--g6);padding:16px 0 10px;border-top:1px solid var(--line);margin:20px 0 0">Last published {_PUBTS}</div>'
 html = TEMPLATE.replace("__GUIDEHTML__", guide_html).replace("__HUBDATA__", data_json)
+html = html.replace("</body>", _footer + "</body>")
 open(OUT, "w").write(html)
 print(f"wrote {OUT}  ({len(html)/1024:.0f} KB)  opps={n_opps} lines={n_lines}")
