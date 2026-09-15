@@ -48,6 +48,7 @@ At the top of each tab: **tiles** (how many opps, total MRR, how many at risk), 
   - **Open / PF = "Projected"** — today's rate vs. the plan they'd land on if nothing changes.
   - **Closed = "Final"** — today's rate vs. what they actually enrolled in.
   - Color: gold ≥15%, orange ≥20%, red ≥30%.
+  - **15% is the single programmed premium/rate threshold** used consistently across the hub — the P3 "above-market rate" flag, the premium-Δ gold band, and the rate-increase risk signal on both Open and Pending Fulfillment all trigger at ≥15%.
 - **In the drill:** the change **by line** (medical, dental, vision, life…), with the current premium and the options.
 
 ### Lines / Enrollment (in the drill)
