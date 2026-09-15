@@ -48,22 +48,18 @@ base as (
 ree as (select b.opp, b.company_id, b.rd, b.co_insurance_percentage, b.ind_ded,
     f.key::string as emp_id, f.value:"employee"::number(18,2) as emp_cost
   from base b, lateral flatten(input=>b.bj) f),
--- currently-enrolled (active) medical employees; savings is averaged over ENROLLED only
-enrolled as (
-  select distinct s.employee_id::string as emp_id
-  from hawaiian_ice_production_no_pii.subscriptions s
-  where s.details_type='HealthSubscriptionDetail' and s.start_date<=current_date
-    and (s.end_date is null or s.end_date>=current_date)
-),
+-- Savings engine ALIGNED 1:1 with the certified LF dashboard (queries/lf_dashboard_data_v1.sql):
+-- flat census AVG(sav) over EVERY emp x LF-plan cell, at COMPANY_ID + RENEWAL grain (NOT enrolled-only,
+-- NOT per-opp). Mapped onto the opp via its company_id + renewal below, so hub LF_SAVINGS_PCT == the
+-- dashboard's avg_sav for that company+renewal (verified opp-for-opp against lf_dash_data on one snapshot).
 cells as (
-  select r.opp, iff(en.emp_id is not null,1,0) as is_enrolled,
+  select r.company_id, r.rd,
     case when l.lf_emp<r.emp_cost and r.emp_cost>0 then (r.emp_cost-l.lf_emp)/r.emp_cost else 0 end as sav
   from ree r
   join lf_per_ee l on l.company_id=r.company_id and l.effective_date=r.rd
     and l.ind_ded<=r.ind_ded*1.10 and l.co_insurance_percentage<=r.co_insurance_percentage*1.10
-  left join enrolled en on en.emp_id=r.emp_id
 ),
-sav as (select opp, avg(iff(is_enrolled=1,sav,null)) as avg_sav from cells group by opp having avg_sav is not null),
+sav as (select company_id, rd, avg(sav) as avg_sav from cells group by company_id, rd),
 oc as (
   select c.opp, c.rd, c.rid, r.company_id
   from cohort c left join bi.renewals_hawaiian_ice r on r.id=c.rid
@@ -89,9 +85,9 @@ select oc.opp OPP,
   coalesce(lfoff.has_lf_rec,0) as HAS_LF_REC,
   coalesce(lfoff.has_lf_alt,0) as HAS_LF_ALT
 from oc
-left join sav on sav.opp=oc.opp
+left join sav on sav.company_id=oc.company_id and sav.rd=oc.rd
 left join ratepdf rp on rp.company_id=oc.company_id and rp.effective_date=oc.rd
 left join lfoff on lfoff.renewal_id=oc.rid
-where sav.opp is not null
+where sav.avg_sav is not null
    or rp.company_id is not null
    or coalesce(lfoff.has_lf_rec,0)=1;
