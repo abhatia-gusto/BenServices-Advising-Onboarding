@@ -51,9 +51,39 @@ STATUS = os.path.join(HERE, "advising_hub_refresh_status.json")
 PATENV = os.path.join(HERE, "snowflake_pat.env")
 VENV_PY= "/tmp/snowvenv/bin/python3"
 
-COHORT_DATES = "'2026-07-01','2026-08-01','2026-09-01','2026-10-01','2026-11-01','2026-12-01'"
+# Rolling cohort window (LF-parity): FIXED trailing anchor + rolling end = current month + 5.
+# Keeps recent closed history (nothing is dropped) AND always covers the next 5 months of
+# upcoming renewals. Recomputed every run, so it rolls forward automatically on the 1st.
+# (Mirrors lf_pipeline/lf_daily_refresh.py's WIN_START anchor + _win_end() pattern.)
+COHORT_ANCHOR = "2026-07-01"        # dataset floor; advance later if the window grows too large
+COHORT_MONTHS_AHEAD = 5
+def _cohort_window(anchor=COHORT_ANCHOR, months_ahead=COHORT_MONTHS_AHEAD):
+    a = datetime.date.fromisoformat(anchor)
+    t = datetime.date.today()
+    em = t.month - 1 + months_ahead; ey = t.year + em // 12; emm = em % 12 + 1
+    end = datetime.date(ey, emm, 1)
+    out = []; y, m = a.year, a.month
+    while (y, m) <= (end.year, end.month):
+        out.append(f"{y}-{m:02d}-01")
+        m += 1
+        if m > 12: m = 1; y += 1
+    return out
+COHORT_WINDOW = _cohort_window()
+COHORT_DATES = ",".join(f"'{d}'" for d in COHORT_WINDOW)
 
 CLOSED_TABS = {"Closed"}
+# Builder-consistent stage->tab classification (build_advising_hub.py TAB_CLOSED / tabOf).
+CLOSED_STAGES = {"Closed Won", "Closed Lost", "Order Lost", "Closed Admin"}
+CLOSED_LOSS   = {"Closed Lost", "Order Lost", "Closed Admin"}
+def _tab_of(stage):
+    s = stage or ""
+    return "Closed" if s in CLOSED_STAGES else ("Pending Fulfillment" if s == "Pending Fulfillment" else "Open")
+def _truthy(x):
+    return str(x).strip().lower() in ("true", "1", "y", "yes", "t")
+# benefit-type -> label for the carriers_enrolled summary (mirrors assemble_full BT_ORDER labels)
+BT_LABEL = {"medical":"Medical","dental":"Dental","vision":"Vision","life":"Life",
+            "long_term_disability":"LTD","short_term_disability":"STD","fsa":"FSA","dca":"DCA","hsa":"HSA",
+            "voluntary_life":"VLife","voluntary_long_term_disability":"VLTD","voluntary_short_term_disability":"VSTD"}
 # MRR-dash price book (per enrolled EE / mo) — mirrors _renewal_vnext/repull_patch.py
 PRICE = {'dental':6.58,'vision':1.20,'life':1.21,'long_term_disability':1.65,
          'short_term_disability':1.82,'fsa':4.00,'dca':4.00,'hsa':2.50,'voluntary_life':5.28}
@@ -69,8 +99,30 @@ OVERLAY = ["tab","outcome","closed_on","rating_region","survey_answered","survey
            "last_call_date","last_connect_date","last_call_disp","case_summary",
            "csat_comment"]
 # closed = frozen: restore these from the prior published snapshot after the overlay
+# DEPRECATED (2026-09): Closed opps now refresh their Snowflake-warehouse value fields daily
+# (mrr/enrollees/lines etc. are re-sourced live). FROZEN_CLOSED is retained only for reference;
+# it is no longer applied. See SF_FROZEN_FIELDS below for what actually stays frozen on Closed.
 FROZEN_CLOSED = ["mrr","mrr_before","mrr_after","enrollees","funding_after","closed_on",
                  "outcome","inferred_close_date","lines"]
+
+# The ONLY fields that stay frozen at close for Closed opps: every Salesforce-sourced field.
+# Snowflake-warehouse fields all refresh daily; these never auto-update once an opp is Closed
+# (they carry forward the prior published value). Two families:
+#   - SF-MCP (pulled from the Salesforce MCP by Phase A): intro_call, recert_status,
+#     sep_risk_level, packets.
+#   - SF activity (sf_activity.sql / cases.sql — Salesforce data, even though it arrives via
+#     the Snowflake SF mirror): last_update/contact/call/connect fields + case_summary narrative.
+# Keyed on the LIVE tab each run, so a Closed opp that reopens (-> Open/PF) drops the freeze and
+# these refresh again automatically (SF-MCP catches up on the next Phase A pull).
+SF_FROZEN_FIELDS = [
+    # SF-MCP
+    "intro_call", "intro_call_date", "recert_status", "sep_risk_level",
+    "packets_files", "packet_carriers",
+    # SF activity (+ derived mirrors)
+    "intro_connect", "intro_connect_date", "connect_date",
+    "last_update", "last_update_date", "last_call_date", "last_connect_date",
+    "last_call_disp", "last_contact_date", "case_summary",
+]
 
 STEPS = []
 # queries that MUST succeed; everything else, on failure, carries forward from the
@@ -265,6 +317,20 @@ def merge_freeze(prior_path):
     prior = {r["opp_id18"]: r for r in json.load(open(prior_path))}
     assembled = json.load(open(DATA))
     failed = json.load(open(FAILED_PATH)) if os.path.exists(FAILED_PATH) else []
+    # --- LF-parity de-freeze: stage/tab + cohort SCALARS re-sourced LIVE from today's
+    # Snowflake cohort.csv for EVERY opp (Open / PF / Closed), instead of the frozen base.
+    # This is the fix for the "stage frozen at base-build" bug (opps stuck on a stale tab).
+    # Mirrors _renewal_full/assemble_full.py derivations exactly. Closed still keeps its
+    # close-time SNAPSHOT (FROZEN_CLOSED below); only classification + cheap Snowflake
+    # scalars refresh. If cohort.csv lacks an opp (out of window), prior value carries forward.
+    cohort_fresh = {}
+    try:
+        for r in _rd(os.path.join(FULL, "out", "cohort.csv")):
+            k = r.get("SFDC_OBJECT_ID")
+            if k: cohort_fresh[k] = r
+    except Exception as e:
+        print(f"  WARN cohort.csv unreadable for live stage refresh ({e}); stage carries forward.", flush=True)
+    print(f"  live stage/scalars source: cohort.csv has {len(cohort_fresh)} opps", flush=True)
     skip_fields = set()
     for qid in failed: skip_fields.update(Q_OVERLAY.get(qid, []))
     cases_failed = "open_cases_by_type" in failed
@@ -321,12 +387,19 @@ def merge_freeze(prior_path):
     tsla_failed = "ticket_sla" in failed
     esla_failed = "email_sla"  in failed
     tslav = {} if tsla_failed else {r["OPP"]: (r.get("TICKET_SLA") or "na") for r in _rd(os.path.join(VNEXT,"out","ticket_sla.csv"))}
-    eslav = {} if esla_failed else {r["OPP"]: (r.get("EMAIL_SLA")  or "na") for r in _rd(os.path.join(VNEXT,"out","email_sla.csv"))}
+    eslav = {} if esla_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","email_sla.csv"))}
 
     # canonical CUSTOMER auto-renewal from Snowplow (confirm-default-and-skip). Open/PF-live,
     # Closed frozen (carry forward). Replaces the old REASON_FOR_ADVISING derivation.
     arv_failed = "auto_renewal" in failed
     arv = {} if arv_failed else {r["OPP"]: r for r in _rd(os.path.join(VNEXT,"out","auto_renewal.csv"))}
+    # fresh base-derived pulls that used to be carry-forward-only (went stale/null): extras + sla.
+    def _rd_safe(p):
+        try: return _rd(p) if os.path.exists(p) and os.path.getsize(p) > 0 else []
+        except Exception: return []
+    extrasv = {r.get("SFDC_OBJECT_ID"): r for r in _rd_safe(os.path.join(FULL,"out","extras.csv"))}
+    slav    = {r.get("SFDC_OBJECT_ID"): r for r in _rd_safe(os.path.join(FULL,"out","sla.csv"))}
+    def _slam(v): return v if v in ("Met","Missed") else "na"
 
     # --- Salesforce MCP live fields (NOT in the Snowflake mirror) ---
     # intro_call/intro_call_date (SF Case.Intro_Call_Completed__c), recert_status
@@ -378,18 +451,65 @@ def merge_freeze(prior_path):
         for k in OVERLAY:                               # fresh assembler overlay (skip failed pulls)
             if k in skip_fields: continue               # keep prior value
             row[k] = a.get(k)
-        row["stage"] = a.get("stage") or p.get("stage")
-        tab = a.get("tab") or p.get("tab")
+        # alt_published_date is read by the Overview "Alt published" metric + the altpub column/drill,
+        # but it is NOT in OVERLAY and was only ever carried forward (from the base) — which let it go
+        # null and self-propagate. Keep it in sync with the FRESH alt query's first-published date
+        # (alt_pub_first, refreshed in OVERLAY above) so it's always current and can't drift to 0.
+        if row.get("alt_pub_first"):
+            row["alt_published_date"] = row["alt_pub_first"]
+        # --- stage/tab + cohort scalars: LIVE from today's cohort.csv for every opp ---
+        cf = cohort_fresh.get(oid)
+        if cf:
+            stg = cf.get("STATUS") or a.get("stage") or p.get("stage")
+            row["stage"]   = stg
+            row["closed"]  = stg in CLOSED_STAGES
+            row["pe"]      = (cf.get("PE") or None)
+            row["advisor"] = (cf.get("OWNER_NAME") or None)
+            rd_ = (cf.get("RENEWAL_DATE") or "")[:10]
+            if rd_: row["renewal_date"] = rd_
+            dtr = fnum(cf.get("DAYS_TO_RENEWAL")); row["days_to_renewal"] = int(dtr) if dtr is not None else row.get("days_to_renewal")
+            dis = fnum(cf.get("DAYS_IN_STAGE"));   row["days_in_stage"]  = int(dis) if dis is not None else row.get("days_in_stage")
+            blk = (cf.get("ADVISING_BLOCKED_REASON") or "") or None
+            row["blocked_reason"] = blk
+            row["bor_term"] = "Y" if re.search(r"terminat|bor|broker of record", blk or "", re.I) else "N"
+            row["sep"]      = "Y" if _truthy(cf.get("SPECIAL_ENROLLMENT")) else "N"
+            if cf.get("COHORT"): row["cohort"] = cf.get("COHORT")
+            tab = _tab_of(stg)
+        else:
+            row["stage"] = a.get("stage") or p.get("stage")
+            tab = _tab_of(row.get("stage"))
         row["tab"] = tab
         # in-app numeric mirror the builder reads (derive from whatever in_app resolved to)
         row["inapp_current"] = fnum(row.get("in_app"))
+        # Derive builder-read fields that have no direct query column from FRESH fields (all opps) so
+        # they can't sit stuck on the base value: survey count, timeline dates, contact-date mirrors.
+        row["all_survey_count"] = len(row.get("surveys_12mo") or [])
+        if row.get("renewal_date"):  row["tl_renewal"]       = row["renewal_date"]
+        if row.get("alt_pub_first"): row["tl_alt_published"] = row["alt_pub_first"]
+        if row.get("alt_req_date"):  row["tl_alt_requested"] = row["alt_req_date"]
+        if row.get("connect_date"):  row["intro_connect_date"] = row["connect_date"]
+        if row.get("last_update"):   row["last_update_date"]   = row["last_update"]
         # ALT SLA is a requested->published turnaround; with no alternate request it does not
         # apply -> force 'na' (never 'Missed'). alt_requested is refreshed in the OVERLAY above.
         if (row.get("alt_requested") or "N") != "Y":
             row["alt_sla"] = "na"
 
-        if tab not in CLOSED_TABS:                      # OPEN / PF — fully refresh
-            stat["open_pf"] += 1
+        # Snowflake value-refresh now runs for EVERY opp (Open / PF / Closed). Closed opps refresh
+        # their Snowflake-warehouse fields daily; Salesforce-sourced fields are frozen for Closed in
+        # the post-block below (SF_FROZEN_FIELDS). Decision keyed on the LIVE tab each run, so a
+        # Closed opp that reopens re-enters full refresh automatically (no persisted "closed" latch).
+        is_open_pf = tab not in CLOSED_TABS
+        stat["open_pf" if is_open_pf else "closed"] += 1
+        if True:                                        # value refresh for all opps (kept indented)
+            # LF savings/quote — Open/PF only; Closed keeps its frozen close snapshot (carry forward
+            # the value it had when it closed). Dashboard-aligned census engine (queries/lf.sql).
+            if not lf_failed:
+                _lfx = lfv.get(oid)
+                _lfp = fnum(_lfx.get("LF_SAVINGS_PCT")) if _lfx else None
+                row["lf_savings_pct"] = _lfp
+                row["lf_savings_band"] = _lf_band(_lfp)
+                row["lf_quote"] = _lf_quote_txt(_lfx)
+                row["lf_in_alt"] = ("Y" if (_lfx and int(fnum(_lfx.get("HAS_LF_ALT")) or 0)) else "N")
             has_sel = bool(selany.get(oid,0))
             lines = [dict(l) for l in (p.get("lines") or [])]
             mrr_b = 0.0; mrr_a = 0.0; med_enr_b = None
@@ -417,6 +537,17 @@ def merge_freeze(prior_path):
                 if bt=="medical": med_enr_b = eb if e else None
                 stat["lines_recomputed"] += 1
             row["lines"] = lines
+            row["num_lines"] = len(lines)
+            # carriers_enrolled summary (was base-only / stuck) derived from the FRESH per-line carriers
+            _ce = []
+            for _l in lines:
+                _c = _l.get("carrier")
+                if not _c: continue
+                _st = _l.get("state"); _n = _l.get("enr_after")
+                if _n is None: _n = _l.get("enr_before")
+                _lab = BT_LABEL.get(_l.get("benefit_type"), (_l.get("benefit_type") or "").title())
+                _ce.append(f"{_lab}: {_c}{' ('+_st+')' if _st else ''} n={_n if _n is not None else 0}")
+            row["carriers_enrolled"] = " · ".join(_ce) or None
             row["mrr"] = round(mrr_b,2); row["mrr_before"] = round(mrr_b,2)
             row["mrr_after"] = round(mrr_a,2) if has_sel else None
             row["enrollees"] = med_enr_b
@@ -465,13 +596,6 @@ def merge_freeze(prior_path):
                     if l.get("benefit_type") == "medical": l["rate_pct"] = pct
             if not rfd_failed:
                 row["days_to_default"] = rfdv.get(oid)   # Time in RFD dwell (None if never RFD)
-            if not lf_failed:                            # P2 LF (savings % = Snowflake, no classifier)
-                x = lfv.get(oid)
-                p = fnum(x.get("LF_SAVINGS_PCT")) if x else None
-                row["lf_savings_pct"] = p
-                row["lf_savings_band"] = _lf_band(p)
-                row["lf_quote"] = _lf_quote_txt(x)
-                row["lf_in_alt"] = ("Y" if (x and int(fnum(x.get("HAS_LF_ALT")) or 0)) else "N")
             if not auto_failed:
                 x = autov.get(oid)
                 row["automation_eligible"] = ("Y" if (x and int(fnum(x.get("ELIGIBLE_RENEWAL_FLAG")) or 0)) else "N")
@@ -497,6 +621,32 @@ def merge_freeze(prior_path):
                 row["days_to_rec_cycle"]        = _daysbetween(base_open, rec_sent)
                 row["time_to_default_rec_days"] = _daysbetween(base_open, rec_sent)
                 row["rfd_to_rec_sent_days"]     = _daysbetween(rfd_date, rec_sent) if rfd_date else None
+            # --- fields that were base-only / carry-forward (went stale or null) -> now sourced LIVE ---
+            _ex = extrasv.get(oid)
+            if _ex:                                       # default_automation drives P1; bo_status + csat + funding
+                row["default_automation"] = "Y" if _truthy(_ex.get("DEFAULT_AUTOMATION")) else "N"
+                row["bo_status"]    = (_ex.get("BO_STATUS") or None)
+                row["csat_current"] = (_ex.get("BO_CSAT") or _ex.get("CES_CSAT") or None)
+                if _ex.get("MED_FUNDING"): row["funding"] = _ex.get("MED_FUNDING")
+            _sl = slav.get(oid)
+            if _sl:                                       # RFD/ERC/ALT SLA (Met/Missed/na) — fresh from sla.csv
+                row["rfd_sla"] = _slam(_sl.get("RFD_MET"))
+                row["erc_sla"] = _slam(_sl.get("ERC_MET"))
+                row["alt_sla"] = (_slam(_sl.get("ALT_MET"))
+                                  if (row.get("alt_requested")=="Y" or row.get("alt_req_date")) else "na")
+            # alt-timing derived from the FRESH alt dates + cycle_open (these were base-only and went null,
+            # same class as alt_published_date). Feeds the Alt-SLA risk signal + "Days to alt" + drill.
+            _req = row.get("alt_req_date"); _pub = row.get("alt_pub_first"); _co = row.get("cycle_open")
+            row["alt_requested_date"] = _req
+            row["alt_requested_days"] = _daysbetween(_co, _req) if (_co and _req) else None
+            if _pub and _req:
+                row["days_to_alt"] = _daysbetween(_req, _pub)
+                row["alt_published_days"] = _daysbetween(_req, _pub)
+                row["alt_published_basis"] = "from request"
+            elif _pub:
+                row["days_to_alt"] = 0
+                row["alt_published_days"] = _daysbetween(_co, _pub) if _co else None
+                row["alt_published_basis"] = "from cycle open"
             if not edue_failed:                          # HOOP email-due (Open/PF only) + pending
                 x = eduev.get(oid)
                 st = (x.get("EMAIL_STATUS") if x else None) or None
@@ -516,29 +666,74 @@ def merge_freeze(prior_path):
                 row["email_received_date"]= la if (row["email_due"] == "Y" and la) else None
             # per-opp SLA fields (default 'na' when the opp is absent from the CSV)
             if not tsla_failed: row["ticket_sla"] = tslav.get(oid, "na")
-            if not esla_failed: row["email_sla"]  = eslav.get(oid, "na")
+            if not esla_failed:
+                _es = eslav.get(oid) or {}
+                row["email_sla"]        = (_es.get("EMAIL_SLA") or "na")
+                row["email_sla_met"]    = int(fnum(_es.get("N_MET")) or 0)
+                row["email_sla_missed"] = int(fnum(_es.get("N_MISSED")) or 0)
             # --- Salesforce-MCP live fields (Open/PF refresh; Closed frozen). Carry forward
             #     the prior/assembler value when the opp is absent from the CSV. ---
-            if oid in sfmcp_intro:
+            if is_open_pf and oid in sfmcp_intro:
                 ic, icd = sfmcp_intro[oid]
                 row["intro_call"] = ic or "N"
                 row["intro_call_date"] = icd
-            if oid in sfmcp_recert:
+            if is_open_pf and oid in sfmcp_recert:
                 row["recert_status"] = sfmcp_recert[oid]
-            if oid in sfmcp_sep:
+            if is_open_pf and oid in sfmcp_sep:
                 row["sep_risk_level"] = sfmcp_sep[oid]
-            if oid in sfmcp_pk:
+            if is_open_pf and oid in sfmcp_pk:
                 pf, pc = sfmcp_pk[oid]
                 row["packets_files"] = int(fnum(pf) or 0)
                 row["packet_carriers"] = pc
-        else:                                           # CLOSED — frozen snapshot
-            stat["closed"] += 1
-            for k in FROZEN_CLOSED: row[k] = p.get(k)   # restore frozen numerics/premium
-            # refresh only in-app / csat / status (status set above); freeze the rest
-            for k in ("time_in_erc","open_tickets","open_tickets_past_sla",
-                      "open_cases_by_type","open_cases_total"):
-                row[k] = p.get(k)
+        if not is_open_pf:                              # CLOSED — Snowflake fields already refreshed above
+            # Freeze ONLY the Salesforce-sourced fields: carry forward the prior published value so
+            # they stay pinned to the close-time snapshot. Everything else (Snowflake) stays live.
+            for k in SF_FROZEN_FIELDS:
+                if k in p: row[k] = p.get(k)
+            # outcome tracks the LIVE stage (so opps that closed since last run, or flipped
+            # Won<->Lost, land correctly).
+            row["outcome"] = ("Won" if row.get("stage") == "Closed Won"
+                              else ("Lost" if row.get("stage") in CLOSED_LOSS else None))
+            # as-of-close date for the builder's grayed 'as of close' labels on point-in-time values.
+            row["close_snapshot_date"] = (p.get("closed_on") or p.get("inferred_close_date")
+                                          or row.get("closed_on") or row.get("renewal_date"))
+        row["data_asof"] = TODAY_ISO                    # last daily-refresh date (all opps)
         out.append(row)
+
+    # --- NEW opps entering the rolling window (in today's cohort.csv but not in the prior
+    #     dataset or the frozen base). Build a schema-safe row from cohort.csv so far-out
+    #     future-month renewals appear; live/enrichment fields populate on subsequent runs as
+    #     their data lands. Types are cloned from an existing row (list->[], dict->{}, else None)
+    #     so the builder never hits a missing key or wrong type. ---
+    present = {r["opp_id18"] for r in out}
+    tmpl = out[0] if out else {}
+    def _blank(v):
+        if isinstance(v, list): return []
+        if isinstance(v, dict): return {}
+        return None
+    new_win = 0
+    for oid, cf in cohort_fresh.items():
+        if oid in present: continue
+        stg = cf.get("STATUS") or ""
+        row = {k: _blank(v) for k, v in tmpl.items()}
+        row["opp_id18"] = oid; row["opp_id15"] = oid[:15]
+        row["company"] = re.sub(r" - Benefits Renewal.*$", "", cf.get("SFDC_OBJECT_NAME_OR_NUM") or "").strip() or None
+        row["stage"] = stg; row["closed"] = stg in CLOSED_STAGES; row["tab"] = _tab_of(stg)
+        row["pe"] = cf.get("PE") or None; row["advisor"] = cf.get("OWNER_NAME") or None
+        row["renewal_date"] = (cf.get("RENEWAL_DATE") or "")[:10] or None
+        dtr = fnum(cf.get("DAYS_TO_RENEWAL")); row["days_to_renewal"] = int(dtr) if dtr is not None else None
+        dis = fnum(cf.get("DAYS_IN_STAGE"));   row["days_in_stage"]  = int(dis) if dis is not None else None
+        blk = (cf.get("ADVISING_BLOCKED_REASON") or "") or None
+        row["blocked_reason"] = blk
+        row["bor_term"] = "Y" if re.search(r"terminat|bor|broker of record", blk or "", re.I) else "N"
+        row["sep"] = "Y" if _truthy(cf.get("SPECIAL_ENROLLMENT")) else "N"
+        row["cohort"] = cf.get("COHORT")
+        row["outcome"] = ("Won" if stg == "Closed Won" else ("Lost" if stg in CLOSED_LOSS else None))
+        if isinstance(row.get("lines"), list): row["lines"] = []
+        row["mrr"] = 0.0; row["mrr_before"] = 0.0; row["mrr_after"] = None
+        out.append(row); new_win += 1
+    if new_win:
+        print(f"  new in-window opps created (not in prior/base): {new_win}", flush=True)
 
     # Drop builder-recomputed-decorative fields so a STALE persisted value can't leak into the UI:
     #   queue_tier -> recomputed live in build_advising_hub.py (Min of P1..P5 flags) every load.
@@ -668,7 +863,7 @@ function riskPF(r){
   sigs.push({key:"recert", w:WSVC, sev:Math.min(rcSev,2), reason:`recert still open (${r.recert_status})`});
   // ---- Cost (25) ----
   const inc=r.rate_increase_pct;
-  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=14?0.6:0.3):0;
+  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=15?0.6:0.3):0;
   sigs.push({key:"autoren", w:WPF, sev:Math.min(arSev,2), reason:(inc!=null?`auto-renewing into a ${inc}% increase`:"auto-renewal")});
   // ---- Timeline (25) ----
   const dd=dUntil(r.submission_deadline);
@@ -698,7 +893,19 @@ let hi=0;for(const r of HUB){const t=tabOf(r);if(t!=="closed"&&riskOf(r).tier===
 console.log(hi);
 """
 
-def verify(n_opps):
+# Builder-critical fields that must not silently collapse to null between runs. The coverage
+# guard in verify() compares live-opp coverage vs the prior published dataset and FAILS the publish
+# if any of these drops by >75% (a carry-forward/blank regression, e.g. the alt_published_date bug).
+COVERAGE_WATCH = ["stage","renewal_date","mrr","rate_increase_pct","lf_savings_pct","alt_published_date",
+                  "alt_requested_date","days_to_alt","alt_published_days","default_automation","bo_status",
+                  "csat_current","email_sla_met","intro_call","last_update","pe","advisor","packets_files",
+                  "funding","all_survey_count","alt_sla","rfd_sla","erc_sla","num_lines","tl_renewal"]
+
+def _live_coverage(rows, fields):
+    live = [r for r in rows if (r.get("stage") or "") not in CLOSED_STAGES]
+    return {f: sum(1 for r in live if r.get(f) not in (None, "", [], {})) for f in fields}
+
+def verify(n_opps, prior_path=None):
     html = open(HTML, encoding="utf-8").read()
     # 1. app <script> node --check
     m = re.search(r'<script>(.*?)</script>', html, re.S)
@@ -719,6 +926,18 @@ def verify(n_opps):
     hub = json.loads(_extract_hub_json(html))
     assert len(hub) == n_opps, f"embedded HUB count {len(hub)} != data {n_opps}"
     assert n_opps > 15000, f"opp count {n_opps} <= 15000"
+    # 3b. COVERAGE-REGRESSION GUARD — fail publish if a builder-critical field collapses vs the prior
+    #     published dataset (catches carry-forward/blank regressions like the alt_published_date bug).
+    if prior_path and os.path.exists(prior_path):
+        try: prior = json.load(open(prior_path))
+        except Exception: prior = None
+        if prior:
+            cn = _live_coverage(hub, COVERAGE_WATCH); cp = _live_coverage(prior, COVERAGE_WATCH)
+            collapsed = [f for f in COVERAGE_WATCH if cp[f] >= 200 and cn[f] < 0.25 * cp[f]]
+            assert not collapsed, ("COVERAGE COLLAPSE vs prior (likely a field going null/stale): "
+                + "; ".join(f"{f} {cp[f]}->{cn[f]}" for f in collapsed))
+            drops = [f"{f} {cp[f]}->{cn[f]}" for f in COVERAGE_WATCH if cp[f] >= 200 and 0.25*cp[f] <= cn[f] < 0.6*cp[f]]
+            if drops: print("  verify NOTE: field coverage dropped >40% vs prior (review): " + "; ".join(drops), flush=True)
     # 4. at_risk_high via the builder's exact risk engine (node)
     data_tmp = "/tmp/_hub_risk_data.json"
     json.dump(hub, open(data_tmp,"w"))
@@ -742,8 +961,8 @@ def main():
     do_publish = "--no-publish" not in sys.argv
     status = {"ok": False, "data_date": datetime.date.today().isoformat(), "opps": None,
               "at_risk_high": None, "mrr_total": None,
-              "version_note": "v-next Advising Hub daily refresh (Open/PF full refresh, Closed frozen)",
-              "steps": STEPS, "warnings": [], "error": None}
+              "version_note": "v-next Advising Hub daily refresh (all opps: stage/scalars live from Snowflake; Closed keeps close snapshot)",
+              "cohort_window": COHORT_WINDOW, "steps": STEPS, "warnings": [], "error": None}
     resume_pull = "--resume-pull" in sys.argv
     skip_pull   = "--skip-pull" in sys.argv
     pull_only   = "--pull-only" in sys.argv
@@ -765,7 +984,7 @@ def main():
         with step("merge_freeze"):n_opps = merge_freeze(prior_bak)
         with step("build"):       run_build()
         with step("verify"):
-            vr = verify(n_opps)
+            vr = verify(n_opps, prior_bak)
             status["at_risk_high"] = vr["at_risk_high"]; status["mrr_total"] = vr["mrr_total"]
         status["opps"] = n_opps
         if do_publish:
