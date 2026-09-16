@@ -442,6 +442,27 @@
    "lf_classifier_note": "lf_savings_pct/band/quote/in_alt are computed purely from Snowflake (GROUP_LEVEL_PLAN_RATES enrolled-avg + medical_package_offerings). The local lf_signal_classifier.py (ANTHROPIC_API_KEY + Salesforce) only enriches LF reason codes for the separate LF-conversion dashboard; the pipeline invokes it as an OPTIONAL guarded step (skipped headless). The four hub LF fields do NOT require it."
   }
  },
+ "closed_opp_refresh_policy": {
+  "_note": "2026-09 change. Closed opps NO LONGER freeze their whole close-time snapshot. Every Snowflake-warehouse field now refreshes DAILY for Closed opps too (mrr/mrr_before/mrr_after, lines[].enr_before/enr_after, enrollees, bo_status, ticket_sla/email_sla, time_in_erc/days_to_default, rate_index, lf_*, rec_timing, auto_renewal, sf_open_signals, open_tickets/open_cases). This fixes closed cards that showed blank enr_after / rec dates because the benefit order finalized AFTER close. The ONLY fields frozen for Closed are Salesforce-sourced (SF_FROZEN_FIELDS in refresh_advising_hub.py): SF-MCP (intro_call, recert_status, sep_risk_level, packets) + SF activity (last_update/contact/call/connect, case_summary). outcome tracks the LIVE stage. Each Closed row is stamped data_asof (today) + close_snapshot_date. The builder grays point-in-time renewal-cycle values (enrolled-before census, LF quote/savings, rate increase, rec-cycle dates, alt dates) with an 'as of close' pill and tags frozen SF fields with an 'SF' pill. Freeze/refresh is keyed on the LIVE tab each run, so a Closed opp that REOPENS (-> Open/PF) automatically re-enters full refresh (SF fields catch up on the next Phase A pull); no persisted closed latch.",
+  "frozen_for_closed": [
+   "intro_call",
+   "intro_call_date",
+   "recert_status",
+   "sep_risk_level",
+   "packets_files",
+   "packet_carriers",
+   "intro_connect",
+   "intro_connect_date",
+   "connect_date",
+   "last_update",
+   "last_update_date",
+   "last_call_date",
+   "last_connect_date",
+   "last_call_disp",
+   "last_contact_date",
+   "case_summary"
+  ]
+ },
  "salesforce_mcp": {
   "_note": "Three field groups that are NOT in the Snowflake SF mirror (DATA_WAREHOUSE_RC1 salesforce_production_no_pii) and are therefore pulled LIVE from the Salesforce MCP by the TASK ORCHESTRATOR each morning BEFORE the python pipeline runs (python does NOT make these calls). The orchestrator writes 3 CSVs into _renewal_vnext/out/; refresh_advising_hub.py merge_freeze reads them and populates the fields on OPEN/PF opps only. If a CSV is absent (e.g. a headless python-only run) or an opp is not in it, the prior value carries forward; Closed opps always stay frozen. Opp-id source = _renewal_vnext/advising_vnext_data.json where closed==false (~7,390 opps). Batch LinkedEntityId/Opportunity__c IN (...) at <=200 ids/query (packets: <=~50 ids/query to keep MCP output small). Full spec: sf_mcp_pull_spec.md. CSVs are company/plan grain only (flags, picklist, filenames/carriers) — no employee names/emails/phones/note text.",
   "intro_call / intro_call_date": {
