@@ -32,7 +32,7 @@ At the top of each tab: tiles (opps, MRR, at-risk), filters (advisor, PE, priori
 - **Open:** weighted advising-cycle signals **plus a "gone quiet" floor** — no outbound email 21d+, no customer reply 21d+, no live call connect 21d+ (a channel never logged counts as quiet). All 3 quiet → at least High; 1–2 → at least Medium; 0 → no floor. **PF:** fulfillment signals. **Closed:** greyed.
 
 ### Customer Contact — "are we in touch"
-- **Intro / Intro Connect**, **Last email out / in**, **Last call** (with attempt / voicemail / connect), **Received** (unanswered customer email), **Email due**.
+- **Intro / Intro Connect**, **Last email out / in**, **Last call** (with attempt / voicemail / connect), **Email due** — days waited on the latest unanswered customer email, with that email's received date shown in light gray alongside (the former standalone **Received** column is now folded in here). The column sorts by days waited (longest first).
 - **A "connect" means we actually reached someone — not a voicemail.** Salesforce stamps `STATUS='Connect'` on plenty of voicemails, so a call counts as a connect only when its disposition is a real one ("Call completed"/"Transferred") or, when the disposition is blank, the call ran longer than 45 seconds. "Left voicemail" (or blank + ≤45s) does **not** count. Feeds Intro Connect, "Connected ≤21d", and the no-recent-call-connect risk signal.
 - **Email attribution matches the Email SLA dashboard:** an inbound counts as advising's only while advising owns the work (opp owner; BO status With Advising / With Sales). Once the order moves on it belongs to the benefit-order owner's team.
 
