@@ -1,0 +1,105 @@
+# Advising Hub continuous-build fix — unified diffs (2026-09-18)
+# Apply against the repo copies under advising-hub/build/ and _renewal_full/sql/
+
+########## advising-hub/build/refresh_advising_hub.py ##########
+--- a/advising-hub/build/refresh_advising_hub.py
++++ b/advising-hub/build/refresh_advising_hub.py
+@@ -26,7 +26,7 @@
+                     opp count > 15000; embedded HUB JSON parses; compute at_risk_high (High
+                     tier via the builder's exact riskOf logic, run under node) + mrr_total.
+                     Any failure => DO NOT publish; raise.
+-  7. publish      — push_html.py advising_hub_vnext.html benefits-advising-hub <REDACTED-SHARESOME-TOKEN>
++  7. publish      — push_html.py advising_hub_vnext.html benefits-advising-hub <SHARESOME_PUBLISH_TOKEN from env>
+                     (skipped with --no-publish).
+   8. status       — print + write advising_hub_refresh_status.json for the scheduler DM.
+ 
+@@ -91,7 +91,8 @@
+ BT10 = set(PRICE) | {'medical'}
+ 
+ # fields assemble_vnext.py (re)computes for every opp — overlaid fresh
+-OVERLAY = ["tab","outcome","closed_on","rating_region","survey_answered","survey_answers",
++OVERLAY = ["sf_opp_url","hippo_url","company","contribution","bo_url","bo_status",
++           "tab","outcome","closed_on","rating_region","survey_answered","survey_answers",
+            "alt_requested","alt_req_date","alt_pub_count","alt_pub_first","alt_pub_last",
+            "alt_pub_carriers","alt_created","in_app","in_app_comment","in_app_date","surveys_12mo",
+            "tickets_to_advising","tickets_list","mrr_before","mrr_after","intro_call",
+@@ -308,6 +309,36 @@
+     if r.returncode != 0:
+         raise RuntimeError("assemble_vnext.py failed")
+ 
++def run_base_rebuild():
++    """Phase-1 durability: rebuild the FULL base over the rolling cohort window EVERY run, so opps
++    newly entering the window (future renewal months) are present with all base-static fields instead
++    of being blank-seeded by merge_freeze. Re-pulls self-rolling base-only queries (contrib, bo), then
++    re-assembles. Resilient: failed base pull keeps prior CSV; failed rebuild restores prior base."""
++    import shutil
++    env = os.environ.copy(); env["PATENV"] = os.path.join(HERE, "snowflake_pat.env")
++    for name in ("contrib", "bo"):
++        sqlp = os.path.join(FULL, "sql", f"{name}.sql")
++        outp = os.path.join(FULL, "out", f"{name}.csv"); tmpp = outp + ".tmp"
++        try:
++            r = subprocess.run([VENV_PY, os.path.join(FULL, "q.py"), sqlp, tmpp], cwd=HERE, env=env)
++            if r.returncode == 0 and os.path.exists(tmpp) and os.path.getsize(tmpp) > 0:
++                os.replace(tmpp, outp); print(f"  base pull {name}: ok", flush=True)
++            else:
++                print(f"  WARN base pull {name} rc={r.returncode}; keeping prior {name}.csv", flush=True)
++        except Exception as e:
++            print(f"  WARN base pull {name}: {e}; keeping prior {name}.csv", flush=True)
++    base = os.path.join(FULL, "advising_hub_full_data.json"); safe = base + ".prerebuild"
++    try:
++        if os.path.exists(base): shutil.copyfile(base, safe)
++        r = subprocess.run([VENV_PY, os.path.join(FULL, "assemble_full.py")], cwd=HERE, env=env)
++        if r.returncode != 0: raise RuntimeError(f"assemble_full rc={r.returncode}")
++        print("  base rebuild: ok", flush=True)
++    except Exception as e:
++        if os.path.exists(safe): shutil.copyfile(safe, base)
++        print(f"  WARN base rebuild failed ({e}); restored prior base", flush=True)
++
+@@ merge_freeze main loop @@
+-        if p is None:
+-            out.append(a); stat["carried_new"] += 1; continue
+-        row = dict(p)                                   # inherit ALL prior fields (carry-forward)
++        hollow = (p is None) or (not p.get("data_asof"))
++        if hollow: stat["carried_new"] += 1
++        p = p or {}
++        row = dict(a) if hollow else dict(p)            # fresh base (hollow) or prior (carry-forward)
+@@ line-skeleton source @@
+-            lines = [dict(l) for l in (p.get("lines") or [])]
++            _lsrc = a if (is_open_pf or hollow) else p
++            lines = [dict(l) for l in (_lsrc.get("lines") or [])]
+@@ publish token @@
++def _publish_token():
++    import re
++    t = os.environ.get("SHARESOME_PUBLISH_TOKEN")
++    if t: return t.strip()
++    envp = os.path.join(HERE, "snowflake_pat.env")
++    if os.path.exists(envp):
++        m = re.search(r'(?:SHARESOME_PUBLISH_TOKEN|PUBLISH_TOKEN)\s*=\s*(\S+)', open(envp).read())
++        if m: return m.group(1).strip().strip('"').strip("'")
++    raise RuntimeError("publish token not found — set SHARESOME_PUBLISH_TOKEN in snowflake_pat.env")
+ def publish():
+     r = subprocess.run([VENV_PY, os.path.join(HERE,"push_html.py"), HTML,
+-                        "benefits-advising-hub", "<REDACTED-SHARESOME-TOKEN>"], cwd=HERE)
++                        "benefits-advising-hub", _publish_token()], cwd=HERE)
+@@ pipeline step order @@
++        with step("base_rebuild"): run_base_rebuild()
+         with step("backup"):      prior_bak = backup_prior()
+         with step("assemble"):    run_assemble()
+
+########## advising-hub/build/build_advising_hub.py ##########
+--- a/advising-hub/build/build_advising_hub.py
++++ b/advising-hub/build/build_advising_hub.py
+@@ drillTimeline(): remove the DEFAULT BUILT node @@
+   const steps = [
+     ["Cycle open", r.tl_cycle_open, "step"],
+-    ["Default built", r.tl_default_built, "step"],
+     ["Rec sent", r.tl_rec_sent, "step"],
+     ["Alt requested", r.tl_alt_requested, "step"],
+
+########## _renewal_full/sql/contrib.sql ##########
+-where mpo.renewal_id in (select hi_renewal_id from bi_reporting.advising_opportunities where renewal_date in ('2026-07-01','2026-08-01','2026-09-01','2026-10-01','2026-11-01','2026-12-01') and hi_renewal_id is not null) and mpo."DEFAULT"=true
++where mpo.renewal_id in (select hi_renewal_id from bi_reporting.advising_opportunities where renewal_date >= '2026-07-01' and renewal_date <= dateadd(month,5,date_trunc('month',current_date)) and hi_renewal_id is not null) and mpo."DEFAULT"=true
+
+########## _renewal_full/sql/bo.sql ##########
+-where sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities where renewal_date in ('2026-07-01','2026-08-01','2026-09-01','2026-10-01','2026-11-01','2026-12-01'))
++where sfdc_opportunity_id in (select sfdc_object_id from bi_reporting.advising_opportunities where renewal_date >= '2026-07-01' and renewal_date <= dateadd(month,5,date_trunc('month',current_date)))
