@@ -103,7 +103,7 @@ RISK_VISUAL_HTML = """
     <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
       <div style="font-weight:600;font-size:12px">Cost</div>
       <div style="font-size:11px;color:var(--g6);margin-bottom:5px">25 pts</div>
-      <div style="font-size:12px;line-height:1.8">Auto-renew into an increase &middot; &ge;14% <b style="color:var(--gold)">&#9650;</b></div>
+      <div style="font-size:12px;line-height:1.8">Auto-renew into an increase &middot; &ge;15% <b style="color:var(--gold)">&#9650;</b></div>
     </div>
     <div style="border:.5px solid var(--line);border-radius:10px;padding:9px 11px">
       <div style="font-weight:600;font-size:12px">Timeline</div>
@@ -323,6 +323,11 @@ tr.row.open td{background:var(--teal-tint)}
 .kv .kv-row .k{color:var(--g6);font-weight:600}
 .kv .kv-row .pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;background:var(--g3)}
 .kv .kv-row .pill.hot{background:var(--coral-20);color:var(--coral-dk);font-weight:650}
+.kv .kv-row .pill.asof{background:var(--cream-2);color:var(--gold);font-weight:650;font-size:10px;letter-spacing:.2px}
+.kv .kv-row .pill.sf{background:var(--teal-tint);color:var(--teal-dk);font-weight:650;font-size:10px;letter-spacing:.2px}
+.kv .kv-row .asofv,.kv .kv-row .frzv{color:var(--g5)}
+.closedbanner{margin:2px 0 12px;padding:8px 11px;border-left:3px solid var(--gold);background:var(--cream);border-radius:0 6px 6px 0;font-size:11.5px;line-height:1.5;color:var(--g6)}
+.closedbanner b{color:var(--ink);font-weight:650}
 .kv .kv-row .verbatim{display:block;margin-top:4px;font-size:11px;font-style:italic;color:var(--g6);
   border-left:2px solid var(--teal-tint);padding-left:8px;white-space:normal;line-height:1.4}
 @media(max-width:720px){.kv{grid-template-columns:1fr}}
@@ -723,6 +728,7 @@ const BASE_COLS = [
   {k:"lead",   g:"general",t:"Lead days",s:r=>r.lead_days??99999},
   {k:"stage",  g:"general",t:"Stage",   s:r=>r.stage||""},
   {k:"dis",    g:"general",t:"Days in Stage",s:r=>r.days_in_stage??-1},
+  {k:"dinpf",  g:"general",t:"Days in PF",tabs:"p",s:r=>r.days_in_stage??-1},
   {k:"mrr",    g:"general",t:"MRR",   tabs:"op", s:r=>r.mrr??-1},
   {k:"funding",g:"general",t:"Funding", s:r=>fund(r.funding)},
   {k:"enr",    g:"general",t:"ENR (med)",s:r=>r.enrollees??-1},
@@ -730,12 +736,12 @@ const BASE_COLS = [
   {k:"packets",g:"general",t:"Packets", s:r=>r.packets_files??-1},
   {k:"rate",   g:"general",
      t:()=>tabCode()==="c"?"Premium Δ (Final)":"Premium Δ (Projected)",
-     s:r=>{ if(tabCode()==="c"){ const ml=medLine(r); const v=ml?ml.d_fin:null; return v==null?-999:v; } return r.rate_increase_pct??-999; },
+     s:r=>{ const proj=(r.prem_ee_pct!=null)?r.prem_ee_pct:r.rate_increase_pct; if(tabCode()==="c"){ const v=(r.prem_fin_elig_pct!=null)?r.prem_fin_elig_pct:proj; return v==null?-999:v; } return proj??-999; },
      ttl:()=>({o:"Medical projected renewal Δ vs successor (EYO)",p:"Medical projected renewal Δ vs successor (EYO)",c:"Medical final selected Δ (enrolled)"}[tabCode()])},
   {k:"nlines", g:"line",   t:"Lines ▸",s:r=>r.num_lines??-1},
   // Flags
-  {k:"lf",     g:"flags", t:"LF",       s:r=>r.lf_quote||""},
-  {k:"lfsav",  g:"flags", t:"LF savings",s:r=>{const b=r.lf_savings_band;return b==="High"?4:b==="Medium"?3:b==="Low"?2:b==="No"?1:-1;}},
+  {k:"lf",     g:"flags", t:"LF",       s:r=>r.lf_savings_pct!=null?1:0},
+  {k:"lfsav",  g:"flags", t:"LF savings",s:r=>{const p=r.lf_savings_pct;return p==null?-1:p;}},
   {k:"recert", g:"flags", t:"Recert",   s:r=>hasRecert(r)?1:0},
   {k:"sep",    g:"flags", t:"SEP",      s:r=>isY(r.sep)?1:0},
   {k:"seprisk",g:"flags", t:"SEP risk", s:r=>r.sep_risk_level||""},
@@ -745,10 +751,10 @@ const BASE_COLS = [
   {k:"intro",  g:"contact", t:"Intro (done)", s:r=>isY(r.intro_call)?1:0},
   {k:"introc", g:"contact", t:"Intro Connect",s:r=>isY(r.intro_connect)?1:0},
   {k:"emaildue",g:"contact",t:"Email due",tabs:"op",s:r=>isY(r.email_due)?(r.email_due_hoop_hrs??1):-1},
-  {k:"emailrecv",g:"contact",t:"Received",tabs:"op",s:r=>r.email_received_date||""},
   {k:"lastout",g:"contact",t:"Last email out",s:r=>r.last_outbound_email_date||""},
   {k:"lastin", g:"contact",t:"Last email in", s:r=>r.last_inbound_email_date||""},
   {k:"lastupd",g:"contact", t:"Last call",s:r=>r.last_call_date||""},
+  {k:"emailmet",g:"contact",t:"Emails met SLA",s:r=>{const m=+(r.email_sla_met||0),x=+(r.email_sla_missed||0),e=m+x;return e>0?m/e:-1;}},
   // Sentiment (own group, right after Flags). Per-tab: Open=all-survey count · PF=in-app · Closed=CSAT + in-app
   {k:"survcount",g:"sentiment",t:"Surveys (12mo)",tabs:"o",s:r=>r.all_survey_count??-1},
   {k:"inapp",  g:"sentiment", t:"In-app",tabs:"pc",s:r=>r.inapp_current??-1},
@@ -804,13 +810,14 @@ function dot(state, title){
 function rateCell(r){
   // medical-anchored premium Δ. Open/PF -> rate_increase_pct (Projected);
   // Closed -> medical line d_fin (Final). Null Closed d_fin -> em-dash.
+  const proj = (r.prem_ee_pct!=null) ? r.prem_ee_pct : r.rate_increase_pct;
   if (tabCode()==="c"){
-    const ml = medLine(r); const v = ml ? ml.d_fin : null;
+    const v = (r.prem_fin_elig_pct!=null) ? r.prem_fin_elig_pct : proj;
     if (v==null) return DASH;
     const cls = v>=30?"t-bad":v>=20?"t-warn":v>=15?"t-gold":"";
-    return `<span class="num ${cls}" title="Final selected medical premium Δ (enrolled)">${(v>0?"+":"")+v.toFixed(1)}%</span>`;
+    return `<span class="num ${cls}" title="Final selected medical premium Δ (clean, successor-matched)">${(v>0?"+":"")+v.toFixed(1)}%</span>`;
   }
-  const v = r.rate_increase_pct, st = r.rate_status||"";
+  const v = proj, st = r.rate_status||"";
   if (v==null) return `<span class="t-ok" title="${esc(st)}">${esc(st.replace(/^estimate /,"est ")||"—")}</span>`;
   const cls = v>=30?"t-bad":v>=20?"t-warn":v>=15?"t-gold":"";
   const suffix = (st && st!=="computed") ? ` <span class="t-ok" style="font-size:10px">${esc(st.replace(/^estimate /,"est "))}</span>` : "";
@@ -919,8 +926,9 @@ function riskPF(r){
   const rcSev=(r.recert_status && r.recert_status!=="Recert Approved")?((rl>90)?2:(rl>60)?1.5:1):0;
   sigs.push({key:"recert", w:WSVC, sev:Math.min(rcSev,2), reason:`recert still open (${r.recert_status})`});
   // ---- Cost (25) ----
+  // RATE_HOT = 15 (canonical premium/rate threshold — see README "Premium change"); PF matches Open.
   const inc=r.rate_increase_pct;
-  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=14?0.6:0.3):0;
+  const arSev=isY(r.auto_renewal)?(inc>=45?2:inc>=30?1.5:inc>=20?1:inc>=15?0.6:0.3):0;
   sigs.push({key:"autoren", w:WPF, sev:Math.min(arSev,2), reason:(inc!=null?`auto-renewing into a ${inc}% increase`:"auto-renewal")});
   // ---- Timeline (25) ----
   const dd=dUntil(r.submission_deadline);
@@ -993,11 +1001,11 @@ function cell(r,k){
                       return `<span title="medical carrier">${esc(ml.carrier)}${ml.state?` <span class="t-ok">(${esc(ml.state)})</span>`:""}</span>`; }
     case "packets":{ const p=r.packets_files; return p==null?DASH:`<span class="num" title="${esc(r.packet_carriers||"")}">${p}</span>`; }
     case "nlines":  return `<span class="nlines" data-lines="1" title="Expand per-benefit enrolled columns"><span class="dot ${LINES_OPEN?"on":""}"></span> ${r.num_lines??0} ▸</span>`;
-    case "lf":      return r.lf_quote?`<span class="badge rc" title="${esc(r.lf_quote)}">LF</span>`:DASH;
-    case "lfsav":   { const b=r.lf_savings_band; if(!b) return DASH;
-                      const cls={High:"lfs-hi",Medium:"lfs-md",Low:"lfs-lo",No:"lfs-no"}[b]||"lfs-no";
-                      const pct=r.lf_savings_pct!=null?` · ${(r.lf_savings_pct*100).toFixed(0)}%`:"";
-                      return `<span class="lfsav ${cls}" title="LF savings ${b}${pct} vs current">${b}</span>`; }
+    case "lf":      return (r.lf_savings_pct!=null)?`<span class="badge rc" title="LF quote available (in the LF savings dashboard)">LF</span>`:DASH;
+    case "lfsav":   { const p=r.lf_savings_pct; if(p==null) return DASH;
+                      const b = p>0.10?"High":p>0?"Low":"No";
+                      const cls={High:"lfs-hi",Low:"lfs-lo",No:"lfs-no"}[b];
+                      return `<span class="lfsav ${cls}" title="LF savings ${b} · ${(p*100).toFixed(0)}% vs current">${b} · ${(p*100).toFixed(0)}%</span>`; }
     case "recert":  return hasRecert(r)?`<span class="badge rc" title="${esc(r.recert_status||"recert")}">${esc(r.recert_status||"Recert")}</span>`:DASH;
     case "sep":     return isY(r.sep)?dot("bad","SEP on the opp"):DASH;
     case "seprisk": { const v=r.sep_risk_level; if(!v) return DASH;
@@ -1017,8 +1025,9 @@ function cell(r,k){
                     { const aging=/missed|aging/i.test(r.email_due_status||"");
                       const dd=r.email_due_hoop_days;
                       const val=dd!=null?dd+"d":(r.email_due_hoop_hrs!=null?r.email_due_hoop_hrs+"h":"due");
-                      return `<span class="pend" title="Latest inbound pending · ${esc(r.email_due_status||"pending")}${dd!=null?` · ${dd}d HOOP`:""}"><span class="dot"></span><span class="num ${aging?"t-bad":""}">${val}${aging?" ⚠":""}</span></span>`; }
-    case "emailrecv":return r.email_received_date?`<span class="num" title="latest unanswered inbound received">${esc(r.email_received_date)}</span>`:DASH;
+                      const recv=r.email_received_date||r.email_pending_date;
+                      const recvHtml=recv?` <span class="num" style="color:var(--g5)">${esc(recv)}</span>`:"";
+                      return `<span class="pend" title="Latest inbound pending · received ${esc(recv||"—")} · ${esc(r.email_due_status||"pending")}${dd!=null?` · ${dd}d HOOP`:""}"><span class="dot"></span><span class="num ${aging?"t-bad":""}">${val}${aging?" ⚠":""}</span>${recvHtml}</span>`; }
     case "lastout":{ const dt=r.last_outbound_email_date; if(!dt) return DASH; const d=dUntil(dt); const ago=d==null?null:-d;
         return `<span class="num ${ago!=null&&ago>14?"t-bad":ago!=null&&ago>7?"t-warn":""}" title="our last outbound email: ${esc(dt)}">${ago!=null?ago+"d":esc(dt)}</span>`; }
     case "lastin":{ const dt=r.last_inbound_email_date; if(!dt) return DASH; const d=dUntil(dt); const ago=d==null?null:-d;
@@ -1045,6 +1054,11 @@ function cell(r,k){
     case "bostatus":return r.bo_status?`<span class="chip">${esc(r.bo_status)}</span>`:DASH;
     case "inapp":   return r.inapp_current!=null?`<span class="num">${esc(r.inapp_current)}</span>`:DASH;
     case "csat":    return r.csat_current!=null?`<span class="num">${esc(r.csat_current)}</span>`:DASH;
+    case "dinpf":   { const d=r.days_in_stage; return d==null?DASH:`<span class="num ${d>21?"t-bad":d>7?"t-warn":""}" title="days in Pending Fulfillment">${d}d</span>`; }
+    case "emailmet":{ const m=+(r.email_sla_met||0), x=+(r.email_sla_missed||0), e=m+x;
+                      if(e===0) return DASH;
+                      const cls=x===0?"t-ok":(m===0?"t-bad":"t-warn");
+                      return `<span class="num ${cls}" title="advising-attributed inbound emails meeting the 4-business-hour SLA">${m}/${e} met</span>`; }
   }
   return DASH;
 }
@@ -1384,7 +1398,8 @@ function drillPremium(r){
   const dol = (l,f) => (NOPREM.has(l.benefit_type)||l[f]==null) ? `<span class="t-ok">—</span>` : `<span class="num">${money(l[f])}</span>`;
   const premDelta = l => {
     if (l.benefit_type!=="medical") return `<span class="t-ok" title="menu blend — see Default/Selected">—</span>`;
-    const v = closed ? l.d_fin : r.rate_increase_pct;
+    const v = closed ? ((r.prem_fin_elig_pct!=null)?r.prem_fin_elig_pct:((r.prem_ee_pct!=null)?r.prem_ee_pct:r.rate_increase_pct))
+                     : ((r.prem_ee_pct!=null)?r.prem_ee_pct:r.rate_increase_pct);
     if (v==null) return `<span class="t-ok">—</span>`;
     const cls = v>=30?"t-bad":v>=20?"t-warn":v>=15?"t-gold":"";
     return `<span class="num ${cls}">${(v>0?"+":"")+v.toFixed(1)}%</span>`;
@@ -1405,12 +1420,23 @@ function kv(pairs){
   }).join("") + `</div>`;
 }
 function sec(title, inner){ return `<div class="dsec"><h4>${esc(title)}</h4>${inner}</div>`; }
+// Closed opps: gray point-in-time (Snowflake) values with an 'as of close' pill, and tag frozen
+// Salesforce fields with an 'SF' pill. No-op for Open/PF. Keys match the pair labels below.
+function decClosed(pairs, asofKeys, sfKeys, on){
+  if (!on) return pairs;
+  const A=new Set(asofKeys||[]), S=new Set(sfKeys||[]);
+  return pairs.map(([k,v])=>{
+    if (v==null||v==="") return [k,v];
+    if (S.has(k)) return [k, `<span class="frzv">${v}</span> <span class="pill sf" title="Salesforce field — frozen at close, not refreshed">SF</span>`];
+    if (A.has(k)) return [k, `<span class="asofv">${v}</span> <span class="pill asof" title="Point-in-time renewal-cycle value — shown as of close">as of close</span>`];
+    return [k,v];
+  });
+}
 
 // renewal-cycle timeline
 function drillTimeline(r){
   const steps = [
     ["Cycle open", r.tl_cycle_open, "step"],
-    ["Default built", r.tl_default_built, "step"],
     ["Rec sent", r.tl_rec_sent, "step"],
     ["Alt requested", r.tl_alt_requested, "step"],
     ["Alt published", r.tl_alt_published, "step"],
@@ -1443,6 +1469,7 @@ function detailRow(r, span){
     ["Renewal date", r.renewal_date?esc(r.renewal_date):null],
     ["Cohort", r.cohort?cohortLabel(r.cohort):null],
     ["Stage", r.stage?`${esc(r.stage)}${r.days_in_stage!=null?` · ${r.days_in_stage}d in stage`:""}`:null],
+    ["Days in PF", (TAB==="pf"&&r.days_in_stage!=null)?`${r.days_in_stage}d <span class="t-ok">(in Pending Fulfillment)</span>`:null],
     ["Selection deadline", r.selection_deadline?esc(r.selection_deadline):null],
     ["Submission deadline", r.submission_deadline?esc(r.submission_deadline):null],
     ["Days to Renewal", r.days_to_renewal!=null?`${r.days_to_renewal}d`:null],
@@ -1470,30 +1497,38 @@ function detailRow(r, span){
   const mrrB = r.mrr_before!=null ? r.mrr_before : (sumMB||null);
   const mrrA = r.mrr_after!=null  ? r.mrr_after  : (sumMA||null);
   const mrrD = (mrrB!=null && mrrA!=null) ? (mrrA-mrrB) : null;
+  const projPct = (r.prem_ee_pct!=null) ? r.prem_ee_pct : r.rate_increase_pct;
   const premMedDelta = (()=>{
-    if (closedTab){ const ml=medLine(r); const v=ml?ml.d_fin:null;
+    if (closedTab){ const v = (r.prem_fin_elig_pct!=null) ? r.prem_fin_elig_pct : projPct;
       return v==null ? `<span class="pill">—</span>` : `<span class="pill ${v>=15?"hot":""}">${(v>0?"+":"")+v.toFixed(1)}% · final selected</span>`; }
-    return r.rate_increase_pct!=null
-      ? `<span class="pill ${r.rate_increase_pct>=15?"hot":""}">${r.rate_increase_pct.toFixed(1)}% · projected renewal (vs successor)</span>`
+    return projPct!=null
+      ? `<span class="pill ${projPct>=15?"hot":""}">${(projPct>0?"+":"")+projPct.toFixed(1)}% · projected renewal (vs successor)</span>`
       : `<span class="pill">not built · ${esc(r.rate_status||"")}</span>`;
   })();
+  const depDelta = (r.prem_dep_pct!=null)
+    ? `<span class="pill ${r.prem_dep_pct>=15?"hot":""}">${(r.prem_dep_pct>0?"+":"")+r.prem_dep_pct.toFixed(1)}% · with dependents</span>` : null;
+  const premBook = (r.prem_book_cur!=null && r.prem_book_proj!=null)
+    ? `${money(r.prem_book_cur)} → ${money(r.prem_book_proj)} <span class="pill ${(r.prem_book_proj-r.prem_book_cur)>0?"hot":""}">${((r.prem_book_proj-r.prem_book_cur)>0?"+":"")+money(r.prem_book_proj-r.prem_book_cur)}/mo</span>` : null;
   const premPairs = [
     ["Premium Δ (medical)", premMedDelta],
+    ["With dependents Δ", depDelta],
+    ["Premium book (monthly)", premBook],
+    (closedTab ? ["Projected (at close)", projPct!=null?`<span class="pill">${(projPct>0?"+":"")+projPct.toFixed(1)}% · projected (retained)</span>`:null] : null),
     ["MRR (current)", r.mrr!=null?money(r.mrr):null],
     ["MRR before → after → Δ", (mrrB!=null||mrrA!=null)
         ? `${mrrB==null?"—":money(mrrB)} → ${mrrA==null?"—":money(mrrA)}${mrrD!=null?` · <span class="pill ${mrrD<0?"hot":""}">${(mrrD>0?"+":"")+money(mrrD)}</span>`:""}`
         : null]
   ];
-  const premInner = kv(premPairs)
+  const premInner = kv(decClosed(premPairs.filter(Boolean), ["Premium Δ (medical)","With dependents Δ","Premium book (monthly)"], [], !!r.closed))
     + `<div class="dsec-line" style="margin-top:10px"><h4 style="border:none;padding:0;margin:0 0 4px">Enrollment${closedTab?" (before → after)":""}</h4>${drillEnrollment(r)}</div>`
     + `<div class="dsec-line" style="margin-top:12px"><h4 style="border:none;padding:0;margin:0 0 4px">Premium (medical first)</h4>${drillPremium(r)}
-        <div class="foot" style="margin-top:8px">Default &amp; Selected are averages across the offered plan menu; the headline Premium Δ is medical-anchored (${closedTab?"final selected, enrolled":"projected vs successor"}). Savings accounts (HSA/FSA/DCA) carry no premium. Click a header to sort.</div></div>`;
+        <div class="foot" style="margin-top:8px">Premium change is current → ${closedTab?"finalized selected":"successor (projected)"}, from clean per-employee sources (matches the Hippo renewal page). Employee-only and with-dependents are both eligible-basis. Savings accounts (HSA/FSA/DCA) carry no premium.${closedTab?" Projected-at-close is retained above; finalized enrollment/premium can still move up to 30 days post-effective (like MRR), then locks.":""} Click a header to sort.</div></div>`;
 
   // 4. Flags
   const flagPairs = [
-    ["Level funded", r.lf_quote?`<span class="pill hot">${esc(r.lf_quote)}</span>`:null],
-    ["LF savings", r.lf_savings_band?`${esc(r.lf_savings_band)}${r.lf_savings_pct!=null?` · ${(r.lf_savings_pct*100).toFixed(1)}%`:""} vs current`:(r.lf_savings_pct!=null?`${(r.lf_savings_pct*100).toFixed(1)}% vs current`:null)],
-    ["Recommended in Alt", (r.lf_quote||r.lf_savings_band)?(r.lf_in_alt==="Y"?`<span class="badge gr">Yes</span>`:`<span class="t-ok">No</span>`):null],
+    ["Level funded", r.lf_savings_pct!=null?`<span class="pill hot">LF quote available</span>`:null],
+    ["LF savings", r.lf_savings_pct!=null?`${r.lf_savings_pct>0.10?"High":r.lf_savings_pct>0?"Low":"No"} · ${(r.lf_savings_pct*100).toFixed(1)}% vs current`:null],
+    ["Recommended in Alt", (r.lf_savings_pct!=null)?(r.lf_in_alt==="Y"?`<span class="badge gr">Yes</span>`:`<span class="t-ok">No</span>`):null],
     ["Recert", hasRecert(r)?`<span class="pill hot">${esc(r.recert_status||"flagged")}</span>`:null],
     ["SEP risk", r.sep_risk_level?`<span class="pill">${esc(r.sep_risk_level)}</span>`:null],
     ["Recert flag date", r.recert_flag_date],
@@ -1584,6 +1619,8 @@ function detailRow(r, span){
     ["Last connect", nAgo(r.last_connect_date)],
     ["Last email out", nAgo(r.last_outbound_email_date)],
     ["Last email in", nAgo(r.last_inbound_email_date)],
+    ["Emails met SLA", (()=>{ const m=+(r.email_sla_met||0),x=+(r.email_sla_missed||0),e=m+x;
+        return e>0?`<span class="num">${m} met · ${x} missed</span> <span class="t-ok">(of ${e} advising-attributed · target 4 business-hrs)</span>`:`<span class="t-ok">none advising-attributed</span>`; })()],
     ["Email awaiting reply", (()=>{
         if(!isY(r.email_due)) return `<span class="t-ok">none</span>`;
         const hoop = r.email_due_hoop_days!=null?`${r.email_due_hoop_days}d HOOP`:(r.email_due_hoop_hrs!=null?`${r.email_due_hoop_hrs}h HOOP`:"—");
@@ -1591,15 +1628,22 @@ function detailRow(r, span){
       })()]
   ];
 
+  const _cl = !!r.closed;
+  const closedBanner = _cl
+    ? `<div class="closedbanner">Closed — Snowflake fields refreshed ${r.data_asof?esc(r.data_asof):"daily"}. `
+      + `Renewal-cycle values (grayed) and Salesforce fields (<span class="pill sf">SF</span>) are shown `
+      + `<b>as of close${r.close_snapshot_date?` · ${esc(r.close_snapshot_date)}`:""}</b> and do not update.</div>`
+    : "";
   const secHtml =
-      sec("Overall case summary (de-identified)", summInner)
+      closedBanner
+    + sec("Overall case summary (de-identified)", summInner)
     + sec("Renewal-cycle timeline", drillTimeline(r))
-    + sec("General", kv(genPairs))
-    + sec("Customer Contact", kv(contactPairs))
+    + sec("General", kv(decClosed(genPairs, ["Enrolled (med)","Rating","Contribution"], ["Packets"], _cl)))
+    + sec("Customer Contact", kv(decClosed(contactPairs, [], ["Intro call","Intro connect","Last call","Last connect"], _cl)))
     + sec("Survey answers", survInner)
     + sec("Premium & lines", premInner)
-    + sec("Flags", kv(flagPairs))
-    + sec("Recommendation", kv(recPairs))
+    + sec("Flags", kv(decClosed(flagPairs, ["Level funded","LF savings","Recommended in Alt"], ["Recert","SEP risk"], _cl)))
+    + sec("Recommendation", kv(decClosed(recPairs, ["Default sent (SF)","Time to rec sent (create→sent)","RFD → rec sent","Alt requested","Alt created","Alt published"], [], _cl)))
     + sec("Sentiment", sentInner)
     + sec("Benefit order", boInner);
 
@@ -1696,7 +1740,7 @@ function buildScript(r){
     high:   !r || (v.inc!=null && v.inc >= 15),
     sep:    !r || isY(r.sep),
     recert: !r || hasRecert(r),
-    lf:     !r || !!r.lf_quote,
+    lf:     !r || (r.lf_savings_pct!=null),
     packet: !!r && /Renewal Packet/i.test(r.blocked_reason||""),
     term:   !!r && isY(r.bor_term)
   };
