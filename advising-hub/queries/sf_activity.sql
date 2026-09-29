@@ -9,7 +9,7 @@
 -- TRUE-CONNECT FIX (2026-09): STATUS='Connect' is self-reported and gets stamped on
 -- voicemails too (e.g. a 30s call with a blank disposition, or one explicitly dispositioned
 -- 'Left voicemail'). So a call now counts as a *connect* (is_tc=1) only when STATUS='Connect'
--- AND it is not a voicemail/disconnect by disposition AND -- when the disposition is blank --
+-- AND it is not a voicemail/disconnect by disposition AND — when the disposition is blank —
 -- it lasted > 45 seconds. n_connect / connect_date / last_connect_date / last_call_disp all
 -- key off is_tc, so intro_connect, the "Connected <=21d" panel, and the gone-quiet call risk
 -- signal only credit calls we actually reached someone on.
@@ -20,11 +20,17 @@ with openpf as (
   select sfdc_object_id from data_warehouse_rc1.bi_reporting.advising_opportunities
   where renewal_date in ({{cohort_dates}}) and status not in ('Closed Won','Closed Lost','Order Lost')
 ),
+-- whatid -> opp map. Tasks reach an opp two ways: attached to its Benefits Renewal Case,
+-- OR attached directly to the Opportunity. Advisors log calls/VMs on either object, so a
+-- case-only join misses opp-attached calls (e.g. an intro VM appears as "no call logged").
+-- UNION dedups; a task has exactly one whatid so it maps to at most one opp (no double count).
 rc as (
-  select c.id case_id, c.sfdc_opportunity_id opp
+  select c.id whatid, c.sfdc_opportunity_id opp
   from data_warehouse_rc1.bi.cases c
   where c.record_type_name = 'Benefits Renewal Case'
     and c.sfdc_opportunity_id in (select sfdc_object_id from openpf)
+  union
+  select sfdc_object_id whatid, sfdc_object_id opp from openpf
 ),
 t as (
   select rc.opp, tk.type, tk.status, tk.calldisposition disp, tk.calldurationinseconds dur, tk.createddate,
@@ -36,7 +42,7 @@ t as (
                  or tk.calldisposition ilike '%disconnect%')
         and (tk.calldisposition is not null or tk.calldurationinseconds > 45), 1, 0) is_tc
   from data_warehouse_rc1.salesforce_production_no_pii.task tk
-  join rc on rc.case_id = tk.whatid
+  join rc on rc.whatid = tk.whatid
   where (tk.type ilike '%call%' or tk.type ilike '%email%' or tk.subject ilike 'Email:%')
 )
 select opp,

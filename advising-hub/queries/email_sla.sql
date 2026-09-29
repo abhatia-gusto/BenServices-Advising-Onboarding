@@ -29,7 +29,10 @@ select attr.sfdc_opportunity_id as opp,
     when sum(case when attr.inbound_email_response_status = 'Responded (Within SLA)'
                then 1 else 0 end) > 0 then 'Met'
     else 'na'
-  end as email_sla
+  end as email_sla,
+  sum(case when attr.inbound_email_response_status = 'Responded (Within SLA)' then 1 else 0 end) as n_met,
+  sum(case when attr.inbound_email_response_status in
+             ('Responded (Past SLA)','Pending (Missed SLA - aging)') then 1 else 0 end) as n_missed
 from (
 select z.*,
     -- attributed (renamed) subteam per the v10 dashboard getAttr() ladder:
