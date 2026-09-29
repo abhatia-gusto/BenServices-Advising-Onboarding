@@ -16,7 +16,9 @@ pub as (
 )
 select r.id renewal_id,
   to_char(r.alternate_packages_requested_timestamp::date) alt_req_date,
-  coalesce(pub.alt_pub_count,0) alt_pub_count, pub.alt_pub_first, pub.alt_pub_last, pub.alt_pub_carriers
+  coalesce(pub.alt_pub_count,0) alt_pub_count, pub.alt_pub_first, pub.alt_pub_last, pub.alt_pub_carriers,
+  (select count(*) from data_warehouse_rc1.hawaiian_ice_production_no_pii.renewals_draft_packages d
+     where d.renewal_id=r.id) alt_created
 from data_warehouse_rc1.hawaiian_ice_production_no_pii.renewals r
 join ren on ren.hi_renewal_id=r.id
 left join pub on pub.renewal_id=r.id;
