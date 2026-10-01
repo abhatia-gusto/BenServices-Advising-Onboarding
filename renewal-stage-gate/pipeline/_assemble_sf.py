@@ -107,13 +107,24 @@ sf_objects = [
     ["QA_Sheet__c", et_label(maxmods["QA_Sheet__c"]), "DBA, effective date", "8A,9A"],
 ]
 
+# Window label must match the dynamic "+4" SOQL window the pull actually used
+# (floor fixed 2026-07-01; ceiling = last day of current month + 4). Overridable via
+# RSG_FLOOR / RSG_CEILING so it stays in lockstep with pull_cli.py's _window().
+import calendar as _cal
+_floor = os.environ.get("RSG_FLOOR", "2026-07-01")
+_ceiling = os.environ.get("RSG_CEILING")
+if not _ceiling:
+    _t = datetime.date.today(); _y, _m = _t.year, _t.month + 4
+    _y += (_m - 1) // 12; _m = (_m - 1) % 12 + 1
+    _ceiling = f"{_y:04d}-{_m:02d}-{_cal.monthrange(_y, _m)[1]:02d}"
+
 cohort = {
     "total": len(opps),
     "generated": pull_time_et,
     "stages": stages,
     "months": months,
     "novdec": novdec,
-    "window": {"floor": "2026-07-01", "ceiling": "2027-01-31"},
+    "window": {"floor": _floor, "ceiling": _ceiling},
     "sf": {"asof": pull_time_et, "objects": sf_objects},
 }
 if "snow" in prior:
