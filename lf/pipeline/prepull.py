@@ -39,9 +39,17 @@ def clean(txt, cap=900):
 
 def inlist(xs): return ",".join(f"'{i}'" for i in xs)
 
+def _load_ids(path):
+    # accept a JSON array, or a .txt / rchunk-style file with one id per line
+    raw = open(path).read().strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        return [ln.strip() for ln in raw.splitlines() if ln.strip()]
+
 def main():
     S.assert_fresh_clock()
-    ids = json.load(open(IDS))
+    ids = _load_ids(IDS)
     ids = [i[:18] for i in ids]            # SOQL IN matches 15/18; feed/email keys are 18
     os.makedirs(OUT, exist_ok=True)
     print(f"[lf] opps={len(ids)} out={OUT} workers={WORKERS}")

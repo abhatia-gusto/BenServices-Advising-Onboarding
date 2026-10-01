@@ -32,11 +32,19 @@ WORKERS = int(os.environ.get("RSG_WORKERS", "8"))
 STAGES = "('Recommendation Sent','Engaged','Alternatives Requested','ER Confirm')"
 
 def _window():
-    # default to the baseline cohort.json window so a parity run diffs cleanly;
-    # the live pipeline computes the active +4 window the same way each night.
-    c = json.load(open(os.path.join(LIVE, "cohort.json")))
-    w = c.get("window", {})
-    return w.get("floor", "2026-07-01"), w.get("ceiling", "2027-01-31")
+    # dynamic "+4": floor fixed 2026-07-01 (until Aman signs off on annual reset);
+    # ceiling = last day of the month 4 calendar months ahead of the current month.
+    # Override with RSG_FLOOR / RSG_CEILING (e.g. for a parity run against an old cache).
+    floor = os.environ.get("RSG_FLOOR", "2026-07-01")
+    ceiling = os.environ.get("RSG_CEILING")
+    if not ceiling:
+        import calendar
+        now = datetime.date.today()
+        y, m = now.year, now.month + 4
+        y += (m - 1) // 12
+        m = (m - 1) % 12 + 1
+        ceiling = f"{y:04d}-{m:02d}-{calendar.monthrange(y, m)[1]:02d}"
+    return floor, ceiling
 
 def inlist(xs): return ",".join("'%s'" % i for i in xs)
 
@@ -105,8 +113,10 @@ def main():
     def W(name, obj): json.dump(obj, open(os.path.join(SHADOW, name), "w"), default=str)
     W("_pull_opps.json", opps); W("_pull_pol.json", pol); W("_pull_qa.json", qa)
     W("_pull_recert.json", recert); W("_pull_atts.json", atts)
-    shutil.copy(os.path.join(LIVE, "_assemble_sf.py"), os.path.join(SHADOW, "_assemble_sf.py"))
-    shutil.copy(os.path.join(LIVE, "classify_notes.py"), os.path.join(SHADOW, "classify_notes.py"))
+    for scr in ("_assemble_sf.py", "classify_notes.py"):
+        src, dst = os.path.join(LIVE, scr), os.path.join(SHADOW, scr)
+        if os.path.abspath(src) != os.path.abspath(dst):  # skip self-copy when SHADOW==LIVE (in-place cutover)
+            shutil.copy(src, dst)
     for step in ("_assemble_sf.py", "classify_notes.py"):
         r = subprocess.run([sys.executable, os.path.join(SHADOW, step)], capture_output=True, text=True)
         print(f"[rsg] {step}:", r.stdout.strip(), r.stderr.strip()[:200])
