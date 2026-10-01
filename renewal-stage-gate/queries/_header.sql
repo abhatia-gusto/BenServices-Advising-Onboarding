@@ -1,0 +1,1 @@
+-- Renewal Stage Gate — Phase A SOQL (templates; :ids / :accts / :ren / :dbef bound at runtime by pull_cli.py)

@@ -1,0 +1,1 @@
+{"slug":"renewal-stage-gating-check","phase_a":"pipeline/pull_cli.py (sf CLI) -> sf_cache.json + classify_notes.py","objects":["Opportunity","Policy__c","QA_Sheet__c","ContentDocumentLink","Ticket__c"],"notes":"SF data-access rewired to sf CLI via common/sf_pull.py; check/metric logic unchanged (SNOW_A-F + build_bundles/build_final remain)."}
