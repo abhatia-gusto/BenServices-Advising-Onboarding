@@ -1,0 +1,2 @@
+# Renewal Stage Gate pipeline — Python deps (stdlib otherwise)
+snowflake-connector-python

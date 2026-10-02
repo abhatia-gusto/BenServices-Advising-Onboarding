@@ -1,0 +1,2034 @@
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #f6f7f9; color: #1a1d21;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.45;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 20px 64px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .sub { color: #5c636e; font-size: 13px; margin: 0 0 18px; }
+  .card { background: #fff; border: 1px solid #e4e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .controls { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+  .controls input {
+    flex: 1 1 320px; min-width: 240px; padding: 10px 12px; font-size: 14px;
+    border: 1px solid #cfd4da; border-radius: 8px; outline: none;
+  }
+  .controls input:focus { border-color: #f45d48; box-shadow: 0 0 0 3px rgba(244,93,72,.15); }
+  button.run {
+    padding: 10px 20px; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer;
+    background: #f45d48; border: none; border-radius: 8px;
+  }
+  button.run:disabled { background: #f0a99e; cursor: default; }
+  .hint { color: #7a828d; font-size: 12px; margin-top: 8px; }
+  .status { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+  .status.show { display: block; }
+  .status.err { background: #fdecea; color: #9c2216; border: 1px solid #f6c6bd; }
+  .status.info { background: #eef3fb; color: #1f4f8f; border: 1px solid #cfe0f5; }
+  .banner { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat { flex: 1 1 120px; background: #fff; border: 1px solid #e4e7eb; border-radius: 10px; padding: 12px 14px; }
+  .stat .n { font-size: 24px; font-weight: 700; line-height: 1; }
+  .stat .l { font-size: 12px; color: #5c636e; margin-top: 4px; }
+  .stat.fail .n { color: #c0392b; }
+  .stat.pass .n { color: #1e8449; }
+  .stat.review .n { color: #b9770e; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; }
+  .meta div { font-size: 13px; }
+  .meta .k { color: #7a828d; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .meta .v { font-weight: 600; }
+  .note { background: #fff8e8; border: 1px solid #f0dca6; color: #6b530c; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e4e7eb; border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; vertical-align: top; border-bottom: 1px solid #eef0f3; font-size: 13px; }
+  th { background: #f0f2f5; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #5c636e; }
+  tr:last-child td { border-bottom: none; }
+  td.chk { white-space: nowrap; font-weight: 600; width: 46px; color: #3a3f47; }
+  td.name { width: 230px; font-weight: 600; }
+  td.name small { display: block; font-weight: 400; color: #8a919b; font-size: 11px; margin-top: 2px; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+  .pill.PASS { background: #e5f5ec; color: #1e8449; }
+  .pill.FAIL { background: #fdecea; color: #c0392b; }
+  .pill.REVIEW { background: #fdf3e2; color: #b9770e; }
+  .pill.MANUAL { background: #eaeef5; color: #47566b; }
+  .pill.NA { background: #eef0f3; color: #7a828d; }
+  td.ev { color: #33393f; }
+  td.ev ul { margin: 4px 0 0; padding-left: 16px; }
+  td.ev code { background: #f2f4f6; padding: 1px 4px; border-radius: 4px; font-size: 12px; }
+  a { color: #1f5fbf; }
+  td.rev { width: 160px; }
+  td.rev select { width: 100%; padding: 5px 6px; border: 1px solid #cfd4da; border-radius: 6px; font-size: 12px; background: #fff; cursor: pointer; }
+  td.rev select.yes { border-color: #1e8449; background: #f2fbf5; }
+  td.rev select.no { border-color: #c0392b; background: #fdf3f2; }
+  td.rev textarea { width: 100%; margin-top: 6px; min-height: 54px; padding: 6px 7px; border: 1px solid #cfd4da; border-radius: 6px; font-size: 12px; font-family: inherit; resize: vertical; }
+  .match { color: #1e8449; font-weight: 600; margin-top: 6px; }
+  .nomatch { color: #b9770e; font-weight: 600; margin-top: 6px; }
+  .review-summary { background: #fff; border: 1px solid #e4e7eb; border-radius: 10px; padding: 14px 16px; margin-top: 16px; }
+  .review-summary h3 { margin: 0 0 10px; font-size: 14px; }
+  .rs-counts { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .rs-notes ul { margin: 6px 0 0; padding-left: 18px; }
+  .rs-notes li { margin-bottom: 6px; font-size: 13px; }
+  .rs-empty { color: #7a828d; font-size: 13px; }
+  .rs-tmpl-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .rs-tmpl-head strong { font-size: 13px; }
+  .copybtn { padding: 4px 12px; font-size: 12px; font-weight: 600; color: #1a1d21; cursor: pointer;
+    background: #fff; border: 1px solid #cfd4da; border-radius: 6px; }
+  .copybtn:hover { background: #f0f2f5; }
+  .copybtn.done { color: #1e8449; border-color: #1e8449; background: #f2fbf5; }
+  .tmpl-out { width: 100%; box-sizing: border-box; margin-top: 2px; padding: 10px 12px;
+    border: 1px solid #cfd4da; border-radius: 8px; background: #fbfbfc; color: #1a1d21;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+    line-height: 1.6; resize: vertical; }
+  .foot { color: #9aa1ab; font-size: 11px; margin-top: 14px; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="wrap">
+  <h1>Renewal Stage Gate &mdash; Gate 1 (Advising &rarr; OA)</h1>
+  <p class="sub">Paste an Opportunity ID, Source_ID, renewal id, or company name. Every verdict is a deterministic field comparison against Salesforce + Snowflake, pulled live. No data is stored in this page.</p>
+
+  <div class="card">
+    <div class="controls">
+      <input id="opp" type="text" placeholder="e.g. 006R700000lyrzMIAQ  ·  hawaiian_ice-renewal-207397  ·  207397  ·  Amy Serin" />
+      <button id="runBtn" class="run">Run gate check</button>
+    </div>
+    <div class="hint">Accepts a 15/18-char SFDC Opportunity Id, a Source_ID (<code>hawaiian_ice-renewal-#####</code>), a bare renewal id, or a company name. Scope: Benefits Renewal opps in stage <strong>Recommendation Sent, Engaged, Alternatives Requested, or ER Confirm</strong>.</div>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div id="result"></div>
+
+  <div class="foot">Gate 1 applies at <strong>ER Confirm</strong> &mdash; the Advising &rarr; OA handoff. Before that stage, N/A means the dependent record isn't built yet &mdash; not a failure. This tool never asserts a customer is non-compliant; "no registry row" is reported as unknown.</div>
+</div>
+
+<script>
+const SF = "mcp__8dd0f6fd-f33f-48bd-ada9-e38796f1a8c8__query";
+const SNOW = "mcp__45a3aa4a-d8da-4685-902d-5d08c7e8686d__run_snowflake_query";
+const SHEETS = "mcp__c61042c2-2fb3-4e2e-888c-dce52a6a8c86__fetch";
+// 3A source of truth: "[New] Quoting and Rider Scheme Master List" → Medical tab.
+// Columns: State | Carrier | Age Banded Rate Type | Composite Tier Type |
+//          Age Banded Scheme Name | Composite Scheme Name
+const SCHEME_SHEET_ID = "1btzI18t7kOyu-kGhLXilZPd-uM6sxozY9olsggnTb2w";
+const SCHEME_SHEET_TAB = "Medical";
+const SCHEME_SHEET_URL = "https://docs.google.com/spreadsheets/d/"+SCHEME_SHEET_ID+"/edit?gid=1050759376#gid=1050759376";
+// Gate 1 applies at the ER Confirm stage — that's the handoff point from Advising
+// to OA. Verdicts on an opportunity at any other stage are still accurate, but a
+// rec that hasn't reached ER Confirm yet is expected to have gaps.
+const GATE_STAGES = ["ER Confirm"];
+
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const sq = s => String(s).replace(/'/g,"\\'");
+
+function setStatus(msg, kind){
+  const el = $("#status");
+  if(!msg){ el.className="status"; el.innerHTML=""; return; }
+  el.className = "status show " + (kind||"info");
+  el.innerHTML = msg;
+}
+
+async function callTool(name, args){
+  const r = await window.cowork.callMcpTool(name, args);
+  if(r && r.isError){ throw new Error("Connector error ("+name+"): " + (r.content && r.content[0] && r.content[0].text || "unknown")); }
+  let data = (r && r.structuredContent != null) ? r.structuredContent : undefined;
+  if(data === undefined){
+    const txt = (r && r.content && r.content[0] && r.content[0].text) || "";
+    if(txt.trim()===""){ return null; }
+    try { data = JSON.parse(txt); } catch(e){ data = txt; }
+  }
+  return data;
+}
+async function soql(q){
+  const d = await callTool(SF, {soql:q});
+  if(d && Array.isArray(d.records)) return d.records;
+  if(Array.isArray(d)) return d;
+  return [];
+}
+async function snow(q){
+  const d = await callTool(SNOW, {statement:q});
+  if(Array.isArray(d)) return d;
+  if(d && Array.isArray(d.rows)) return d.rows;
+  if(d && Array.isArray(d.records)) return d.records;
+  if(d==null) return [];
+  return [d];
+}
+
+function dayBefore(iso){ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()-1); return d.toISOString().slice(0,10); }
+function daysUntil(iso){ const d=new Date(iso+"T00:00:00Z"), now=new Date(); return Math.round((d-now)/86400000); }
+
+// -------- 3A: quoting scheme master list (Google Sheet) --------
+// Scheme names are compared on a squashed key so warehouse keys and sheet labels
+// line up: "brown_bear2" and "Brown Bear 2" both squash to "brownbear2".
+const nk = s => (s==null?"":String(s)).toLowerCase().replace(/[^a-z0-9]/g,"");
+const NOT_A_SCHEME = new Set(["", "na", "n/a", "unknown", "f", "ref", "compositenotsuppported",
+  "compositenotsupported", "3agebands"]);
+const isScheme = s => { const k=nk(s); return k && !NOT_A_SCHEME.has(k) && !/^ref$|^na$/.test(k); };
+
+// Carrier aliases: warehouse CARRIERS.KEY vs the sheet's free-text carrier column.
+const CARRIER_ALIASES = [
+  ["unitedhealthcare","uhc","unitedhealth","united","oxford"],
+  ["bluecrossblueshield","bcbs","anthembluecrossblueshield","anthem","bluecross","blueshield",
+   "empire","carefirst","highmark","florida","wellmark","kcblue","independenceblue","highmarkblue"],
+  ["kaiser","kaiserpermanente","kaiserofthenorthwest","kaiserfoundationhealthplansofwashington"],
+  ["selecthealth","select"],
+  ["harvardpilgrim","harvard"],
+  ["mountainhealthcooperative","mountainhealthcoop"]
+];
+function carrierTokens(name){
+  const k = nk(name);
+  const set = new Set([k]);
+  for(const grp of CARRIER_ALIASES){ if(grp.some(a=>k.includes(a)||a.includes(k))) grp.forEach(a=>set.add(a)); }
+  return set;
+}
+// Score a sheet row's carrier against the warehouse carrier key. 0 = no match.
+function carrierScore(sheetCarrier, whCarrier){
+  const a = nk(sheetCarrier), b = nk(whCarrier);
+  if(!a || !b) return 0;
+  if(a === b) return 100;
+  if(a.startsWith(b) || b.startsWith(a)) return 80;
+  if(a.includes(b) || b.includes(a)) return 60;
+  const ta = carrierTokens(a), tb = carrierTokens(b);
+  for(const x of ta){ if(tb.has(x)) return 40; }
+  return 0;
+}
+
+// Parse the Medical tab into rows. The connector returns a text blob with a couple
+// of header lines, then TSV. Blank State cells are continuation rows (alternate
+// rate type for the carrier above) and inherit state/carrier.
+function parseSchemeSheet(payload){
+  let txt = payload;
+  if(payload && typeof payload === "object") txt = payload.content || payload.text || "";
+  txt = String(txt||"");
+  const lines = txt.split(/\r?\n/);
+  const hdr = lines.findIndex(l=>/^State\t/i.test(l.trim()));
+  if(hdr < 0) return [];
+  const out = []; let lastState="", lastCarrier="";
+  for(let i=hdr+1;i<lines.length;i++){
+    const raw = lines[i];
+    if(!raw || !raw.trim()) continue;
+    const c = raw.split("\t").map(s=>(s==null?"":s.trim()));
+    let [state, carrier, abType, compType, abName, compName] = [c[0]||"",c[1]||"",c[2]||"",c[3]||"",c[4]||"",c[5]||""];
+    if(state) lastState = state; else state = lastState;
+    if(carrier) lastCarrier = carrier; else carrier = lastCarrier;
+    if(!state) continue;
+    out.push({state:state.toUpperCase(), carrier:carrier, abType:abType, compType:compType,
+              ageBanded:abName, composite:compName});
+  }
+  return out;
+}
+
+// All master-list rows for a state+carrier (a carrier can have several rows:
+// e.g. OR Regence has an "age bands" row and an "age bands + adult vision" row).
+function schemeRowsFor(sheet, state, carrier){
+  const st = (state||"").toUpperCase();
+  const inState = sheet.filter(r=>r.state===st);
+  if(!inState.length) return [];
+  let best = 0;
+  const scored = inState.map(r=>({r:r, s:carrierScore(r.carrier, carrier)}));
+  scored.forEach(x=>{ if(x.s>best) best=x.s; });
+  if(!best) return [];
+  return scored.filter(x=>x.s===best).map(x=>x.r);
+}
+
+// Classify an applied scheme key against the master-list rows for this state+carrier.
+// Returns "age banded" | "composite" | null (not a valid scheme for this state/carrier).
+function classifyScheme(rows, schemeKey){
+  const k = nk(schemeKey);
+  if(!k) return null;
+  for(const r of rows){ if(isScheme(r.ageBanded) && nk(r.ageBanded)===k) return "age banded"; }
+  for(const r of rows){ if(isScheme(r.composite)  && nk(r.composite)===k)  return "composite"; }
+  // Composite cells sometimes hold prose ("Soft Shell Crab or Mountain Lion").
+  for(const r of rows){
+    if(isScheme(r.composite) && nk(r.composite).includes(k) && k.length>4) return "composite";
+    if(isScheme(r.ageBanded) && nk(r.ageBanded).includes(k) && k.length>4) return "age banded";
+  }
+  return null;
+}
+function allowedNames(rows){
+  const ab=[], comp=[];
+  rows.forEach(r=>{ if(isScheme(r.ageBanded)) ab.push(r.ageBanded); if(isScheme(r.composite)) comp.push(r.composite); });
+  return {ageBanded:[...new Set(ab)], composite:[...new Set(comp)]};
+}
+
+// -------- render helpers --------
+function pill(v){ const cls = v==="N/A"?"NA":v; return '<span class="pill '+cls+'">'+esc(v)+'</span>'; }
+function li(items){ return items && items.length ? "<ul>"+items.map(x=>"<li>"+x+"</li>").join("")+"</ul>" : ""; }
+
+const CHECK_META = {
+  "1A":"Renewal packet attached to opportunity","2A":"Customer under recert — recert approved?","3A":"Quoting scheme correct",
+  "4A":"Are applicable raters attached to the opportunity","5A":"Hippo rates / plan names match packet",
+  "6A":"Contribution scheme allowed per carrier metadata (YoY by LOC)","7A":"Waiting period allowed per carrier metadata (YoY by LOC)",
+  "8A":"Changes to Flag in QA Sheet","9A":"SFDC / Hippo match — group name, address, effective date",
+  "10A":"Carrier underwriting requirements met","11A":"Carrier exception needed & approved",
+  "12A":"Are there any additional notes not captured above to include?"
+};
+
+async function run(){
+  const raw = $("#opp").value.trim();
+  if(!raw){ setStatus("Enter an Opportunity ID, Source_ID, renewal id, or company name.", "err"); return; }
+  try { localStorage.setItem("gateOpp", raw); } catch(e){}
+  const btn=$("#runBtn"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Running';
+  $("#result").innerHTML="";
+  setStatus('<span class="spinner" style="border-color:#1f4f8f;border-top-color:transparent"></span>Resolving opportunity&hellip;', "info");
+
+  try {
+    // ---- Step 1: resolve opp ----
+    let where;
+    if(/^006[A-Za-z0-9]{12,15}$/.test(raw)) where = "Id = '"+sq(raw)+"'";
+    else if(/renewal-\d+/i.test(raw)) where = "Source_ID__c = '"+sq(raw)+"'";
+    else if(/^\d{3,}$/.test(raw)) where = "Source_ID__c LIKE '%renewal-"+sq(raw)+"'";
+    else where = "Account.Name LIKE '%"+sq(raw)+"%'";
+
+    // In-scope stages for this tool. A Benefits Renewal opp only resolves when its
+    // StageName is one of these — the Advising window from recommendation through
+    // the ER Confirm handoff.
+    const IN_SCOPE_STAGES = ["Recommendation Sent", "Engaged", "Alternatives Requested", "ER Confirm"];
+    const stageInList = "StageName IN ("+IN_SCOPE_STAGES.map(s=>"'"+sq(s)+"'").join(",")+")";
+
+    const opps = await soql(
+      "SELECT Id, AccountId, Name, StageName, Renewal_Date__c, Source_ID__c, Owner.Name, "+
+      "Account.Name, Account.ZP_Company_ID__c, Advising_Blocked_Reason__c, Needs_Recertification__c, "+
+      "Funding_Type_Status__c, Offering_Selection_Deadline__c, Submission_Deadline__c, Special_Enrollment__c, "+
+      "Reason_for_Advising__c, Stage_Detail__c "+
+      "FROM Opportunity WHERE RecordType.Name = 'Benefits Renewal' AND "+stageInList+" AND "+
+      where + " ORDER BY Renewal_Date__c DESC NULLS LAST LIMIT 1");
+
+    if(!opps.length){ setStatus("No Benefits Renewal opportunity matched <code>"+esc(raw)+"</code> in an in-scope stage "+
+      "(<strong>"+IN_SCOPE_STAGES.join(", ")+"</strong>). If the rec is earlier or later in the pipeline, it's outside this tool's scope.", "err"); return; }
+    const o = opps[0];
+    const DATE = o.Renewal_Date__c;
+    if(!DATE){ setStatus("Matched "+esc(o.Name)+" but it has no Renewal_Date__c &mdash; cannot gate.", "err"); return; }
+    const DBEFORE = dayBefore(DATE);
+    const ridMatch = (o.Source_ID__c||"").match(/(\d+)\s*$/);
+    const RID = ridMatch ? ridMatch[1] : null;
+    const acctName = o.Account && o.Account.Name;
+
+    setStatus('<span class="spinner" style="border-color:#1f4f8f;border-top-color:transparent"></span>Pulling Salesforce records for '+esc(o.Name)+'&hellip;', "info");
+
+    // ---- Step 2: SFDC records ----
+    const acctId = o.AccountId;
+    const polFields = "Id, Name, Benefit_Type__c, Carrier__r.Name, Waiting_Period__c, Contribution_Scheme_Type__c, Contribution_for_EEs__c, Contribution_for_Dependents__c, Coverage_Effective_Date__c, Expiration_Date__c, Is_Selected__c, Policy_Status__c, Is_Base__c, Account__c";
+    const [renPols, expPols, cOrders, qaSheets, atts, recertTickets] = await Promise.all([
+      soql("SELECT "+polFields+" FROM Policy__c WHERE Coverage_Effective_Date__c = "+DATE+" AND Account__c = '"+sq(acctId)+"'"),
+      soql("SELECT "+polFields+" FROM Policy__c WHERE Expiration_Date__c = "+DBEFORE+" AND Account__c = '"+sq(acctId)+"'"),
+      soql("SELECT Id, Name, Type__c, Benefit_Types__c, Effective_Date__c, Implementation_Stage__c, Benefit_Order__r.Opportunity__c FROM Carrier_Order__c WHERE Benefit_Order__r.Opportunity__c = '"+sq(o.Id)+"'"),
+      soql("SELECT Id, Opportunity__c, DBA__c, Effective_Date__c, Policy_Renewal_Date__c, Benefit_Order__c FROM QA_Sheet__c WHERE Opportunity__c = '"+sq(o.Id)+"'"),
+      soql("SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.FileExtension, ContentDocument.CreatedDate FROM ContentDocumentLink WHERE LinkedEntityId = '"+sq(o.Id)+"'"),
+      // 2A: recertification tickets live on Ticket__c (NOT Case). The field the UI
+      // labels "Ticket Reason" is Escalation_Reason__c; values 'Recertification' and
+      // 'Mid-year recertification'. Ticket__c has no IsClosed — closed is Status__c='Closed'.
+      // Notes__c / Close_Reason__c are long text: retrievable but NOT filterable in SOQL,
+      // so they are pulled here and matched in the page.
+      soql("SELECT Id, Name, Status__c, Escalation_Reason__c, Escalation_Reason_Detail__c, "+
+           "Recert_Status__c, Close_Date__c, Closed_Date_Time__c, CreatedDate, Notes__c, Close_Reason__c "+
+           "FROM Ticket__c WHERE Opportunity__c = '"+sq(o.Id)+"' AND Escalation_Reason__c LIKE '%ecert%' "+
+           "ORDER BY CreatedDate DESC")
+    ]);
+
+    // ---- Step 3: Snowflake facts ----
+    let snowA = [], snowB = [], snowC = [], snowD = [], snowE = [], snowF = [];
+    if(RID){
+      setStatus('<span class="spinner" style="border-color:#1f4f8f;border-top-color:transparent"></span>Pulling Snowflake compliance facts (renewal '+esc(RID)+')&hellip;', "info");
+      const qA = SNOW_A(RID, DATE, DBEFORE);
+      const qB = SNOW_B(RID, DATE, DBEFORE);
+      const qC = SNOW_C(RID, DATE, DBEFORE);
+      const qD = SNOW_D(RID, DATE, DBEFORE);
+      const qE = SNOW_E(RID, DATE, DBEFORE);
+      const qF = SNOW_F(RID, DATE, DBEFORE);
+      const res = await Promise.all([
+        snow(qA).catch(e=>({__err:e.message})),
+        snow(qB).catch(e=>({__err:e.message})),
+        snow(qC).catch(e=>({__err:e.message})),
+        snow(qD).catch(e=>({__err:e.message})),
+        snow(qE).catch(e=>({__err:e.message})),
+        snow(qF).catch(e=>({__err:e.message}))
+      ]);
+      snowA = Array.isArray(res[0]) ? res[0] : []; snowB = Array.isArray(res[1]) ? res[1] : [];
+      snowC = Array.isArray(res[2]) ? res[2] : []; snowD = Array.isArray(res[3]) ? res[3] : [];
+      snowE = Array.isArray(res[4]) ? res[4] : []; snowF = Array.isArray(res[5]) ? res[5] : [];
+    }
+    const A = snowA[0] || null;
+    const B = snowB[0] || null;
+    const C = snowC[0] || null;
+    const D = snowD;
+    const E = snowE;
+    const F = snowF;
+
+    // 3A reference data: the quoting-scheme master list, read live so sheet edits
+    // flow through without touching this tool.
+    let schemeSheet = [], sheetErr = null;
+    try {
+      schemeSheet = parseSchemeSheet(await callTool(SHEETS, {spreadsheet_id: SCHEME_SHEET_ID, sheet_name: SCHEME_SHEET_TAB}));
+      if(!schemeSheet.length) sheetErr = "the Medical tab returned no parsable rows";
+    } catch(e){ sheetErr = e.message; }
+
+    setStatus("");
+    render(o, {DATE, DBEFORE, RID, acctName, renPols, expPols, cOrders, qaSheets, atts, recertTickets,
+               A, B, C, D, E, F, schemeSheet, sheetErr});
+  } catch(err){
+    setStatus("Error: " + esc(err.message||String(err)), "err");
+  } finally {
+    btn.disabled=false; btn.textContent="Run gate check";
+  }
+}
+
+function titles(atts){ return atts.map(a => (a.ContentDocument && a.ContentDocument.Title) || "").filter(Boolean); }
+function attList(atts){ return atts.map(a => ({title:(a.ContentDocument && a.ContentDocument.Title)||"", id:a.ContentDocumentId||(a.ContentDocument && a.ContentDocument.Id)||""})).filter(x=>x.title); }
+function locSet(pols){ return [...new Set(pols.map(p => (p.Benefit_Type__c||"").toLowerCase()).filter(Boolean))]; }
+const DOC_BASE = "https://gusto.lightning.force.com/lightning/r/ContentDocument/";
+const CASE_BASE = "https://gusto.lightning.force.com/lightning/r/Case/";
+const TICKET_BASE = "https://gusto.lightning.force.com/lightning/r/Ticket__c/";
+function docLink(a){ return a.id ? '<a href="'+DOC_BASE+esc(a.id)+'/view" target="_blank" rel="noopener">'+esc(a.title)+'</a>' : esc(a.title); }
+const CARRIER_STOP = new Set(["health","plan","plans","insurance","company","group","the","and","of","inc","llc"]);
+function carrierWords(name){ return (name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").split(" ").filter(w=>w.length>=4 && !CARRIER_STOP.has(w)); }
+function pIsActive(p){ return p.Is_Selected__c === true && (p.Policy_Status__c||"") !== "Deleted"; }
+function pCarrier(p){ return (p.Carrier__r && p.Carrier__r.Name) || ""; }
+
+function render(o, d){
+  const stageOK = GATE_STAGES.includes(o.StageName);
+  const t = titles(d.atts);
+  const renLocs = locSet(d.renPols);
+  const expLocs = locSet(d.expPols);
+  const rows = [];
+
+  // 1A renewal packet — linked names + match to expiring carriers
+  (function(){
+    const all = attList(d.atts);
+    const packets = all.filter(a => /renewal packet/i.test(a.title));
+    // expiring carriers (active elections only)
+    const expCarriers = [...new Set(d.expPols.filter(pIsActive).map(pCarrier).filter(Boolean))];
+    let matchNote = "";
+    if(packets.length && expCarriers.length){
+      const matched = expCarriers.filter(c => packets.some(p => { const tl=p.title.toLowerCase(); return carrierWords(c).some(w=>tl.includes(w)); }));
+      const missing = expCarriers.filter(c => !matched.includes(c));
+      matchNote = missing.length
+        ? '<div class="nomatch">⚠ No packet found for expiring carrier(s): '+esc(missing.join(", "))+'</div>'
+        : '<div class="match">✓ Packet matches all expiring carriers ('+esc(matched.join(", "))+')</div>';
+    }
+    rows.push({c:"1A", v: packets.length? "PASS":"FAIL", ev:
+      packets.length ? "Found "+packets.length+" packet attachment(s):"+li(packets.map(docLink))+matchNote
+                      : "No attachment titled “Renewal Packet.” OA bounces intake without it."+
+                        (all.length? " Attachments present (check for a differently-named packet):"+li(all.map(docLink)) : " No attachments on this opp at all.")});
+  })();
+
+  // 2A is customer under recert, and if so is the recert completed?
+  //
+  // Rule (per PE sign-off): a recertification counts as COMPLETE when a recert
+  // ticket is attached to the opp, it is Closed, AND approval is evidenced either
+  // structurally (Recert_Status__c = 'Recert Approved' / 'ER approved') or in the
+  // ticket's Notes. Closed with no approval evidence is REVIEW, not FAIL — approval
+  // is sometimes recorded only in Chatter or misspelled ("Recet approved"), so a
+  // hard FAIL would bounce genuinely-approved recerts.
+  (function(){
+    const blocked = o.Advising_Blocked_Reason__c || "";
+    const needRecert = o.Needs_Recertification__c === true || /recert/i.test(blocked);
+    if(!needRecert){ rows.push({c:"2A", v:"N/A", ev:"Not under recertification — “Needs Recertification” is unchecked and no recert blocked-reason on the opp."}); return; }
+    const recertTokens = blocked.split(";").map(s=>s.trim()).filter(s=>/recert/i.test(s));
+    const statusLine = '<div style="margin-top:4px">Opp recert status: <code>'+esc(recertTokens.length? recertTokens.join("; ") : "Needs Recertification (checkbox)")+'</code></div>';
+    const tix = (d.recertTickets||[]);
+    if(!tix.length){
+      rows.push({c:"2A", v:"FAIL", ev:"Recertification is needed but <strong>no recertification ticket</strong> is linked to this opp."+statusLine+
+        '<div class="hint" style="margin-top:4px">Looked for <code>Ticket__c</code> where <code>Opportunity__c</code> = this opp and Ticket Reason (<code>Escalation_Reason__c</code>) matches recertification.</div>'});
+      return;
+    }
+
+    // --- approval evidence in free text -------------------------------------
+    // Notes__c / Close_Reason__c are long text: not filterable in SOQL, matched here.
+    // Negations are excluded so "not approved" / "awaiting approval" never pass.
+    const NEG = /\b(not|never|non|un|isn'?t|wasn'?t|no)[\s-]*approv|await\w*\s+approv|pend\w*\s+approv|need\w*\s+approv|request\w*\s+approv|denied|declin/i;
+    function approvalLines(txt, label){
+      if(!txt) return [];
+      return String(txt).split(/\r?\n/)
+        .map(s=>s.trim()).filter(Boolean)
+        .filter(s=>/approv/i.test(s) && !NEG.test(s))
+        .map(s=>({label:label, text:s}));
+    }
+    function evidenceFor(t){
+      return approvalLines(t.Notes__c, "Notes")
+        .concat(approvalLines(t.Close_Reason__c, "Close Reason"));
+    }
+
+    const enriched = tix.map(function(t){
+      const rs = t.Recert_Status__c || "";
+      return {
+        t: t,
+        closed: /^closed$/i.test(t.Status__c||""),
+        approvedStruct: /approved/i.test(rs),
+        failedStruct:   /failed/i.test(rs),
+        noteHits: evidenceFor(t)
+      };
+    });
+
+    // Pick the ticket that decides the verdict: a closed+approved one wins,
+    // then closed, then most recent (list is already newest-first).
+    const decider =
+      enriched.find(e=>e.closed && (e.approvedStruct || (!e.failedStruct && e.noteHits.length))) ||
+      enriched.find(e=>e.closed) ||
+      enriched[0];
+
+    const list = tix.map(function(t){
+      const rs = t.Recert_Status__c;
+      return '<a href="'+TICKET_BASE+esc(t.Id)+'/view" target="_blank" rel="noopener">'+esc(t.Name||t.Id)+'</a>'+
+        ' &mdash; '+esc(t.Escalation_Reason__c||"?")+
+        ' <strong>['+esc(t.Status__c||"?")+']</strong>'+
+        (rs? ' &middot; recert status <code>'+esc(rs)+'</code>' : ' &middot; <span class="hint">no recert status set</span>')+
+        (t.Close_Date__c? ' &middot; closed '+esc(t.Close_Date__c) : "");
+    });
+    const ticketBlock = statusLine+'<div style="margin-top:4px">Recert ticket(s):'+li(list)+'</div>';
+
+    function quoted(hits){
+      if(!hits.length) return "";
+      return '<div style="margin-top:4px">Approval note:'+li(hits.map(h=>
+        '<span class="hint">'+esc(h.label)+':</span> “'+esc(h.text)+'”')) +'</div>';
+    }
+
+    let v, head;
+    if(!decider.closed){
+      v = "FAIL";
+      head = "Recertification ticket is <strong>not Closed</strong> (<code>"+esc(decider.t.Status__c||"?")+
+             "</code>) — the recert is still in flight, so the rec is not ready for OA.";
+    } else if(decider.approvedStruct){
+      v = "PASS";
+      head = "Recertification is <strong>complete</strong> — ticket is Closed and recert status is <code>"+
+             esc(decider.t.Recert_Status__c)+"</code>.";
+    } else if(decider.failedStruct){
+      v = "REVIEW";
+      head = "Ticket is Closed but recert status is <code>"+esc(decider.t.Recert_Status__c)+
+             "</code>. <strong>Ask the advisor to attach a screenshot of the carrier approval to the Opportunity attachments</strong>, "+
+             "then sign off here. Do not hand off on the closed status alone.";
+    } else if(decider.noteHits.length){
+      v = "PASS";
+      head = "Recertification is <strong>complete</strong> — ticket is Closed and the ticket notes record the approval.";
+    } else {
+      v = "REVIEW";
+      head = "Ticket is Closed but <strong>no approval is recorded</strong> — recert status is blank and the notes don't mention an approval. "+
+             "Approval is sometimes captured only in Chatter, so confirm on the ticket and, if it's approved, "+
+             "<strong>have the advisor attach the approval to the Opportunity</strong>.";
+    }
+
+    rows.push({c:"2A", v:v, ev: head + ticketBlock + quoted(decider.noteHits)});
+  })();
+
+  // 3A quoting scheme — two comparisons, per PE sign-off:
+  //   (1) prior-year medical scheme vs renewal-year medical scheme
+  //   (2) the group's current medical rating structure (Hippo Overview) vs the
+  //       renewal-year scheme's structure
+  // Structure is resolved by looking the applied scheme key up in the quoting-scheme
+  // master list row for this state + carrier — the sheet is the source of truth, so
+  // no bears-vs-cats guessing. Either mismatch is a REVIEW.
+  (function(){
+    const A = d.A, C = d.C;
+    const sheetLink = ' <a href="'+SCHEME_SHEET_URL+'" target="_blank" rel="noopener">master list</a>';
+    if(!A || !A.PST || !A.CKEY){
+      rows.push({c:"3A", v:"REVIEW", ev:"Couldn't resolve the medical carrier/state for this renewal, so the scheme can't be checked against the"+sheetLink+". Verify in Hippo."});
+      return;
+    }
+    const st = A.PST, ck = A.CKEY;
+    const where = 'State <code>'+esc(st)+'</code> / carrier <code>'+esc(ck)+'</code>.';
+    if(d.sheetErr || !d.schemeSheet || !d.schemeSheet.length){
+      rows.push({c:"3A", v:"REVIEW", ev:where+" Couldn't read the"+sheetLink+
+        (d.sheetErr? ' &mdash; <code>'+esc(d.sheetErr)+'</code>' : '')+". Verify the scheme manually in Hippo."});
+      return;
+    }
+    if(!C){
+      rows.push({c:"3A", v:"REVIEW", ev:where+" No quoting-period rows returned for this renewal, so prior- and renewal-year schemes can't be compared. Verify in Hippo."+sheetLink});
+      return;
+    }
+
+    const srows = schemeRowsFor(d.schemeSheet, st, ck);
+    if(!srows.length){
+      rows.push({c:"3A", v:"REVIEW", ev:where+" No row on the"+sheetLink+" for this state and carrier, so the scheme can't be validated. Add the carrier to the master list or verify in Hippo."+
+        '<div style="margin-top:4px">Applied &mdash; prior year <code>'+esc(C.PRIOR_SCHEME||"none")+'</code>, renewal year <code>'+esc(C.RENEW_SCHEME||"none")+'</code>.</div>'});
+      return;
+    }
+    const allow = allowedNames(srows);
+    const allowLine = '<div class="hint" style="margin-top:4px">Master list for '+esc(st)+' / '+esc(srows[0].carrier)+
+      ' &mdash; age banded: <strong>'+esc(allow.ageBanded.join(", ")||"n/a")+
+      '</strong>; composite: <strong>'+esc(allow.composite.join(", ")||"n/a")+'</strong>.'+sheetLink+'</div>';
+
+    // A renewal can legitimately span schemes; treat multiples as "mixed".
+    const split = s => String(s||"").split("|").map(x=>x.trim()).filter(Boolean);
+    const prior = split(C.PRIOR_SCHEME), renew = split(C.RENEW_SCHEME);
+    const curScheme = C.CUR_SCHEME || null;
+
+    const structOf = list => [...new Set(list.map(k=>classifyScheme(srows, k)))];
+    const priorStruct = structOf(prior), renewStruct = structOf(renew);
+    const curStruct = curScheme ? classifyScheme(srows, curScheme) : null;
+
+    const fmt = (list, structs) => list.length
+      ? list.map(k=>'<code>'+esc(k)+'</code>').join(", ")+
+        ' ('+ (structs.filter(Boolean).length? structs.filter(Boolean).join(" + ") : "structure not on the master list") +')'
+      : "<em>none found</em>";
+
+    const detail = '<div style="margin-top:4px">'+li([
+      "Prior year (expiring): "+fmt(prior, priorStruct),
+      "Renewal year: "+fmt(renew, renewStruct),
+      "Current medical rating structure (Hippo Overview): "+
+        (curScheme? '<code>'+esc(curScheme)+'</code> &rarr; <strong>'+esc(curStruct||"not on the master list")+'</strong>'
+                  +(C.CUR_FACTORS? ' <span class="hint">(rate factors: '+esc(C.CUR_FACTORS)+')</span>' : '')
+                  : "<em>no in-force medical quoting config found</em>")
+    ])+'</div>'+
+    (C.N_NO_SUCCESSOR>0 ? '<div class="hint" style="margin-top:4px">'+C.N_NO_SUCCESSOR+' of '+C.N_MED+
+      ' expiring medical polic(ies) have no successor plan linked yet, so the renewal-year scheme may be incomplete.</div>' : "");
+
+    const problems = [];
+    if(!renew.length) problems.push("No renewal-year quoting scheme is loaded yet.");
+    if(renewStruct.some(s=>s===null)) problems.push("The renewal-year scheme isn't a valid scheme for "+st+" / "+ck+" on the master list.");
+    if(prior.length && renew.length){
+      const p = priorStruct.filter(Boolean).sort().join(","), r = renewStruct.filter(Boolean).sort().join(",");
+      if(p && r && p !== r) problems.push("Rating structure changed year over year: prior year <strong>"+p+"</strong> vs renewal year <strong>"+r+"</strong>.");
+    }
+    if(curStruct && renewStruct.filter(Boolean).length){
+      const r = renewStruct.filter(Boolean);
+      if(!r.includes(curStruct)) problems.push("Hippo Overview shows <strong>"+curStruct+"</strong> but the renewing plans are quoted <strong>"+r.join(" + ")+"</strong>.");
+    }
+    if(renew.length > 1) problems.push("Renewing plans span more than one quoting scheme &mdash; confirm that's intended.");
+
+    if(problems.length){
+      rows.push({c:"3A", v:"REVIEW", ev:where+" <strong>Mismatch:</strong>"+li(problems)+detail+allowLine});
+    } else {
+      const s = renewStruct.filter(Boolean)[0];
+      rows.push({c:"3A", v:"PASS", ev:where+" Quoting scheme is consistent &mdash; <strong>"+esc(s)+
+        "</strong> last year, <strong>"+esc(s)+"</strong> renewing, and Hippo Overview agrees."+detail+allowLine});
+    }
+  })();
+
+  // 4A rater — MANUAL by design. The tool can't see inside a rater, so instead of
+  // guessing a verdict it lays out every line of coverage the group is renewing
+  // (active elections only) and every file on the opp, so the advisor can confirm
+  // a complete rater per LOC plus the "if needed" screenshots: custom quotes,
+  // vLiDi, term comms, recert approvals.
+  const raters = t.filter(x=>/rater|rate sheet|rates|quote/i.test(x));
+  (function(){
+    const LOC_LABEL = {
+      "medical":"Medical", "dental":"Dental", "vision":"Vision", "hsa":"HSA", "fsa":"FSA",
+      "life":"Life", "basic life":"Basic Life", "voluntary life":"Voluntary Life",
+      "short term disability":"Short Term Disability", "long term disability":"Long Term Disability",
+      "accident":"Accident", "critical illness":"Critical Illness", "hospital indemnity":"Hospital Indemnity"
+    };
+    const lab = l => LOC_LABEL[l] || (l||"").replace(/\b\w/g, c=>c.toUpperCase());
+
+    // Active elections only — deselected/Deleted option plans would otherwise show
+    // up as renewing lines.
+    const active = d.renPols.filter(pIsActive);
+    const byLoc = {};
+    active.forEach(p=>{
+      const l = (p.Benefit_Type__c||"").toLowerCase(); if(!l) return;
+      (byLoc[l] = byLoc[l] || []).push(p);
+    });
+    const locs = Object.keys(byLoc).sort((a,b)=>{
+      const ord = x => x==="medical"?0 : x==="dental"?1 : x==="vision"?2 : 3;
+      return ord(a)-ord(b) || a.localeCompare(b);
+    });
+
+    if(!locs.length){
+      rows.push({c:"4A", v:"MANUAL", ev:"No active renewal-year elections loaded yet, so there are no lines to list. "+
+        "Once the renewal package is built, this row lists every renewing LOC for the rater/screenshot check."});
+      return;
+    }
+
+    // Per-LOC rows: carrier(s), plan count, and any file whose title mentions the LOC.
+    const locRows = locs.map(function(l){
+      const pols = byLoc[l];
+      const carriers = [...new Set(pols.map(pCarrier).filter(Boolean))];
+      const hits = attList(d.atts).filter(a=>new RegExp(l.replace(/[^a-z ]/g,""), "i").test(a.title));
+      return '<strong>'+esc(lab(l))+'</strong>'+
+        (carriers.length? ' &mdash; '+esc(carriers.join(", ")) : "")+
+        ' <span class="hint">('+pols.length+' plan'+(pols.length===1?"":"s")+')</span>'+
+        (hits.length? '<div class="hint" style="margin-left:2px; margin-top:2px">files mentioning this line: '+
+            hits.map(docLink).join(", ")+'</div>'
+          : '<div class="hint" style="margin-left:2px; margin-top:2px">no file on the opp names this line</div>');
+    });
+
+    // "If needed" items, with a data-driven hint about which ones look applicable.
+    const dropped = expLocs.filter(x=>!renLocs.includes(x));
+    const hasVolLife = locs.some(l=>/voluntary|vol life|vol_life/.test(l)) ||
+                       active.some(p=>/voluntary/i.test(p.Name||""));
+    const hasLiDi = locs.some(l=>/life|disability/.test(l));
+    const needRecert = o.Needs_Recertification__c === true || /recert/i.test(o.Advising_Blocked_Reason__c||"");
+    // applies: true = the data says this is needed, false = the data says it isn't,
+    // null = the tool can't tell, so it's advisor judgment.
+    const ifNeeded = [
+      ["Custom quotes", null,
+       "advisor judgment: any line quoted outside the standard rater"],
+      ["vLiDi (voluntary life / disability)", hasVolLife ? true : (hasLiDi ? null : false),
+       hasVolLife ? "voluntary life is on the renewal"
+         : hasLiDi ? "life/disability lines are renewing, confirm whether any are voluntary"
+         : "no life or disability line on the renewal"],
+      ["Term comms", dropped.length>0,
+       dropped.length? "line(s) dropped this year: "+dropped.map(lab).join(", ")
+                     : "no lines dropped year over year"],
+      ["Recert approval", needRecert,
+       needRecert? "this group is under recertification (see 2A)" : "group is not under recertification"]
+    ].map(function(x){
+      const name=x[0], applies=x[1], why=x[2];
+      const tag = applies===true  ? '<span style="color:#b9770e">likely needed</span>'
+                : applies===false ? '<span class="hint">probably n/a</span>'
+                :                   '<span class="hint">if applicable</span>';
+      return '<strong>'+esc(name)+'</strong> &mdash; '+tag+' <span class="hint">('+esc(why)+')</span>';
+    });
+
+    rows.push({c:"4A", v:"MANUAL", ev:
+      "Advisor confirms a complete rater for each applicable line of coverage and attaches any screenshots that apply. "+
+      "The tool can't read inside a rater, so this is a visual check.<br>"+
+      '<div style="margin-top:6px"><strong>Renewing lines of coverage ('+locs.length+')</strong>'+li(locRows)+'</div>'+
+      '<div style="margin-top:6px"><strong>Screenshots &mdash; attach if needed</strong>'+li(ifNeeded)+'</div>'+
+      '<div style="margin-top:6px">Rate/quote files on the opp: '+
+        (raters.length? li(attList(d.atts).filter(a=>/rater|rate sheet|rates|quote/i.test(a.title)).map(docLink))
+                      : '<span class="hint">none found by title.</span>')+'</div>'+
+      '<div class="hint" style="margin-top:4px">Lines are active elections only (selected and not Deleted). '+
+        '<a href="https://gusto.lightning.force.com/'+esc(o.Id)+'" target="_blank" rel="noopener">Open opp to attach</a></div>'});
+  })();
+
+  // 5A loaded rates / plan names — MANUAL by design. Rates and plan names have to be
+  // eyeballed against the renewal packet PDF, so the tool lays out what's loaded and
+  // leaves the verdict to the reviewer.
+  (function(){
+    const order = t => { const k=(t||"").toLowerCase(); return k==="medical"?0 : k==="dental"?1 : k==="vision"?2 : 3; };
+    const sorted = d.renPols.slice().sort((a,b)=>{
+      const oa=order(a.Benefit_Type__c), ob=order(b.Benefit_Type__c);
+      if(oa!==ob) return oa-ob;
+      return (a.Benefit_Type__c||"").localeCompare(b.Benefit_Type__c||"");
+    });
+    rows.push({c:"5A", v:"MANUAL", ev: sorted.length
+        ? "Renewal-year plans loaded (compare to packet PDF):"+li(sorted.map(p=>esc(p.Name)+" <code>"+esc(p.Benefit_Type__c||"?")+"</code>"))
+        : "No renewal-year Policy__c rows yet for effective date "+esc(d.DATE)+"."});
+  })();
+
+  // 6A contribution scheme — per line of coverage, last year vs this year, each
+  // renewal-year scheme auto-checked against carrier metadata for the renewing
+  // carrier + state + funding type. Two sub-checks: the calculator type must be in
+  // the carrier's allowed list, and the employee percentage must clear the carrier's
+  // minimum. A YoY change that is still compliant passes and is shown, not flagged.
+  (function(){
+    const D = d.D || [];
+    if(!D.length){
+      rows.push({c:"6A", v:"REVIEW", ev:"No per-line contribution rows returned from the warehouse for this renewal, so the scheme can't be auto-checked against carrier metadata. Verify in Hippo."});
+      return;
+    }
+    const lab = l => ({"medical":"Medical","dental":"Dental","vision":"Vision","hsa":"HSA","fsa":"FSA","dca":"DCA",
+      "life":"Life","voluntary_life":"Voluntary Life","short_term_disability":"Short Term Disability",
+      "long_term_disability":"Long Term Disability"}[l] || (l||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()));
+    // Warehouse stores percentages 0-1; show them the way advisors read them.
+    const amt = (calc, a) => {
+      if(a==null || a==="") return "&mdash;";
+      const n = parseFloat(a);
+      if(/percentage/.test(calc||"") && !isNaN(n)) return (n*100).toFixed(n*100%1?2:0)+"%";
+      if(/fixed_amount/.test(calc||"") && !isNaN(n)) return "$"+n.toFixed(2);
+      return esc(a);
+    };
+    const scheme = (calc, a) => calc ? '<code>'+esc(calc)+'</code> '+amt(calc,a) : '<span class="hint">&mdash;</span>';
+
+    const VERDICT_TXT = {
+      "ALLOWED":['#1e7b34',"allowed"], "NOT_ALLOWED":['#b3261e',"NOT allowed"],
+      "UNKNOWN_NO_REGISTRY":['#b9770e',"no carrier metadata"],
+      "UNKNOWN_NO_SCHEME":['#b9770e',"no scheme loaded"],
+      "UNKNOWN_NO_SUCCESSOR":['#b9770e',"successor plan not linked"],
+      "NA_ACCOUNT":['#7a828d',"n/a — Gusto-administered"]
+    };
+    const MIN_TXT = {
+      "MEETS_MINIMUM":['#1e7b34',"meets minimum"], "BELOW_MINIMUM":['#b3261e',"BELOW minimum"],
+      "NO_MINIMUM":['#7a828d',"no minimum set"], "UNKNOWN_NOT_PCT":['#b9770e',"not a percentage"],
+      "UNKNOWN_NO_SCHEME":['#b9770e',"no scheme"], "NA_ACCOUNT":['#7a828d',"n/a"]
+    };
+    const tag = (map, k) => { const x = map[k] || ['#b9770e', k||"?"];
+      return '<span style="color:'+x[0]+'">'+esc(x[1])+'</span>'; };
+
+    const gating = D.filter(r=>r.CALC_VERDICT !== "NA_ACCOUNT");
+    const fails  = gating.filter(r=>r.CALC_VERDICT==="NOT_ALLOWED" || r.MIN_VERDICT==="BELOW_MINIMUM");
+    const unk    = gating.filter(r=>/^UNKNOWN/.test(r.CALC_VERDICT) ||
+                                    (r.MIN_VERDICT||"").startsWith("UNKNOWN"));
+    const changed = D.filter(r=>r.CALC_VERDICT!=="NA_ACCOUNT" && r.EXP_EE_CALC && r.REN_EE_CALC &&
+      (r.EXP_EE_CALC!==r.REN_EE_CALC || String(r.EXP_EE_AMT)!==String(r.REN_EE_AMT)));
+
+    // Last year vs this year, side by side, with the metadata verdict per line.
+    const th = 'style="text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid #d9dde3;font-weight:600"';
+    const td = 'style="padding:4px 8px 4px 0;vertical-align:top;border-bottom:1px solid #eef0f3"';
+    const table =
+      '<table style="border-collapse:collapse;margin-top:6px;font-size:12px;width:100%">'+
+      '<tr><th '+th+'>Line</th><th '+th+'>Last year</th><th '+th+'>Renewing</th>'+
+      '<th '+th+'>Renewing carrier / state</th><th '+th+'>Carrier metadata</th></tr>'+
+      D.map(function(r){
+        const carrierMoved = r.EXP_CARRIER && r.REN_CARRIER && r.EXP_CARRIER!==r.REN_CARRIER;
+        const stateMoved   = r.EXP_STATE && r.REN_STATE && r.EXP_STATE!==r.REN_STATE;
+        return '<tr>'+
+          '<td '+td+'><strong>'+esc(lab(r.LOC))+'</strong>'+
+            (r.N_PLANS>1? ' <span class="hint">('+r.N_PLANS+' plans)</span>':'')+'</td>'+
+          '<td '+td+'>'+scheme(r.EXP_EE_CALC, r.EXP_EE_AMT)+
+            (r.EXP_DEP_CALC? '<div class="hint">dep '+amt(r.EXP_DEP_CALC,r.EXP_DEP_AMT)+'</div>':'')+'</td>'+
+          '<td '+td+'>'+scheme(r.REN_EE_CALC, r.REN_EE_AMT)+
+            (r.REN_DEP_CALC? '<div class="hint">dep '+amt(r.REN_DEP_CALC,r.REN_DEP_AMT)+'</div>':'')+'</td>'+
+          '<td '+td+'>'+(r.REN_CARRIER? esc(r.REN_CARRIER)+' / '+esc(r.REN_STATE||"?") : '<span class="hint">&mdash;</span>')+
+            (carrierMoved? '<div class="hint">was '+esc(r.EXP_CARRIER)+'</div>':'')+
+            (stateMoved? '<div style="color:#b9770e">state changed from '+esc(r.EXP_STATE)+'</div>':'')+'</td>'+
+          '<td '+td+'>'+tag(VERDICT_TXT, r.CALC_VERDICT)+
+            (r.ALLOWED_CALCS? '<div class="hint">allows '+esc(String(r.ALLOWED_CALCS).replace(/[{}]/g,"").replace(/,/g,", "))+'</div>':'')+
+            (r.CALC_VERDICT==="NA_ACCOUNT" ? ''
+              : r.MIN_EE_PCT!=null? '<div>'+tag(MIN_TXT, r.MIN_VERDICT)+' <span class="hint">(carrier min '+esc(r.MIN_EE_PCT)+'%)</span></div>'
+                                  : '<div class="hint">no employee minimum on file</div>')+'</td>'+
+          '</tr>';
+      }).join("")+'</table>';
+
+    const notes = [];
+    if(changed.length) notes.push("Scheme changed year over year on: <strong>"+
+      changed.map(r=>esc(lab(r.LOC))).join(", ")+"</strong> — compliant, shown for awareness.");
+    const offNote = D.filter(r=>r.REN_REC===false && r.REN_DFLT===true).map(r=>lab(r.LOC));
+    if(offNote.length) notes.push('<span class="hint">Contribution read from the default (not recommended) offering on: '+
+      esc(offNote.join(", "))+'.</span>');
+    notes.push('<span class="hint">Carrier metadata is keyed by carrier, state and funding type — it has no '+
+      'line-of-coverage dimension, so one carrier writing several lines shares an allowed list. '+
+      'HSA/FSA/DCA are Gusto-administered and excluded.</span>');
+
+    let v, head;
+    if(fails.length){
+      v = "FAIL";
+      head = "<strong>Not carrier-compliant</strong> on "+fails.map(r=>esc(lab(r.LOC))).join(", ")+
+             " — OA would bounce this at intake."+
+             li(fails.map(function(r){
+               return r.CALC_VERDICT==="NOT_ALLOWED"
+                 ? esc(lab(r.LOC))+": <code>"+esc(r.REN_EE_CALC)+"</code> is not in "+esc(r.REN_CARRIER)+
+                   " / "+esc(r.REN_STATE)+"'s allowed list <code>"+esc(r.ALLOWED_CALCS)+"</code>."
+                 : esc(lab(r.LOC))+": employee contribution "+amt(r.REN_EE_CALC,r.REN_EE_AMT)+
+                   " is below "+esc(r.REN_CARRIER)+"'s minimum of "+esc(r.MIN_EE_PCT)+"%.";
+             }));
+    } else if(unk.length){
+      v = "REVIEW";
+      head = "Compliant where it could be checked, but "+unk.length+" line(s) couldn't be confirmed — "+
+             unk.map(r=>esc(lab(r.LOC))).join(", ")+
+             ". Missing metadata is <strong>unknown, not non-compliant</strong>; verify those in Hippo.";
+    } else if(!gating.length){
+      v = "N/A";
+      head = "Only Gusto-administered lines (HSA/FSA/DCA) on this renewal — no carrier contribution rules apply.";
+    } else {
+      v = "PASS";
+      head = "All "+gating.length+" carrier line(s) are compliant per carrier metadata — calculator type allowed"+
+             (gating.some(r=>r.MIN_EE_PCT!=null)? " and employee contribution clears the carrier minimum" : "")+".";
+    }
+
+    rows.push({c:"6A", v:v, ev: head + table + '<div style="margin-top:6px">'+notes.join("<br>")+'</div>'});
+  })();
+
+  // 7A waiting period — same shape as 6A: per line of coverage, last year vs this
+  // year, each renewal-year value auto-checked against the waiting-period registry
+  // for the renewing carrier + state + line + funding type. The registry keeps two
+  // allowed lists, so the relationship type (same carrier = existing, carrier switch
+  // = new) selects which one applies.
+  (function(){
+    const E = d.E || [];
+    if(!E.length){
+      rows.push({c:"7A", v:"REVIEW", ev:"No per-line waiting-period rows returned from the warehouse for this renewal, so it can't be auto-checked against carrier metadata. Verify in Hippo."});
+      return;
+    }
+    const lab = l => ({"medical":"Medical","dental":"Dental","vision":"Vision","hsa":"HSA","fsa":"FSA","dca":"DCA",
+      "life":"Life","voluntary_life":"Voluntary Life","short_term_disability":"Short Term Disability",
+      "long_term_disability":"Long Term Disability"}[l] || (l||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()));
+    // Registry tokens are snake_case; render them the way they read on a QA sheet.
+    const wp = v => {
+      if(v==null || v==="") return '<span class="hint">&mdash;</span>';
+      return String(v).split(" | ").map(function(x){
+        const s = x.replace(/_/g," ")
+          .replace(/^no waiting period$/,"No waiting period")
+          .replace(/first of month/,"First of month,")
+          .replace(/fifteenth of month/,"15th of month,")
+          .replace(/\bon or following\b/,"on/following");
+        return '<code>'+esc(s.charAt(0).toUpperCase()+s.slice(1))+'</code>';
+      }).join(", ");
+    };
+    const VERDICT_TXT = {
+      "ALLOWED":['#1e7b34',"allowed"], "NOT_ALLOWED":['#b3261e',"NOT allowed"],
+      "UNKNOWN_NO_REGISTRY":['#b9770e',"no carrier metadata"],
+      "UNKNOWN_NO_WP":['#b9770e',"no waiting period loaded"],
+      "UNKNOWN_NO_SUCCESSOR":['#b9770e',"successor plan not linked"],
+      "NA_ACCOUNT":['#7a828d',"n/a — Gusto-administered"]
+    };
+    const tag = k => { const x = VERDICT_TXT[k] || ['#b9770e', k||"?"];
+      return '<span style="color:'+x[0]+'">'+esc(x[1])+'</span>'; };
+
+    const gating = E.filter(r=>r.WP_VERDICT !== "NA_ACCOUNT");
+    const fails  = gating.filter(r=>r.WP_VERDICT === "NOT_ALLOWED");
+    const unk    = gating.filter(r=>/^UNKNOWN/.test(r.WP_VERDICT));
+    // Only call a change out as benign when the new value actually passed.
+    const changed = E.filter(r=>r.WP_VERDICT==="ALLOWED" && r.EXP_WP && r.REN_WP && r.EXP_WP !== r.REN_WP);
+    const rel = r => (r.REL==="new" ? "a new" : "an existing");
+
+    const th = 'style="text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid #d9dde3;font-weight:600"';
+    const td = 'style="padding:4px 8px 4px 0;vertical-align:top;border-bottom:1px solid #eef0f3"';
+    const table =
+      '<table style="border-collapse:collapse;margin-top:6px;font-size:12px;width:100%">'+
+      '<tr><th '+th+'>Line</th><th '+th+'>Last year</th><th '+th+'>Renewing</th>'+
+      '<th '+th+'>Renewing carrier / state</th><th '+th+'>Carrier metadata</th></tr>'+
+      E.map(function(r){
+        const carrierMoved = r.EXP_CARRIER && r.REN_CARRIER && r.EXP_CARRIER!==r.REN_CARRIER;
+        const stateMoved   = r.EXP_STATE && r.REN_STATE && r.EXP_STATE!==r.REN_STATE;
+        const wpMoved      = r.EXP_WP && r.REN_WP && r.EXP_WP!==r.REN_WP;
+        const allowCount   = r.ALLOWED_WP ? String(r.ALLOWED_WP).replace(/[{}]/g,"").split(",").filter(Boolean).length : 0;
+        return '<tr>'+
+          '<td '+td+'><strong>'+esc(lab(r.LOC))+'</strong>'+
+            (r.N_PLANS>1? ' <span class="hint">('+r.N_PLANS+' plans)</span>':'')+'</td>'+
+          '<td '+td+'>'+wp(r.EXP_WP)+'</td>'+
+          '<td '+td+'>'+wp(r.REN_WP)+
+            (wpMoved? '<div style="color:#b9770e">changed</div>':'')+'</td>'+
+          '<td '+td+'>'+(r.REN_CARRIER? esc(r.REN_CARRIER)+' / '+esc(r.REN_STATE||"?") : '<span class="hint">&mdash;</span>')+
+            (carrierMoved? '<div style="color:#b9770e">carrier switch from '+esc(r.EXP_CARRIER)+'</div>':'')+
+            (stateMoved? '<div style="color:#b9770e">state changed from '+esc(r.EXP_STATE)+'</div>':'')+'</td>'+
+          '<td '+td+'>'+tag(r.WP_VERDICT)+
+            (r.WP_VERDICT!=="NA_ACCOUNT" && allowCount
+              ? '<div class="hint">'+allowCount+' allowed for '+esc(r.REL||"existing")+' relationship</div>' : '')+'</td>'+
+          '</tr>';
+      }).join("")+'</table>';
+
+    const notes = [];
+    if(changed.length) notes.push("Waiting period changed year over year on: <strong>"+
+      changed.map(r=>esc(lab(r.LOC))).join(", ")+"</strong> — allowed, shown for awareness. Confirm the QA sheet and handoff notes call it out (see 8A/12A).");
+    const switched = E.filter(r=>r.REL==="new").map(r=>lab(r.LOC));
+    if(switched.length) notes.push('<span class="hint">Checked against the <strong>new</strong>-relationship allowed list on '+
+      esc(switched.join(", "))+' because the carrier changed; the rest use the existing-relationship list.</span>');
+    notes.push('<span class="hint">The fully-insured waiting-period registry is keyed by carrier, state and line of coverage. '+
+      'Level-funded plans fall back to carrier + state. HSA/FSA/DCA are Gusto-administered and excluded.</span>');
+
+    let v, head;
+    if(fails.length){
+      v = "FAIL";
+      head = "<strong>Waiting period not carrier-allowed</strong> on "+fails.map(r=>esc(lab(r.LOC))).join(", ")+
+             " — OA would bounce this at intake."+
+             li(fails.map(r=>esc(lab(r.LOC))+": "+wp(r.REN_WP)+" is not in "+esc(r.REN_CARRIER)+" / "+
+               esc(r.REN_STATE)+"'s allowed list for "+rel(r)+" relationship"+
+               (r.EXP_WP && r.EXP_WP!==r.REN_WP ? " (was "+wp(r.EXP_WP)+" last year)" : "")+"."));
+    } else if(unk.length){
+      v = "REVIEW";
+      head = "Allowed where it could be checked, but "+unk.length+" line(s) couldn't be confirmed — "+
+             unk.map(r=>esc(lab(r.LOC))+" ("+esc((VERDICT_TXT[r.WP_VERDICT]||["","?"])[1])+")").join(", ")+
+             ". Missing metadata is <strong>unknown, not non-compliant</strong>; verify those in Hippo.";
+    } else if(!gating.length){
+      v = "N/A";
+      head = "Only Gusto-administered lines (HSA/FSA/DCA) on this renewal — no carrier waiting-period rules apply.";
+    } else {
+      v = "PASS";
+      head = "All "+gating.length+" carrier line(s) have a waiting period allowed by the carrier for this state and line"+
+             (changed.length? ", including the change(s) noted below" : ", unchanged year over year")+".";
+    }
+
+    rows.push({c:"7A", v:v, ev: head + table + '<div style="margin-top:6px">'+notes.join("<br>")+'</div>'});
+  })();
+
+  // 8A year-over-year changes the QA sheet must reflect — active elections only
+  // (selected AND not Deleted). Reports line adds/removals and carrier switches from
+  // Salesforce, contribution-scheme and waiting-period changes from the warehouse
+  // (6A/7A data), and inconsistencies across lines on the renewing side.
+  (function(){
+    const isActive = p => p.Is_Selected__c === true && (p.Policy_Status__c||"") !== "Deleted";
+    const carrierOf = p => (p.Carrier__r && p.Carrier__r.Name) || "";
+    const renA = d.renPols.filter(isActive);
+    const expA = d.expPols.filter(isActive);
+
+    // group active policies by LOC → distinct carriers + a representative row (prefer the base plan)
+    const group = pols => {
+      const m = {};
+      pols.forEach(p=>{
+        const k = (p.Benefit_Type__c||"").trim();
+        if(!k) return;
+        if(!m[k]) m[k] = {carriers:new Set(), rep:null};
+        if(carrierOf(p)) m[k].carriers.add(carrierOf(p));
+        if(!m[k].rep || p.Is_Base__c===true) m[k].rep = p;
+      });
+      return m;
+    };
+    const R = group(renA), X = group(expA);
+
+    const retained = Object.keys(R).filter(l=>X[l]);
+
+    const carrierSwitch = [];
+    retained.forEach(l=>{
+      const rc = [...R[l].carriers].sort(), ec = [...X[l].carriers].sort();
+      if(rc.length && ec.length && rc.join("|")!==ec.join("|"))
+        carrierSwitch.push(esc(l)+": "+esc(ec.join(", "))+" → "+esc(rc.join(", ")));
+    });
+
+    // Contribution + waiting-period changes come from the warehouse (6A/7A data),
+    // not the Salesforce fields: Policy__c can lag what's configured and has no
+    // picklist value for tiered schemes, so it reports those as blank.
+    const lab = l => ({"medical":"Medical","dental":"Dental","vision":"Vision","hsa":"HSA","fsa":"FSA","dca":"DCA",
+      "life":"Life","voluntary_life":"Voluntary Life","short_term_disability":"Short Term Disability",
+      "long_term_disability":"Long Term Disability"}[l] || (l||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()));
+    const ACCOUNT = l => ["hsa","fsa","dca"].indexOf(l) >= 0;
+
+    // Line adds/removals are diffed on BOTH sides, because neither source is complete:
+    //  - Salesforce Policy__c is the election of record for carrier lines, but
+    //    Gusto-administered accounts (HSA/FSA/DCA) often have no active expiring
+    //    Policy__c row at all, so dropping one produces no Salesforce diff.
+    //  - The warehouse EXPIRING_POLICIES always lists them, and a line with no
+    //    successor plan on any row is not being renewed.
+    // Normalise both to the warehouse's line key so nothing is reported twice.
+    const SF_TO_LOC = {
+      "medical":"medical","dental":"dental","vision":"vision","hsa":"hsa",
+      "life":"life","basic life":"life","voluntary life":"voluntary_life",
+      "short term disability":"short_term_disability","long term disability":"long_term_disability",
+      "flexible spending account - medical":"fsa","flexible spending account - dependent care":"dca",
+      "fsa - medical":"fsa","fsa - dependent care":"dca","commuter":"commuter"
+    };
+    const toLoc = bt => { const k=(bt||"").trim().toLowerCase(); return SF_TO_LOC[k] || k.replace(/[^a-z]+/g,"_"); };
+    const sfExp = new Set(Object.keys(X).map(toLoc));
+    const sfRen = new Set(Object.keys(R).map(toLoc));
+    // Warehouse view: every expiring line, and whether any row has a successor plan.
+    const whExp = new Map();
+    [].concat(d.D||[], d.E||[]).forEach(function(r){
+      if(!r.LOC) return;
+      const cur = whExp.get(r.LOC) || {n:0, noSucc:0};
+      // D and E cover the same lines; take the max so the union doesn't double-count.
+      whExp.set(r.LOC, {n:Math.max(cur.n, r.N_PLANS||0), noSucc:Math.max(cur.noSucc, r.N_NO_SUCC||0)});
+    });
+    const whDropped = new Set();
+    whExp.forEach(function(v,l){ if(v.n>0 && v.noSucc===v.n && !sfRen.has(l)) whDropped.add(l); });
+
+    const removedSet = new Set([...[...sfExp].filter(l=>!sfRen.has(l)), ...whDropped]);
+    const addedSet   = new Set([...sfRen].filter(l=>!sfExp.has(l) && !whExp.has(l)));
+    const srcOf = l => {
+      const inSf = sfExp.has(l), inWh = whDropped.has(l);
+      if(inSf && inWh) return "";
+      if(inWh) return ' <span class="hint">(warehouse only — no active Salesforce policy last year)</span>';
+      return ' <span class="hint">(Salesforce election)</span>';
+    };
+    const money = (calc, a) => {
+      if(a==null || a==="") return "—";
+      const n = parseFloat(a);
+      if(/percentage/.test(calc||"") && !isNaN(n)) return (n*100).toFixed(n*100%1?2:0)+"%";
+      if(/fixed_amount/.test(calc||"") && !isNaN(n)) return "$"+n.toFixed(2);
+      return String(a);
+    };
+    const prettyWp = v => v==null||v===""? "—" : String(v).split(" | ").map(function(x){
+      const s = x.replace(/_/g," ").replace(/^no waiting period$/,"No waiting period")
+        .replace(/first of month/,"First of month,").replace(/fifteenth of month/,"15th of month,")
+        .replace(/\bon or following\b/,"on/following");
+      return s.charAt(0).toUpperCase()+s.slice(1);
+    }).join(", ");
+
+    const schemeChanges = [], wpChanges = [];
+    (d.D||[]).filter(r=>!ACCOUNT(r.LOC)).forEach(function(r){
+      if(!r.EXP_EE_CALC || !r.REN_EE_CALC) return;
+      const typeMoved = r.EXP_EE_CALC !== r.REN_EE_CALC;
+      const amtMoved  = String(r.EXP_EE_AMT) !== String(r.REN_EE_AMT);
+      const depMoved  = String(r.EXP_DEP_AMT) !== String(r.REN_DEP_AMT) ||
+                        String(r.EXP_DEP_CALC||"") !== String(r.REN_DEP_CALC||"");
+      if(!typeMoved && !amtMoved && !depMoved) return;
+      const bits = [];
+      if(typeMoved) bits.push("scheme <code>"+esc(r.EXP_EE_CALC)+"</code> → <code>"+esc(r.REN_EE_CALC)+"</code>");
+      if(amtMoved)  bits.push("employee "+esc(money(r.EXP_EE_CALC,r.EXP_EE_AMT))+" → "+esc(money(r.REN_EE_CALC,r.REN_EE_AMT)));
+      if(depMoved)  bits.push("dependent "+esc(money(r.EXP_DEP_CALC,r.EXP_DEP_AMT))+" → "+esc(money(r.REN_DEP_CALC,r.REN_DEP_AMT)));
+      schemeChanges.push("<strong>"+esc(lab(r.LOC))+"</strong>: "+bits.join("; ")+
+        (r.CALC_VERDICT==="NOT_ALLOWED" || r.MIN_VERDICT==="BELOW_MINIMUM"
+          ? ' <span style="color:#b3261e">(not carrier-compliant — see 6A)</span>' : ""));
+    });
+    (d.E||[]).filter(r=>!ACCOUNT(r.LOC)).forEach(function(r){
+      if(!r.EXP_WP || !r.REN_WP || r.EXP_WP === r.REN_WP) return;
+      wpChanges.push("<strong>"+esc(lab(r.LOC))+"</strong>: "+esc(prettyWp(r.EXP_WP))+" → "+esc(prettyWp(r.REN_WP))+
+        (r.WP_VERDICT==="NOT_ALLOWED" ? ' <span style="color:#b3261e">(not carrier-allowed — see 7A)</span>' : ""));
+    });
+
+    // Inconsistencies ACROSS lines of coverage on the renewing side. Different
+    // values per line can be intentional, so these are called out, not failed.
+    const inconsistencies = [];
+    const spread = (src, key, fmt) => {
+      const m = {};
+      (src||[]).filter(r=>!ACCOUNT(r.LOC) && r[key]!=null && r[key]!=="").forEach(function(r){
+        const k = String(r[key]);
+        (m[k] = m[k] || []).push(lab(r.LOC));
+      });
+      const keys = Object.keys(m);
+      if(keys.length <= 1) return null;
+      return keys.map(k=>fmt(k)+" on "+m[k].join(", ")).join(" &middot; ");
+    };
+    const wpSpread = spread(d.E, "REN_WP", k=>"<code>"+esc(prettyWp(k))+"</code>");
+    if(wpSpread) inconsistencies.push("Waiting periods differ across lines &mdash; "+wpSpread+
+      ". Some carriers require the same waiting period on every line; confirm this is intended.");
+    const calcSpread = spread(d.D, "REN_EE_CALC", k=>"<code>"+esc(k)+"</code>");
+    if(calcSpread) inconsistencies.push("Contribution scheme <em>types</em> differ across lines &mdash; "+calcSpread+
+      ". Confirm that's intended; a few carriers require one scheme type across all lines.");
+    // Deliberately NOT flagged: different employee percentages per line (e.g. medical
+    // 65%, dental 50%, STD 100%). That is normal plan design, not an inconsistency.
+
+    // A line that renews but never got a scheme or waiting period loaded — grouped
+    // per line so one line doesn't appear twice.
+    const gaps = {};
+    (d.D||[]).filter(r=>!ACCOUNT(r.LOC) && !r.REN_EE_CALC).forEach(r=>{ (gaps[r.LOC]=gaps[r.LOC]||[]).push("contribution scheme"); });
+    (d.E||[]).filter(r=>!ACCOUNT(r.LOC) && !r.REN_WP).forEach(r=>{ (gaps[r.LOC]=gaps[r.LOC]||[]).push("waiting period"); });
+    const gapKeys = Object.keys(gaps);
+    if(gapKeys.length) inconsistencies.push("Renewing line(s) with nothing loaded yet &mdash; "+
+      gapKeys.map(l=>esc(lab(l))+" (no "+gaps[l].join(", no ")+")").join("; ")+".");
+
+    // Warehouse says the line has a successor plan, but every renewing Salesforce
+    // policy on it is deselected or Deleted. One of the two is wrong.
+    const orphaned = [];
+    whExp.forEach(function(v,l){
+      if(v.n>0 && v.noSucc < v.n && !sfRen.has(l) && sfExp.has(l)) orphaned.push(lab(l));
+    });
+    if(orphaned.length) inconsistencies.push("Successor plan(s) exist in the warehouse but every renewing "+
+      "Salesforce policy is deselected or Deleted on: <strong>"+esc(orphaned.join(", "))+
+      "</strong>. Either the line is being dropped and the warehouse is stale, or the elections need reinstating &mdash; confirm before handoff.");
+
+    if(!renA.length && !expA.length){
+      rows.push({c:"8A", v:"N/A", ev:"No active (selected, non-deleted) policies on either side yet to diff."});
+      return;
+    }
+    const adds = [...addedSet], removals = [...removedSet];
+    const sections = [];
+    if(adds.length)          sections.push("<strong>New line(s) added:</strong>"+li(adds.map(l=>esc(lab(l)))));
+    if(removals.length)      sections.push("<strong>Line(s) removed:</strong>"+li(removals.map(l=>esc(lab(l))+srcOf(l))));
+    if(carrierSwitch.length) sections.push("<strong>Carrier switch (line retained):</strong>"+li(carrierSwitch));
+    if(schemeChanges.length) sections.push("<strong>Contribution scheme changes:</strong>"+li(schemeChanges));
+    if(wpChanges.length)     sections.push("<strong>Waiting period changes:</strong>"+li(wpChanges));
+    if(inconsistencies.length) sections.push('<strong style="color:#b9770e">Inconsistencies across lines of coverage:</strong>'+li(inconsistencies));
+
+    const nChanges = adds.length + removals.length + carrierSwitch.length + schemeChanges.length + wpChanges.length;
+    const foot = '<div class="hint" style="margin-top:6px">Active elections only — deselected and Deleted option plans excluded. '+
+      'Contribution and waiting-period values come from the warehouse (same source as 6A and 7A), not the Salesforce fields, '+
+      'which can lag what is configured and record tiered schemes as blank.</div>';
+
+    if(sections.length){
+      rows.push({c:"8A", v:"REVIEW", ev:
+        "Review any renewing contribution or waiting period changes for accuracy."+
+        sections.join("")+foot});
+    } else {
+      rows.push({c:"8A", v:"PASS", ev:"No line, carrier, contribution-scheme, or waiting-period changes year over year, "+
+        "and the renewing lines are consistent with each other. Nothing for the QA sheet to call out beyond the renewal itself."+foot});
+    }
+  })();
+
+  // 9A MANUAL — reviewer confirms the group's address, effective date and group name
+  // all match the renewing carrier's attached packet(s). The tool can't read inside a
+  // PDF, so it lists the packets, the effective date in Salesforce and in Hippo per
+  // line of coverage, and the group name and Hippo address, then leaves the
+  // comparison to the reviewer. Salesforce holds no group address, so the address
+  // shown is Hippo's.
+  (function(){
+    const qa = d.qaSheets[0];
+    const SF_TO_LOC = {
+      "medical":"medical","dental":"dental","vision":"vision","hsa":"hsa",
+      "life":"life","basic life":"life","voluntary life":"voluntary_life",
+      "short term disability":"short_term_disability","long term disability":"long_term_disability",
+      "flexible spending account - medical":"fsa","flexible spending account - dependent care":"dca",
+      "fsa - medical":"fsa","fsa - dependent care":"dca","commuter":"commuter"
+    };
+    const toLoc = bt => { const k=(bt||"").trim().toLowerCase(); return SF_TO_LOC[k] || k.replace(/[^a-z]+/g,"_"); };
+    const lab = l => ({"medical":"Medical","dental":"Dental","vision":"Vision","hsa":"HSA","fsa":"FSA","dca":"DCA",
+      "life":"Life","voluntary_life":"Voluntary Life","short_term_disability":"Short Term Disability",
+      "long_term_disability":"Long Term Disability"}[l] || (l||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()));
+    const ACCOUNT = l => ["hsa","fsa","dca","commuter"].indexOf(l) >= 0;
+    const one = s => { const a=[...new Set(String(s||"").split(" | ").map(x=>x.trim()).filter(Boolean))]; return a; };
+
+    // Salesforce: active renewal-year elections, effective date per line.
+    const sf = {};
+    d.renPols.filter(pIsActive).forEach(function(p){
+      const l = toLoc(p.Benefit_Type__c); if(!l) return;
+      (sf[l] = sf[l] || new Set()).add(p.Coverage_Effective_Date__c || null);
+    });
+    // Hippo/warehouse: expiring date + 1 per line, from SNOW_D.
+    const hip = {};
+    (d.D||[]).forEach(function(r){ if(r.LOC && r.HIPPO_REN_EFF) hip[r.LOC] = one(r.HIPPO_REN_EFF); });
+
+    const locs = [...new Set([...Object.keys(sf), ...Object.keys(hip)])].sort(function(a,b){
+      const ord = x => x==="medical"?0 : x==="dental"?1 : x==="vision"?2 : ACCOUNT(x)?4 : 3;
+      return ord(a)-ord(b) || a.localeCompare(b);
+    });
+
+    // The packets are what the reviewer compares everything against.
+    const all = attList(d.atts);
+    const packets = all.filter(a => /renewal packet/i.test(a.title));
+    const others  = all.filter(a => !/renewal packet/i.test(a.title));
+
+    const th = 'style="text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid #d9dde3;font-weight:600"';
+    const td = 'style="padding:4px 8px 4px 0;vertical-align:top;border-bottom:1px solid #eef0f3"';
+
+    const table = locs.length
+      ? '<table style="border-collapse:collapse;margin-top:6px;font-size:12px;width:100%">'+
+        '<tr><th '+th+'>Line</th><th '+th+'>Effective date &mdash; SFDC</th><th '+th+'>Effective date &mdash; Hippo</th></tr>'+
+        locs.map(function(l){
+          const sfd = sf[l] ? [...sf[l]].filter(Boolean) : [];
+          const hpd = hip[l] || [];
+          return '<tr><td '+td+'><strong>'+esc(lab(l))+'</strong>'+(ACCOUNT(l)?' <span class="hint">(account)</span>':'')+'</td>'+
+            '<td '+td+'>'+(sfd.length? sfd.map(x=>'<code>'+esc(x)+'</code>').join(", ") : '<span class="hint">no active election</span>')+'</td>'+
+            '<td '+td+'>'+(hpd.length? hpd.map(x=>'<code>'+esc(x)+'</code>').join(", ") : '<span class="hint">&mdash;</span>')+'</td></tr>';
+        }).join("")+'</table>'
+      : '<div class="hint" style="margin-top:4px">No renewal-year lines resolved on either side yet.</div>';
+
+    // Group details the reviewer checks against the packet. Salesforce holds no
+    // group address, so the address shown is Hippo's company record — the address
+    // of record. Only the company mailing/filing address is read; the per-worksite
+    // COMPANIES.ADDRESSES list is deliberately left alone.
+    const C = d.C || {};
+    const addrTxt = C.ADDR_STREET
+      ? esc(C.ADDR_STREET)+(C.ADDR_CITY? ", "+esc(C.ADDR_CITY):"")+
+        (C.ADDR_STATE? ", "+esc(C.ADDR_STATE):"")+(C.ADDR_ZIP? " "+esc(C.ADDR_ZIP):"")
+      : null;
+    const filingTxt = C.FILING_STREET
+      ? esc(C.FILING_STREET)+(C.FILING_CITY? ", "+esc(C.FILING_CITY):"")+
+        (C.FILING_STATE? ", "+esc(C.FILING_STATE):"")+(C.FILING_ZIP? " "+esc(C.FILING_ZIP):"")
+      : null;
+
+    const groupName = '<div style="margin-top:4px"><strong>Group name</strong> <span class="hint">(SFDC)</span>: '+
+      esc(d.acctName||"—")+(qa && qa.DBA__c? ' <span class="hint">&middot; QA sheet DBA: '+esc(qa.DBA__c)+'</span>':'')+'</div>';
+
+    const GEM = "https://gemini.google.com/gem/1-LmSVA7r8aG4SR626wou0Mf-ntvpDJtG?usp=sharing";
+    const addrBlock = '<div style="margin-top:8px"><strong>Address</strong> <span class="hint">(Hippo)</span>: '+
+      (addrTxt || '<span class="hint">no mailing address on the Hippo company record</span>')+
+      (C.ADDR_MAIL_EQ_FILING===false && filingTxt? '<div class="hint">filing address differs: '+filingTxt+'</div>':'')+
+      (C.ADDR_UPDATED? '<div class="hint">last changed '+esc(String(C.ADDR_UPDATED).slice(0,10))+'</div>':'')+
+      '<div style="margin-top:6px">Does packet address match Hippo address?'+
+        ' <select class="addr-q"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select>'+
+        '<div class="addr-no" style="display:none;margin-top:4px">If no, use the '+
+          '<a href="'+GEM+'" target="_blank" rel="noopener">Gem</a>, then add context:'+
+          '<textarea class="addr-note" placeholder="Context on the address mismatch" style="width:100%;margin-top:4px;min-height:48px;padding:6px 7px;border:1px solid #cfd4da;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical"></textarea>'+
+        '</div>'+
+      '</div></div>';
+
+    const groupDetails = groupName + addrBlock;
+
+    const effIntro = '<div class="hint" style="margin-top:2px">Opportunity renewal date <code>'+esc(d.DATE||"—")+'</code>'+
+      (qa && qa.Effective_Date__c? ' &middot; QA sheet effective date <code>'+esc(qa.Effective_Date__c)+'</code>'+
+        (qa.Policy_Renewal_Date__c? ' &middot; policy renewal date <code>'+esc(qa.Policy_Renewal_Date__c)+'</code>':'') : '')+'</div>';
+
+    rows.push({c:"9A", v:"MANUAL", ev:
+      "Reviewer opens the renewing carrier's packet(s) and confirms the <strong>group name, address and effective date</strong> "+
+      "all match. The tool can't read inside a PDF, so everything needed for the comparison is listed here. "+
+      "Name or address may differ from the packet if the reason is documented in the notes.<br>"+
+      '<div style="margin-top:6px"><strong>Attached packet(s)</strong>'+
+        (packets.length? li(packets.map(docLink))
+          : '<div class="hint" style="margin-top:2px">No attachment titled &ldquo;Renewal Packet&rdquo; &mdash; see 1A.'+
+            (others.length? ' Other attachments: '+others.map(docLink).join(", ") : ' No attachments on this opp at all.')+'</div>')+'</div>'+
+      '<div style="margin-top:6px"><strong>Group details</strong>'+groupDetails+'</div>'+
+      '<div style="margin-top:6px"><strong>Effective date by line of coverage</strong>'+effIntro+table+'</div>'+
+      '<div class="hint" style="margin-top:6px">Hippo effective date is the expiring policy&rsquo;s expiration date + 1 day, '+
+        'per line. HSA/FSA/DCA run their own plan-year cycle, so a different date there is expected. '+
+        '<a href="https://gusto.lightning.force.com/'+esc(o.Id)+'" target="_blank" rel="noopener">Open opp</a></div>'});
+  })();
+
+  // 10A carrier underwriting requirements — five rules from carrier metadata,
+  // compared against the group's measured values from Hippo.
+  (function(){
+    const F = d.F || [];
+    if(!F.length){
+      rows.push({c:"10A", v:"REVIEW", ev:"No underwriting-rule rows returned for this renewal, so the carrier's requirements can't be checked. Verify in Hippo."});
+      return;
+    }
+    const lab = l => ({"medical":"Medical","dental":"Dental","vision":"Vision","hsa":"HSA","fsa":"FSA","dca":"DCA",
+      "life":"Life","voluntary_life":"Voluntary Life","short_term_disability":"Short Term Disability",
+      "long_term_disability":"Long Term Disability"}[l] || (l||"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()));
+    const ACCOUNT = l => ["hsa","fsa","dca","commuter"].indexOf(l) >= 0;
+    const carrierLines = F.filter(r=>!ACCOUNT(r.LOC) && r.CARRIER_KEY);
+    if(!carrierLines.length){
+      rows.push({c:"10A", v:"N/A", ev:"No carrier lines on this renewal — only Gusto-administered accounts, which carry no underwriting rules."});
+      return;
+    }
+    const med = carrierLines.find(r=>r.LOC==="medical") || carrierLines[0];
+    const g = med; // group-level measures are identical on every row
+
+    const PASS='#1e7b34', FAILC='#b3261e', WARN='#b9770e', MUTED='#7a828d';
+    const mark = (c,t) => '<span style="color:'+c+'">'+esc(t)+'</span>';
+    const num = v => (v==null? "—" : String(v));
+    const results = [];   // {name, req, actual, verdict, color, note}
+
+    // ---- 1 In-state participation -------------------------------------------
+    (function(){
+      const t = g.INSTATE_TYPE, min = g.INSTATE_MIN;
+      let req, actual, verdict, color;
+      // Eligible employees only (payroll active). Worksite EE counts are deliberately
+      // not shown — the Hippo address list runs stale and holds employee-level rows.
+      actual = num(g.TOTAL_EES)+" eligible employees (payroll active); operating states "+esc(g.WORK_STATES||"?")+
+               "; plan state "+esc(g.PLAN_STATE||"?");
+      if(!t){ req = "no in-state rule on file"; verdict="N/A"; color=MUTED; }
+      else if(t==="plurality"){ req = "plurality — most employees must be in "+esc(g.PLAN_STATE||"state"); verdict="REVIEW"; color=WARN; }
+      else if(t==="number"){ req = "at least "+num(min)+" employee(s) in "+esc(g.PLAN_STATE||"state"); verdict="REVIEW"; color=WARN; }
+      else if(t==="percentage"){ req = "at least "+num(min)+"% of employees in "+esc(g.PLAN_STATE||"state"); verdict="REVIEW"; color=WARN; }
+      else { req = "threshold type <code>"+esc(t)+"</code>"; verdict="REVIEW"; color=WARN; }
+      results.push({name:"In-state participation", req:req, actual:actual, verdict:verdict, color:color,
+        note:"Shows eligible employees from payroll ("+num(g.TOTAL_EES)+"). The warehouse has no reliable per-state "+
+             "count of eligible employees, so in-state participation isn't auto-scored — confirm the in-state split in Hippo."});
+    })();
+
+    // ---- 2 Owner-only --------------------------------------------------------
+    (function(){
+      const min = g.OWNER_MIN;
+      let req, actual, verdict, color;
+      req = min==null? "no owner-only rule on file" : "at least "+num(min)+" non-owner W2 employee(s)";
+      if(g.FNOH){ actual = "first non-owner hire "+esc(String(g.FNOH).slice(0,10))+
+          (g.ENTITY_TYPE? " · entity type "+esc(g.ENTITY_TYPE) : "");
+        verdict = min==null? "N/A" : "PASS"; color = min==null? MUTED : PASS; }
+      else { actual = "owner composition not available"+(g.ENTITY_TYPE? " · entity type "+esc(g.ENTITY_TYPE):"");
+        verdict = min==null? "N/A" : "UNKNOWN"; color = min==null? MUTED : WARN; }
+      results.push({name:"Owner-only rule", req:req, actual:actual, verdict:verdict, color:color,
+        note: g.FNOH? "" : "Owners can't be counted from aggregate data. The fulfilment snapshot that records the first "+
+              "non-owner hire is written at submission, so pre-handoff renewals usually have none — confirm in Hippo."});
+    })();
+
+    // ---- 3 Minimum enrolled (prior year's actual enrolment) ------------------
+    (function(){
+      const min = med.MIN_ENROLLED, enr = med.PRIOR_ENROLLED;
+      let req, actual, verdict, color;
+      req = min==null? "no minimum-enrolled rule on file" : "at least "+num(min)+" enrolled";
+      actual = enr==null? "prior-year enrolment not resolved" : num(enr)+" enrolled last year ("+esc(lab(med.LOC))+")";
+      if(min==null){ verdict="N/A"; color=MUTED; }
+      else if(enr==null){ verdict="UNKNOWN"; color=WARN; }
+      else { verdict = enr >= min? "PASS":"FAIL"; color = verdict==="PASS"?PASS:FAILC; }
+      results.push({name:"Minimum enrolled", req:req, actual:actual, verdict:verdict, color:color,
+        note: med.MIN_PCT!=null? "The carrier also sets a "+num(med.MIN_PCT)+"% participation minimum. Waived "+
+              "elections aren't attributable to a plan in the warehouse, so there's no reliable denominator — "+
+              "check the percentage in Hippo." : ""});
+    })();
+
+    // ---- 4 PPO for out-of-state employees -----------------------------------
+    (function(){
+      const oos = med.OOS_STATES, hasPpo = med.PPO_IN_OFFERINGS === true;
+      let req, actual, verdict, color;
+      req = "no structured rule — carrier metadata is free text";
+      if(!oos){ actual = "no out-of-state worksites"; verdict="N/A"; color=MUTED; }
+      else {
+        actual = "employees in "+esc(oos)+"; renewing medical plan type(s) <code>"+esc(med.PLAN_TYPES||"?")+
+                 "</code>"+(hasPpo? " — PPO included" : " — <strong>no PPO</strong> in the offering");
+        verdict = "REVIEW"; color = WARN;
+      }
+      results.push({name:"PPO for out-of-state employees", req:req, actual:actual, verdict:verdict, color:color,
+        note: oos? "There is no field expressing &ldquo;must offer a PPO if employees are out of state&rdquo;, so this is "+
+              "never auto-passed or failed."+
+              (med.PPO_NETWORK? " Carrier's full network is <code>"+esc(med.PPO_NETWORK)+"</code>." : "")+
+              (med.OOS_ALLOWED? " Carrier allows out-of-state employees: <code>"+esc(med.OOS_ALLOWED)+"</code>." : "") : ""});
+    })();
+
+    // ---- 5 Full-time employee minimum ---------------------------------------
+    (function(){
+      const mn = med.SIZE_MIN, mx = med.SIZE_MAX, calc = med.SIZE_CALC;
+      const mxTxt = (mx==null || mx===2147483647)? "unlimited" : num(mx);
+      let req, actual, verdict, color;
+      if(mn==null && mx==null){ req="no group-size rule for this line"; actual="—"; verdict="N/A"; color=MUTED; }
+      else {
+        req = num(mn)+"–"+mxTxt+" "+(calc? esc(calc) : "employees");
+        actual = num(g.FT_EES)+" full-time of "+num(g.TOTAL_EES)+" active ("+num(g.PT_EES)+" part-time)";
+        const inRange = g.FT_EES!=null && g.FT_EES >= (mn==null?0:mn) && g.FT_EES <= (mx==null?1e9:mx);
+        // Never fail on this: the warehouse has no true FTE/ATNE figure, only a
+        // full-time headcount proxy, and carriers convert part-time hours.
+        verdict = inRange? "PASS" : "REVIEW"; color = inRange? PASS : WARN;
+      }
+      results.push({name:"Full-time employee minimum", req:req, actual:actual, verdict:verdict, color:color,
+        note: (mn==null&&mx==null)? "" :
+          "No true "+(calc||"FTE")+" figure exists in the warehouse — this is a full-time headcount proxy, so it is "+
+          "never used to fail a group. Carriers convert part-time hours, and this group has "+num(g.PT_EES)+
+          " part-time employees."});
+    })();
+
+    const th = 'style="text-align:left;padding:4px 8px 4px 0;border-bottom:1px solid #d9dde3;font-weight:600"';
+    const td = 'style="padding:4px 8px 4px 0;vertical-align:top;border-bottom:1px solid #eef0f3"';
+    const table = '<table style="border-collapse:collapse;margin-top:6px;font-size:12px;width:100%">'+
+      '<tr><th '+th+'>Requirement</th><th '+th+'>Carrier rule</th><th '+th+'>This group</th><th '+th+'>&nbsp;</th></tr>'+
+      results.map(r=>'<tr><td '+td+'><strong>'+esc(r.name)+'</strong></td>'+
+        '<td '+td+'>'+r.req+'</td><td '+td+'>'+r.actual+
+        (r.note? '<div class="hint" style="margin-top:2px">'+r.note+'</div>':'')+'</td>'+
+        '<td '+td+'>'+mark(r.color, r.verdict)+'</td></tr>').join("")+'</table>';
+
+    // Per-line group-size and minimum-enrolled, since those two differ by line.
+    const lineTable = '<table style="border-collapse:collapse;margin-top:6px;font-size:12px;width:100%">'+
+      '<tr><th '+th+'>Line</th><th '+th+'>Carrier / state</th><th '+th+'>Size window</th>'+
+      '<th '+th+'>Min enrolled</th><th '+th+'>Enrolled last year</th></tr>'+
+      carrierLines.map(function(r){
+        const mxTxt = (r.SIZE_MAX==null||r.SIZE_MAX===2147483647)? "unlimited" : num(r.SIZE_MAX);
+        const under = r.MIN_ENROLLED!=null && r.PRIOR_ENROLLED!=null && r.PRIOR_ENROLLED < r.MIN_ENROLLED;
+        return '<tr><td '+td+'><strong>'+esc(lab(r.LOC))+'</strong></td>'+
+          '<td '+td+'>'+esc(r.CARRIER_KEY||"?")+' / '+esc(r.PLAN_STATE||"?")+'</td>'+
+          '<td '+td+'>'+(r.SIZE_MIN==null&&r.SIZE_MAX==null? '<span class="hint">no rule</span>'
+                        : num(r.SIZE_MIN)+"–"+mxTxt+(r.SIZE_CALC? ' <span class="hint">'+esc(r.SIZE_CALC)+'</span>':''))+'</td>'+
+          '<td '+td+'>'+(r.MIN_ENROLLED==null? '<span class="hint">no rule</span>' : num(r.MIN_ENROLLED))+'</td>'+
+          '<td '+td+'>'+(r.PRIOR_ENROLLED==null? '<span class="hint">—</span>'
+                        : (under? mark(FAILC, num(r.PRIOR_ENROLLED)) : num(r.PRIOR_ENROLLED)))+'</td></tr>';
+      }).join("")+'</table>';
+
+    const fails   = results.filter(r=>r.verdict==="FAIL");
+    // Any OTHER line failing its own minimum-enrolled rule is a hard fail too. The
+    // line already covered in the table above is excluded so it isn't listed twice.
+    const lineFails = carrierLines.filter(r=>r.LOC !== med.LOC && r.MIN_ENROLLED!=null &&
+        r.PRIOR_ENROLLED!=null && r.PRIOR_ENROLLED < r.MIN_ENROLLED)
+      .map(r=>lab(r.LOC)+": "+r.PRIOR_ENROLLED+" enrolled vs "+r.MIN_ENROLLED+" required");
+    const needEyes = results.filter(r=>["REVIEW","MANUAL","UNKNOWN"].indexOf(r.verdict)>=0);
+
+    let v, head;
+    if(fails.length || lineFails.length){
+      v = "FAIL";
+      head = "<strong>Carrier underwriting requirement(s) not met</strong> — OA would bounce this at intake."+
+             li(fails.map(r=>esc(r.name)+": needs "+r.req+", group has "+r.actual).concat(lineFails.map(esc)));
+    } else if(needEyes.length){
+      v = "REVIEW";
+      head = (results.length - needEyes.length)+" of "+results.length+" underwriting requirements confirmed met; "+
+             needEyes.length+(needEyes.length===1? " needs":" need")+" eyes &mdash; "+
+             needEyes.map(r=>esc(r.name)+" ("+esc(r.verdict.toLowerCase())+")").join(", ")+".";
+    } else {
+      v = "PASS";
+      head = "All "+results.length+" carrier underwriting requirements are met for "+esc(g.CARRIER_KEY||"the carrier")+
+             " / "+esc(g.PLAN_STATE||"?")+".";
+    }
+
+    rows.push({c:"10A", v:v, ev: head + table +
+      '<div style="margin-top:8px"><strong>By line of coverage</strong>'+lineTable+'</div>'+
+      '<div class="hint" style="margin-top:6px">Rules resolve by carrier, state and funding type — the underwriting '+
+      'registry has no line-of-coverage dimension except for the group-size window, so in-state, owner-only and '+
+      'participation rules are carrier-wide. Work states on file: '+esc(g.WORK_STATES||"—")+'.</div>'});
+  })();
+
+  // 11A carrier exception
+  (function(){
+    const du = o.Submission_Deadline__c ? daysUntil(o.Submission_Deadline__c) : null;
+    if(du!=null && du<=20){
+      rows.push({c:"11A", v:"REVIEW", ev:"Submission deadline in "+du+" day(s) ("+esc(o.Submission_Deadline__c)+"). If enrolled ≤ 2, a carrier exception + approval is needed (approval status not queryable)."});
+    } else {
+      rows.push({c:"11A", v:"N/A", ev: du!=null? "Submission deadline "+du+" day(s) out &mdash; not within the 20-day exception window." : "No submission deadline set."});
+    }
+  })();
+
+  // 12A — free-text catch-all for anything not covered by the checks above.
+  // Reviewer picks N/A or "Notes Needed"; a note typed here flows into the
+  // handoff note in the sign-off section below.
+  rows.push({c:"12A", v:"MANUAL", ev:
+    "If there is anything not captured in the checks above that needs to be called out for OA / Fulfillment, "+
+    "include it in the text field. If no additional notes needed, select <strong>N/A</strong>."});
+
+  // ---- counts ----
+  const cnt = {PASS:0, FAIL:0, REVIEW:0, MANUAL:0, "N/A":0};
+  rows.forEach(r=>cnt[r.v]++);
+  const earlyCohort = !d.renPols.length && !d.cOrders.length && (!d.A || d.A.ALTS===0);
+
+  let html = "";
+  // banner
+  html += '<div class="banner">'+
+    '<div class="stat fail"><div class="n">'+cnt.FAIL+'</div><div class="l">FAIL &mdash; would bounce</div></div>'+
+    '<div class="stat review"><div class="n">'+cnt.REVIEW+'</div><div class="l">REVIEW &mdash; human needed</div></div>'+
+    '<div class="stat pass"><div class="n">'+cnt.PASS+'</div><div class="l">PASS</div></div>'+
+    '<div class="stat"><div class="n">'+cnt.MANUAL+'</div><div class="l">MANUAL</div></div>'+
+    '<div class="stat"><div class="n">'+cnt["N/A"]+'</div><div class="l">N/A</div></div>'+
+  '</div>';
+
+  if(!stageOK) html += '<div class="note">Stage is <strong>'+esc(o.StageName)+'</strong> &mdash; Gate 1 applies at '+
+    '<strong>ER Confirm</strong>, the Advising &rarr; OA handoff. Read the verdicts with that in mind: a rec that hasn’t '+
+    'reached ER Confirm yet is expected to have gaps.</div>';
+  else html += '<div class="note" style="background:#eaf6ec;border-color:#bfe0c6;color:#1e7b34">Stage is '+
+    '<strong>ER Confirm</strong> &mdash; this rec is at the gate, so every verdict below counts.</div>';
+  if(earlyCohort) html += '<div class="note">Early cohort: renewal-year policies, carrier orders and packages aren’t built yet, so N/A here means "not yet built," not a failure.</div>';
+  if(cnt.FAIL>0) html += '<div class="note" style="background:#fdecea;border-color:#f6c6bd;color:#9c2216">'+cnt.FAIL+' hard failure(s) below would bounce back from OA at intake.</div>';
+
+  // meta
+  const mx = d.A && (d.A.GS_MAX===2147483647) ? "unlimited" : (d.A? d.A.GS_MAX : "");
+  html += '<div class="card"><div class="meta">'+
+    '<div><div class="k">Company</div><div class="v">'+esc(d.acctName||o.Name)+'</div></div>'+
+    '<div><div class="k">Opportunity</div><div class="v"><a href="https://gusto.lightning.force.com/'+esc(o.Id)+'" target="_blank" rel="noopener">'+esc(o.Id)+'</a></div></div>'+
+    '<div><div class="k">Stage</div><div class="v">'+esc(o.StageName)+'</div></div>'+
+    '<div><div class="k">Renewal date</div><div class="v">'+esc(d.DATE)+'</div></div>'+
+    '<div><div class="k">Advising service journey</div><div class="v">'+esc(o.Reason_for_Advising__c||"—")+'</div></div>'+
+    '<div><div class="k">Owner</div><div class="v">'+esc((o.Owner&&o.Owner.Name)||"—")+'</div></div>'+
+    '<div><div class="k">Medical carrier / state</div><div class="v">'+esc(d.A? (d.A.CKEY+" / "+d.A.PST):"—")+'</div></div>'+
+    '<div><div class="k">Alternates built</div><div class="v">'+esc(d.A? d.A.ALTS : "—")+'</div></div>'+
+  '</div></div>';
+
+  // table
+  html += '<table><thead><tr><th>#</th><th>Check</th><th>Verdict</th><th>Evidence</th><th>Reviewed &amp; agree?</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    let control;
+    if(r.c === "12A"){
+      // Additional-notes row: N/A or "Notes Needed" (note field feeds the handoff note).
+      control =
+        '<select class="rev-select" data-chk="12A">'+
+          '<option value="">—</option><option value="na">N/A</option><option value="notes">Notes Needed</option>'+
+        '</select>'+
+        '<textarea class="rev-note" data-chk="12A" placeholder="Additional notes for OA / Fulfillment" style="display:none"></textarea>';
+    } else if(r.c === "11A"){
+      // Carrier exception: blank / N/A / Yes only.
+      control =
+        '<select class="rev-select" data-chk="11A">'+
+          '<option value="">—</option><option value="na">N/A</option><option value="yes">Yes</option>'+
+        '</select>';
+    } else {
+      control =
+        '<select class="rev-select" data-chk="'+esc(r.c)+'">'+
+          '<option value="">—</option><option value="yes">Yes</option><option value="no">No</option>'+
+        '</select>'+
+        '<textarea class="rev-note" data-chk="'+esc(r.c)+'" placeholder="Why do you disagree / what needs fixing?" style="display:none"></textarea>';
+    }
+    html += '<tr><td class="chk">'+esc(r.c)+'</td><td class="name">'+esc(CHECK_META[r.c]||"")+'</td><td>'+pill(r.v)+'</td><td class="ev">'+r.ev+'</td>'+
+      '<td class="rev">'+control+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div id="reviewSummary" class="review-summary"></div>';
+
+  $("#result").innerHTML = html;
+
+  // wire reviewer sign-off
+  function updateReviewSummary(){
+    const notes=[]; let yes=0, no=0, pending=0;
+    // Templated handoff note — one line per check, in table order.
+    const tmplLines=[];
+    document.querySelectorAll('.rev-select').forEach(s=>{
+      const chk=s.getAttribute('data-chk');
+      const ta=document.querySelector('.rev-note[data-chk="'+chk+'"]');
+      const txt = ta ? ta.value.trim() : "";
+      // 11A carrier exception: blank / N/A / Yes.
+      if(chk==='11A'){
+        if(s.value==='yes'){ yes++; tmplLines.push('11A [yes]'); }
+        else if(s.value==='na') tmplLines.push('11A [N/A]');
+        else { pending++; tmplLines.push('11A [pending]'); }
+        return;
+      }
+      // 12A is the additional-notes row, not a pass/fail check.
+      if(chk==='12A'){
+        if(s.value==='notes') tmplLines.push('12A [additional notes - '+(txt || 'none entered')+']');
+        else if(s.value==='na') tmplLines.push('12A [N/A]');
+        else tmplLines.push('12A [pending]');
+        return;
+      }
+      if(s.value==='yes'){ yes++; tmplLines.push(chk+' [pass]'); }
+      else if(s.value==='no'){
+        no++;
+        notes.push({chk, txt});
+        tmplLines.push(chk+' [fail'+(txt? ' - '+txt : ' - no note provided')+']');
+      }
+      else { pending++; tmplLines.push(chk+' [pending]'); }
+    });
+    const tmplText = "#Advising-Stage-Gate\n" + tmplLines.join('\n');
+    let h='<h3>Reviewer sign-off</h3>';
+    h+='<div class="hint" style="margin-bottom:8px">Copy the text field below and include in the '+
+       '<a href="https://gusto.lightning.force.com/'+esc(o.Id)+'" target="_blank" rel="noopener">opportunity</a> notes.</div>';
+    h+='<div class="rs-counts"><span class="pill PASS">'+yes+' agree</span><span class="pill FAIL">'+no+' disagree</span><span class="pill NA">'+pending+' pending</span></div>';
+    h+='<div class="rs-notes"><div class="rs-tmpl-head"><strong>Handoff note</strong>'+
+       '<button type="button" id="copyTmpl" class="copybtn">Copy</button></div>'+
+       '<textarea id="tmplOut" class="tmpl-out" readonly rows="'+Math.max(tmplLines.length+1,1)+'"></textarea></div>';
+    document.getElementById('reviewSummary').innerHTML=h;
+
+    // Set textarea value via property (keeps <, > etc. literal) and wire Copy.
+    const out=document.getElementById('tmplOut');
+    if(out) out.value = tmplText;
+    const cbtn=document.getElementById('copyTmpl');
+    if(cbtn){
+      cbtn.addEventListener('click', function(){
+        const copyIt = ()=>{ if(out){ out.focus(); out.select(); try{ document.execCommand('copy'); }catch(e){} } };
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(tmplText).catch(copyIt);
+        } else { copyIt(); }
+        cbtn.textContent='Copied'; cbtn.classList.add('done');
+        setTimeout(()=>{ cbtn.textContent='Copy'; cbtn.classList.remove('done'); }, 1500);
+      });
+    }
+  }
+  document.querySelectorAll('.rev-select').forEach(s=>{
+    s.addEventListener('change', function(){
+      const chk=this.getAttribute('data-chk');
+      const ta=document.querySelector('.rev-note[data-chk="'+chk+'"]');
+      // Show the note field on a disagree (No) or on 12A "Notes Needed".
+      const showNote = this.value==='no' || this.value==='notes';
+      if(ta) ta.style.display = showNote ? 'block':'none';
+      this.className = 'rev-select' + (this.value==='yes'?' yes':this.value==='no'?' no':'');
+      updateReviewSummary();
+    });
+  });
+  document.querySelectorAll('.rev-note').forEach(ta=> ta.addEventListener('input', updateReviewSummary));
+  // 9A address-match sub-question: reveal the Gem link + context field on "No".
+  document.querySelectorAll('.addr-q').forEach(function(s){
+    s.addEventListener('change', function(){
+      const box = this.parentElement.querySelector('.addr-no');
+      if(box) box.style.display = this.value==='no' ? 'block':'none';
+      this.className = 'addr-q' + (this.value==='yes'?' yes':this.value==='no'?' no':'');
+    });
+  });
+  updateReviewSummary();
+}
+
+// -------- Snowflake query builders (validated shapes) --------
+function SNOW_A(RID, DATE, DBEFORE){ return `
+WITH plan_carrier AS (
+  SELECT p.UUID plan_uuid, p.STATE plan_state, c.KEY carrier_key
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.BENEFITS_PLANS p
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.CARRIERS c ON STARTSWITH(p.KEY, c.KEY || '_')
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY p.ID ORDER BY LENGTH(c.KEY) DESC) = 1),
+ep AS (SELECT RENEWAL_ID, LINE_OF_COVERAGE, EFFECTIVE_SUCCESSOR_PLAN_UUID, ID
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.EXPIRING_POLICIES
+  WHERE RENEWAL_ID = ${RID} AND EXPIRATION_DATE = '${DBEFORE}'),
+succ AS (SELECT e.RENEWAL_ID, pc.carrier_key, pc.plan_state FROM ep e
+  JOIN plan_carrier pc ON pc.plan_uuid = e.EFFECTIVE_SUCCESSOR_PLAN_UUID
+  WHERE e.LINE_OF_COVERAGE='medical'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY e.RENEWAL_ID ORDER BY e.ID DESC) = 1),
+calc AS (SELECT CARRIER_KEY, STATE_ABBREVIATION, SUPPORTED_CALCULATORS
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.CARRIER_REGISTRY_CONTRIBUTIONS_SUPPORTED_CALCULATORS
+  WHERE EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY CARRIER_KEY, STATE_ABBREVIATION ORDER BY EFFECTIVE_DATE DESC, ID DESC) = 1),
+prop AS (SELECT o.RENEWAL_ID,
+    PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:type::STRING ee_calc,
+    PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:type::STRING dep_calc
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.MEDICAL_PACKAGE_OFFERINGS o
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.COMPANY_CONTRIBUTIONS cc ON cc.ID = o.COMPANY_CONTRIBUTION_ID
+  WHERE o.RENEWAL_ID IN (SELECT RENEWAL_ID FROM succ) AND o.RECOMMENDED = TRUE
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY o.RENEWAL_ID ORDER BY o.ID DESC) = 1),
+alts AS (SELECT RENEWAL_ID, COUNT(*) n
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.RENEWALS_RECOMMENDED_PACKAGES
+  WHERE STATUS='complete' AND RENEWAL_ID IN (SELECT RENEWAL_ID FROM succ) GROUP BY 1),
+hsa AS (SELECT DISTINCT RENEWAL_ID FROM ep WHERE LINE_OF_COVERAGE='hsa'),
+hdhp AS (SELECT DISTINCT e.RENEWAL_ID FROM ep e
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.BENEFITS_PLANS bp ON bp.UUID = e.EFFECTIVE_SUCCESSOR_PLAN_UUID
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.HEALTH_PLAN_DETAILS hd ON hd.BENEFITS_PLAN_ID = bp.ID
+  WHERE hd.HSA_ELIGIBLE = TRUE AND hd.INSURANCE_TYPE='medical'),
+gsf AS (SELECT f.CARRIER_KEY, f.CARRIER_STATE, f.RULE_CONFIGURATION_ID
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.UNDERWRITING_RULES_RULE_CONFIGURATION_FOUNDATIONS f
+  WHERE f.RULE_CONFIGURATION_TYPE='UnderwritingRules::GroupSizeRuleConfiguration'
+    AND f.FUNDING_TYPE='fully_insured' AND f.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY f.CARRIER_KEY, f.CARRIER_STATE ORDER BY f.EFFECTIVE_DATE DESC, f.ID DESC) = 1),
+gs AS (SELECT gsf.CARRIER_KEY, gsf.CARRIER_STATE, g.RENEWING_COVERAGE_MEDICAL_MIN mn,
+    g.RENEWING_COVERAGE_MEDICAL_MAX mx, g.SIZE_CALCULATION_TYPE sct
+  FROM gsf JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.UNDERWRITING_RULES_GROUP_SIZE_RULE_CONFIGURATIONS g ON g.ID = gsf.RULE_CONFIGURATION_ID)
+SELECT s.RENEWAL_ID RID, s.carrier_key CKEY, s.plan_state PST,
+  p.ee_calc EE_CALC, p.dep_calc DEP_CALC, c.SUPPORTED_CALCULATORS SUPPORTED,
+  ARRAY_CONTAINS(p.ee_calc::VARIANT, SPLIT(TRIM(c.SUPPORTED_CALCULATORS,'{}'), ',')) EE_OK,
+  ARRAY_CONTAINS(p.dep_calc::VARIANT, SPLIT(TRIM(c.SUPPORTED_CALCULATORS,'{}'), ',')) DEP_OK,
+  COALESCE(a.n,0) ALTS, IFF(h.RENEWAL_ID IS NOT NULL,TRUE,FALSE) HAS_HSA,
+  IFF(d.RENEWAL_ID IS NOT NULL,TRUE,FALSE) HAS_HDHP,
+  gs.mn GS_MIN, gs.mx GS_MAX, gs.sct GS_TYPE
+FROM succ s
+LEFT JOIN prop p ON p.RENEWAL_ID=s.RENEWAL_ID
+LEFT JOIN calc c ON c.CARRIER_KEY=s.carrier_key AND c.STATE_ABBREVIATION=s.plan_state
+LEFT JOIN alts a ON a.RENEWAL_ID=s.RENEWAL_ID
+LEFT JOIN hsa h ON h.RENEWAL_ID=s.RENEWAL_ID
+LEFT JOIN hdhp d ON d.RENEWAL_ID=s.RENEWAL_ID
+LEFT JOIN gs ON gs.CARRIER_KEY=s.carrier_key AND gs.CARRIER_STATE=s.plan_state`; }
+
+// SNOW_F — 10A underwriting requirements, one row per line of coverage.
+// Five rules, all resolved from the underwriting-rules spine
+// (UNDERWRITING_RULES_RULE_CONFIGURATION_FOUNDATIONS, keyed carrier x state x
+// funding type — NOT by line of coverage; per-line differences live inside the
+// group-size child table only):
+//   1 in-state participation   InStateEmployeeRuleConfiguration
+//   2 owner-only               OwnerOnlyRuleConfiguration
+//   3 minimum enrolled         ParticipationRuleConfiguration -> COUNT_REQUIREMENTS,
+//                              measured against LAST year's actual enrollment
+//   4 PPO for out-of-state     no structured rule exists — carrier metadata is free
+//                              text, so this reports facts and never asserts a verdict
+//   5 full-time minimum        GroupSizeRuleConfiguration, RENEWING_COVERAGE_* columns
+// Measurement caveats baked in:
+//  - There is no FTE value anywhere in the warehouse. FT_EES is a proxy: the count of
+//    employments with EMPLOYMENT_STATUS = 'full_time'. Carriers compute fte/atne with
+//    part-time hour conversions, so this is never used to fail a group.
+//  - COMPANIES.ADDRESSES worksite employee_count is the only per-state source but runs
+//    stale (often overstated). TOTAL_ACTIVE_EES is returned alongside it so the gap shows.
+//  - Prior-year enrolment must be scoped to the company's own packages AND the line's
+//    expiration date: BENEFITS_PLAN_UUID is a shared plan definition, and the same UUID
+//    recurs across policy years.
+//  - Owner composition is not derivable from aggregates. A non-null
+//    FIRST_NON_OWNER_HIRE_DATE on the fulfilment snapshot is one-sided evidence that a
+//    non-owner W2 employee exists; its absence proves nothing, and snapshots are written
+//    at submission so pre-handoff renewals frequently have none.
+function SNOW_F(RID, DATE, DBEFORE){ const W = "DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII"; return `
+WITH ren AS (SELECT r.ID RENEWAL_ID, r.COMPANY_ID, c.UUID COMPANY_UUID, c.ADDRESSES, c.WORK_STATES
+  FROM ${W}.RENEWALS r JOIN ${W}.COMPANIES c ON c.ID = r.COMPANY_ID WHERE r.ID = ${RID}),
+ep AS (SELECT e.LINE_OF_COVERAGE LOC, e.BENEFITS_PLAN_UUID EXP_UUID,
+       e.EFFECTIVE_SUCCESSOR_PLAN_UUID REN_UUID, e.EXPIRATION_DATE EXP_DT
+  FROM ${W}.EXPIRING_POLICIES e WHERE e.RENEWAL_ID = ${RID}),
+ren_plan AS (SELECT ep.LOC, bp.STATE PLAN_STATE, bp.FUNDING_TYPE,
+       bp.OUT_OF_STATE_EMPLOYEES_SUPPORTED OOS_OK, hpd.PLAN_TYPE, c.KEY CARRIER_KEY
+  FROM ep
+  JOIN ${W}.BENEFITS_PLANS bp ON bp.UUID = COALESCE(ep.REN_UUID, ep.EXP_UUID)
+  LEFT JOIN ${W}.HEALTH_PLAN_DETAILS hpd ON hpd.BENEFITS_PLAN_ID = bp.ID
+  JOIN ${W}.CARRIERS c ON STARTSWITH(bp.KEY, c.KEY || '_')
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ep.LOC, ep.EXP_UUID ORDER BY LENGTH(c.KEY) DESC) = 1),
+loc AS (SELECT LOC, CARRIER_KEY, PLAN_STATE, FUNDING_TYPE, COUNT(*) N_PLANS,
+       COUNT_IF(PLAN_TYPE='ppo') N_PPO, LISTAGG(DISTINCT COALESCE(PLAN_TYPE,'(none)'),', ') PLAN_TYPES
+  FROM ren_plan GROUP BY 1,2,3,4
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY LOC ORDER BY COUNT(*) DESC, CARRIER_KEY) = 1),
+fnd AS (SELECT loc.LOC, f.RULE_CONFIGURATION_TYPE RT, f.RULE_CONFIGURATION_ID RCID
+  FROM loc JOIN ${W}.UNDERWRITING_RULES_RULE_CONFIGURATION_FOUNDATIONS f
+    ON f.CARRIER_KEY = loc.CARRIER_KEY AND f.CARRIER_STATE = loc.PLAN_STATE
+   AND f.FUNDING_TYPE = loc.FUNDING_TYPE AND f.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY loc.LOC, f.RULE_CONFIGURATION_TYPE
+                             ORDER BY f.EFFECTIVE_DATE DESC, f.ID DESC) = 1),
+r_size AS (SELECT fnd.LOC, gs.SIZE_CALCULATION_TYPE SIZE_CALC,
+    CASE fnd.LOC WHEN 'medical' THEN gs.RENEWING_COVERAGE_MEDICAL_MIN
+      WHEN 'dental' THEN gs.RENEWING_COVERAGE_DENTAL_MIN
+      WHEN 'vision' THEN gs.RENEWING_COVERAGE_VISION_MIN
+      WHEN 'life' THEN gs.RENEWING_COVERAGE_LIFE_MIN
+      WHEN 'short_term_disability' THEN gs.RENEWING_COVERAGE_SHORT_TERM_DISABILITY_MIN
+      WHEN 'long_term_disability' THEN gs.RENEWING_COVERAGE_LONG_TERM_DISABILITY_MIN END SIZE_MIN,
+    CASE fnd.LOC WHEN 'medical' THEN gs.RENEWING_COVERAGE_MEDICAL_MAX
+      WHEN 'dental' THEN gs.RENEWING_COVERAGE_DENTAL_MAX
+      WHEN 'vision' THEN gs.RENEWING_COVERAGE_VISION_MAX
+      WHEN 'life' THEN gs.RENEWING_COVERAGE_LIFE_MAX
+      WHEN 'short_term_disability' THEN gs.RENEWING_COVERAGE_SHORT_TERM_DISABILITY_MAX
+      WHEN 'long_term_disability' THEN gs.RENEWING_COVERAGE_LONG_TERM_DISABILITY_MAX END SIZE_MAX
+  FROM fnd JOIN ${W}.UNDERWRITING_RULES_GROUP_SIZE_RULE_CONFIGURATIONS gs ON gs.ID = fnd.RCID
+  WHERE fnd.RT = 'UnderwritingRules::GroupSizeRuleConfiguration'),
+r_instate AS (SELECT fnd.LOC, ise.THRESHOLD_TYPE INSTATE_TYPE, ise.MINIMUM_VALUE INSTATE_MIN
+  FROM fnd JOIN ${W}.UNDERWRITING_RULES_IN_STATE_EMPLOYEE_RULE_CONFIGURATIONS ise ON ise.ID = fnd.RCID
+  WHERE fnd.RT = 'UnderwritingRules::InStateEmployeeRuleConfiguration'),
+r_owner AS (SELECT fnd.LOC,
+    GREATEST(COALESCE(oo.SOLE_PROP_MIN_NON_OWNER_W2_EES_REQUIRED,0),
+             COALESCE(oo.S_CORP_MIN_NON_OWNER_W2_EES_REQUIRED,0),
+             COALESCE(oo.C_CORP_MIN_NON_OWNER_W2_EES_REQUIRED,0),
+             COALESCE(oo.LLC_MIN_NON_OWNER_W2_EES_REQUIRED,0),
+             COALESCE(oo.LLP_PARTNERSHIP_MIN_NON_OWNER_W2_EES_REQUIRED,0),
+             COALESCE(oo.NON_PROFIT_MIN_NON_OWNER_W2_EES_REQUIRED,0)) OWNER_MIN
+  FROM fnd JOIN ${W}.UNDERWRITING_RULES_OWNER_ONLY_RULE_CONFIGURATIONS oo ON oo.ID = fnd.RCID
+  WHERE fnd.RT = 'UnderwritingRules::OwnerOnlyRuleConfiguration'),
+r_part AS (SELECT fnd.LOC, MAX(pcr.MINIMUM_NUMBER_OF_PARTICIPANTS_REQUIRED) MIN_ENROLLED,
+       MAX(ppd.MINIMUM_PERCENT_OF_PARTICIPANTS_REQUIRED) MIN_PCT
+  FROM fnd
+  LEFT JOIN ${W}.UNDERWRITING_RULES_PARTICIPATION_COUNT_REQUIREMENTS pcr
+    ON pcr.PARTICIPATION_RULE_CONFIGURATION_ID = fnd.RCID
+  LEFT JOIN ${W}.UNDERWRITING_RULES_PARTICIPATION_PERCENT_REQUIREMENTS ppr
+    ON ppr.PARTICIPATION_RULE_CONFIGURATION_ID = fnd.RCID
+  LEFT JOIN ${W}.UNDERWRITING_RULES_PARTICIPATION_PERCENT_DETAILS ppd
+    ON ppd.PARTICIPATION_PERCENT_REQUIREMENT_ID = ppr.ID
+  WHERE fnd.RT = 'UnderwritingRules::ParticipationRuleConfiguration' GROUP BY 1),
+cmv AS (SELECT loc.LOC, v.ID VID FROM loc
+  JOIN ${W}.CARRIER_METADATA_CARRIER_METADATA_VERSIONS v
+    ON v.CARRIER_KEY = loc.CARRIER_KEY AND v.CARRIER_STATE = loc.PLAN_STATE
+   AND v.FUNDING_TYPE = loc.FUNDING_TYPE AND v.EFFECTIVE_START_DATE <= '${DATE}'
+   AND COALESCE(v.ARCHIVED,FALSE) = FALSE
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY loc.LOC ORDER BY v.EFFECTIVE_START_DATE DESC, v.ID DESC) = 1),
+meta AS (SELECT cmv.LOC, gtr.ALLOWS_OUT_OF_STATE_EMPLOYEES OOS_ALLOWED,
+       png.FULL_PPO_POS_OR_EPO_NETWORK_NAME PPO_NETWORK
+  FROM cmv
+  LEFT JOIN ${W}.CARRIER_METADATA_GROUP_TYPE_RULES gtr ON gtr.CARRIER_METADATA_VERSION_ID = cmv.VID
+  LEFT JOIN ${W}.CARRIER_METADATA_PLAN_AND_NETWORK_UNDERWRITING_GUIDES png ON png.CARRIER_METADATA_VERSION_ID = cmv.VID),
+emp AS (SELECT e.ID EID, em.EMPLOYMENT_STATUS ST
+  FROM ren JOIN ${W}.EMPLOYEES e ON e.COMPANY_ID = ren.COMPANY_ID
+  LEFT JOIN ${W}.EMPLOYMENTS em ON em.EMPLOYEE_ID = e.ID
+  WHERE e.STATUS = 'Active'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY e.ID ORDER BY em.UPDATED_AT DESC NULLS LAST, em.ID DESC NULLS LAST) = 1),
+emp_agg AS (SELECT COUNT(*) TOTAL_EES, COUNT_IF(ST='full_time') FT_EES, COUNT_IF(ST='part_time') PT_EES FROM emp),
+wsite AS (SELECT a.value:state::TEXT WS, SUM(COALESCE(a.value:employee_count::NUMBER,0)) N
+  FROM ren, LATERAL FLATTEN(input => PARSE_JSON(ren.ADDRESSES)) a
+  WHERE COALESCE(a.value:inactive::BOOLEAN,FALSE)=FALSE AND COALESCE(a.value:work_address::BOOLEAN,TRUE)=TRUE
+  GROUP BY 1),
+ws_loc AS (SELECT loc.LOC,
+    SUM(IFF(w.WS = loc.PLAN_STATE, w.N, 0)) EES_IN_STATE, SUM(w.N) EES_WORKSITE_TOTAL,
+    NULLIF(LISTAGG(IFF(w.WS <> loc.PLAN_STATE AND w.N > 0, w.WS, NULL), ', '),'') OOS_STATES
+  FROM loc JOIN wsite w GROUP BY 1),
+all_ws AS (SELECT LISTAGG(DISTINCT w.value::TEXT, ', ') WORK_STATES
+  FROM ren, LATERAL FLATTEN(input => PARSE_JSON(ren.WORK_STATES)) w),
+prior AS (SELECT ep.LOC,
+    -- Prior-year enrollment = employees whose SUBSCRIPTION was in force on the last
+    -- day of the expiring plan year (EXP_DT). SUBSCRIPTIONS carries START/END dates,
+    -- so it excludes mid-year terminations and in-progress renewal-year selections
+    -- that the raw SELECTIONS count wrongly inflated with.
+    COUNT(DISTINCT CASE WHEN sub.VISIBLE
+                         AND sub.START_DATE <= ep.EXP_DT
+                         AND COALESCE(sub.END_DATE,'9999-12-31') >= ep.EXP_DT
+                        THEN sub.EMPLOYEE_ID END) PRIOR_ENROLLED
+  FROM ep
+  JOIN ren ON TRUE
+  JOIN ${W}.BENEFITS_PACKAGES bpk ON bpk.COMPANY_ID = ren.COMPANY_ID
+  JOIN ${W}.POLICIES po ON po.BENEFITS_PLAN_UUID = ep.EXP_UUID
+   AND po.BENEFITS_PACKAGE_ID = bpk.ID AND po.EXPIRATION_DATE = ep.EXP_DT
+  LEFT JOIN ${W}.SUBSCRIPTIONS sub ON sub.POLICY_ID = po.ID
+  GROUP BY 1),
+snap AS (SELECT gs.ENTITY_TYPE, gs.FIRST_NON_OWNER_HIRE_DATE FNOH
+  FROM ren JOIN ${W}.FULFILLMENT_EVENTS fe ON fe.COMPANY_UUID = ren.COMPANY_UUID
+  JOIN ${W}.FULFILLMENT_EVENT_GROUP_SNAPSHOTS gs ON gs.FULFILLMENT_EVENT_ID = fe.ID
+  QUALIFY ROW_NUMBER() OVER (ORDER BY fe.CREATED_AT DESC) = 1)
+SELECT loc.LOC, loc.CARRIER_KEY, loc.PLAN_STATE, loc.FUNDING_TYPE, loc.N_PLANS, loc.PLAN_TYPES,
+  (loc.N_PPO > 0) PPO_IN_OFFERINGS,
+  ea.TOTAL_EES, ea.FT_EES, ea.PT_EES,
+  aw.WORK_STATES, wl.EES_IN_STATE, wl.EES_WORKSITE_TOTAL, wl.OOS_STATES,
+  ROUND(100.0*wl.EES_IN_STATE/NULLIF(wl.EES_WORKSITE_TOTAL,0),1) IN_STATE_PCT,
+  pr.PRIOR_ENROLLED,
+  rs.SIZE_CALC, rs.SIZE_MIN, rs.SIZE_MAX,
+  ri.INSTATE_TYPE, ri.INSTATE_MIN, ro.OWNER_MIN,
+  rp.MIN_ENROLLED, rp.MIN_PCT,
+  m.OOS_ALLOWED, m.PPO_NETWORK, sn.ENTITY_TYPE, sn.FNOH
+FROM loc
+CROSS JOIN emp_agg ea
+CROSS JOIN all_ws aw
+LEFT JOIN ws_loc wl ON wl.LOC = loc.LOC
+LEFT JOIN r_size rs ON rs.LOC = loc.LOC
+LEFT JOIN r_instate ri ON ri.LOC = loc.LOC
+LEFT JOIN r_owner ro ON ro.LOC = loc.LOC
+LEFT JOIN r_part rp ON rp.LOC = loc.LOC
+LEFT JOIN meta m ON m.LOC = loc.LOC
+LEFT JOIN prior pr ON pr.LOC = loc.LOC
+LEFT JOIN snap sn ON TRUE
+ORDER BY CASE loc.LOC WHEN 'medical' THEN 0 WHEN 'dental' THEN 1 WHEN 'vision' THEN 2 ELSE 3 END, loc.LOC`; }
+
+// SNOW_E — 7A waiting period, one row per line of coverage. Mirrors SNOW_D.
+// Prior year from POLICIES.WAITING_PERIOD, renewal year from the per-LOC
+// *_PACKAGE_OFFERINGS.WAITING_PERIOD, checked against the waiting-period registry.
+// Notes:
+//  - The fully-insured registry IS keyed by line of coverage (unlike contributions).
+//    The level-funded table is not, so it falls back to carrier + state only.
+//  - Two allowed lists per row: NEW_RELATIONSHIP vs EXISTING_RELATIONSHIP. A renewal
+//    with the same carrier is an existing relationship; a carrier switch is new.
+//  - Alternate offerings carry a null WAITING_PERIOD, so order non-null first —
+//    otherwise the recommended offering reads as "no waiting period loaded".
+function SNOW_E(RID, DATE, DBEFORE){ const W = "DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII"; return `
+WITH ep AS (SELECT e.LINE_OF_COVERAGE LOC, e.BENEFITS_PLAN_UUID EXP_UUID,
+       e.EFFECTIVE_SUCCESSOR_PLAN_UUID REN_UUID, e.EXPIRATION_DATE EXP_DT
+  FROM ${W}.EXPIRING_POLICIES e
+  WHERE e.RENEWAL_ID = ${RID}),
+pk AS (SELECT bp.UUID, bp.STATE, bp.FUNDING_TYPE, c.KEY CARRIER_KEY
+  FROM ${W}.BENEFITS_PLANS bp
+  LEFT JOIN ${W}.CARRIERS c ON STARTSWITH(bp.KEY, c.KEY || '_')
+  WHERE bp.UUID IN (SELECT EXP_UUID FROM ep UNION SELECT REN_UUID FROM ep WHERE REN_UUID IS NOT NULL)
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY bp.UUID ORDER BY LENGTH(c.KEY) DESC NULLS LAST) = 1),
+expw AS (SELECT ep.LOC, LISTAGG(DISTINCT pol.WAITING_PERIOD,' | ') EXP_WP
+  FROM ep
+  JOIN ${W}.POLICIES pol ON pol.BENEFITS_PLAN_UUID = ep.EXP_UUID
+  JOIN ${W}.BENEFITS_PACKAGES bpk ON bpk.ID = pol.BENEFITS_PACKAGE_ID
+  JOIN ${W}.RENEWALS r ON r.ID = ${RID} AND r.COMPANY_ID = bpk.COMPANY_ID
+  WHERE pol.EFFECTIVE_DATE <= ep.EXP_DT
+    AND (pol.EXPIRATION_DATE IS NULL OR pol.EXPIRATION_DATE >= ep.EXP_DT)
+  GROUP BY 1),
+off AS (
+  SELECT 'medical' LOC, WAITING_PERIOD WP, RECOMMENDED, "DEFAULT" DFLT, ID OID FROM ${W}.MEDICAL_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'dental',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.DENTAL_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'vision',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.VISION_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'short_term_disability',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.SHORT_TERM_DISABILITY_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'long_term_disability',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.LONG_TERM_DISABILITY_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'life',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.LIFE_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'voluntary_life',WAITING_PERIOD,RECOMMENDED,"DEFAULT",ID FROM ${W}.VOLUNTARY_LIFE_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}),
+renw AS (SELECT o.LOC, o.WP REN_WP, o.RECOMMENDED REN_REC, o.DFLT REN_DFLT FROM off o
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY o.LOC
+    ORDER BY IFF(o.WP IS NULL,1,0), o.RECOMMENDED DESC, o.DFLT DESC, o.OID DESC) = 1),
+wfi AS (SELECT x.CARRIER_KEY CK, x.STATE_ABBREVIATION ST, x.LINE_OF_COVERAGE LOC,
+    x.NEW_RELATIONSHIP_ALLOWED_WAITING_PERIODS NEWWP, x.EXISTING_RELATIONSHIP_ALLOWED_WAITING_PERIODS EXWP
+  FROM ${W}.CARRIER_REGISTRY_WAITING_PERIOD_CONFIGURATIONS x
+  WHERE x.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY x.CARRIER_KEY, x.STATE_ABBREVIATION, x.LINE_OF_COVERAGE ORDER BY x.EFFECTIVE_DATE DESC, x.ID DESC) = 1),
+wlf AS (SELECT x.CARRIER_KEY CK, x.STATE_ABBREVIATION ST,
+    x.NEW_RELATIONSHIP_ALLOWED_WAITING_PERIODS NEWWP, x.EXISTING_RELATIONSHIP_ALLOWED_WAITING_PERIODS EXWP
+  FROM ${W}.CARRIER_REGISTRY_LEVEL_FUNDED_WAITING_PERIOD_CONFIGURATIONS x
+  WHERE x.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY x.CARRIER_KEY, x.STATE_ABBREVIATION ORDER BY x.EFFECTIVE_DATE DESC, x.ID DESC) = 1),
+base AS (SELECT ep.LOC, COUNT(*) N_PLANS, SUM(IFF(ep.REN_UUID IS NULL,1,0)) N_NO_SUCC,
+    NULLIF(LISTAGG(DISTINCT e.CARRIER_KEY,','),'') EXP_CARRIER, NULLIF(LISTAGG(DISTINCT e.STATE,','),'') EXP_STATE,
+    NULLIF(LISTAGG(DISTINCT r.CARRIER_KEY,','),'') REN_CARRIER, NULLIF(LISTAGG(DISTINCT r.STATE,','),'') REN_STATE,
+    ANY_VALUE(r.CARRIER_KEY) RCK, ANY_VALUE(r.STATE) RST, ANY_VALUE(r.FUNDING_TYPE) RFT
+  FROM ep LEFT JOIN pk e ON e.UUID = ep.EXP_UUID LEFT JOIN pk r ON r.UUID = ep.REN_UUID GROUP BY 1),
+j AS (SELECT b.*, a.EXP_WP, c.REN_WP, c.REN_REC, c.REN_DFLT,
+    IFF(b.EXP_CARRIER IS NOT NULL AND b.REN_CARRIER IS NOT NULL AND b.EXP_CARRIER <> b.REN_CARRIER,'new','existing') REL,
+    IFF(b.RFT='level_funded', wlf.NEWWP, wfi.NEWWP) NEWWP,
+    IFF(b.RFT='level_funded', wlf.EXWP,  wfi.EXWP)  EXWP
+  FROM base b
+  LEFT JOIN expw a ON a.LOC = b.LOC
+  LEFT JOIN renw c ON c.LOC = b.LOC
+  LEFT JOIN wfi ON wfi.CK = b.RCK AND wfi.ST = b.RST AND wfi.LOC = b.LOC
+  LEFT JOIN wlf ON wlf.CK = b.RCK AND wlf.ST = b.RST)
+SELECT LOC, N_PLANS, N_NO_SUCC, EXP_CARRIER, EXP_STATE, REN_CARRIER, REN_STATE, RFT REN_FUNDING,
+  EXP_WP, REN_WP, REN_REC, REN_DFLT, REL, IFF(REL='new', NEWWP, EXWP) ALLOWED_WP,
+  CASE WHEN LOC IN ('hsa','fsa','dca') THEN 'NA_ACCOUNT'
+       WHEN RCK IS NULL THEN 'UNKNOWN_NO_SUCCESSOR'
+       WHEN IFF(REL='new',NEWWP,EXWP) IS NULL OR IFF(REL='new',NEWWP,EXWP) = '{}' THEN 'UNKNOWN_NO_REGISTRY'
+       WHEN REN_WP IS NULL THEN 'UNKNOWN_NO_WP'
+       WHEN ARRAY_CONTAINS(REN_WP::VARIANT, SPLIT(TRIM(IFF(REL='new',NEWWP,EXWP),'{}'),',')) THEN 'ALLOWED'
+       ELSE 'NOT_ALLOWED' END WP_VERDICT
+FROM j
+ORDER BY CASE LOC WHEN 'medical' THEN 0 WHEN 'dental' THEN 1 WHEN 'vision' THEN 2 ELSE 3 END, LOC`; }
+
+// SNOW_D — 6A contribution scheme, one row per line of coverage.
+// Prior-year applied scheme (POLICIES -> POLICY_CONTRIBUTIONS -> COMPANY_CONTRIBUTIONS)
+// vs renewal-year proposed scheme (the seven per-LOC *_PACKAGE_OFFERINGS tables),
+// checked against carrier metadata for the renewing carrier + state + funding type:
+//   (i)  is the calculator type in the carrier's allowed list?
+//   (ii) does the employee percentage clear the carrier's minimum?
+// Notes baked in:
+//  - CALCULATOR_INPUTS JSON shape varies. employee_calculator.type is absent on
+//    waterfall / single_line_waterfall / zero_amount shapes, so COALESCE to the
+//    top-level type and strip the "single_line_" prefix to match registry tokens.
+//  - Do NOT filter offerings on RECOMMENDED = TRUE: the recommended offering often
+//    has a null COMPANY_CONTRIBUTION_ID while the contribution sits on the DEFAULT
+//    offering. Order RECOMMENDED -> DEFAULT -> newest instead.
+//  - The registry has no line-of-coverage dimension: it is carrier x state x
+//    effective date, with a separate level-funded table. One carrier writing several
+//    lines gets the same allowed list for each.
+//  - hsa/fsa/dca are Gusto-administered, no carrier and no registry row: N/A, not a risk.
+//  - MINIMUM_VALUE null means no minimum, not a zero minimum. Registry percentages
+//    are 0-100 while the JSON stores 0-1, hence the *100.
+function SNOW_D(RID, DATE, DBEFORE){ const W = "DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII"; return `
+WITH ep AS (SELECT e.LINE_OF_COVERAGE LOC, e.BENEFITS_PLAN_UUID EXP_UUID,
+       e.EFFECTIVE_SUCCESSOR_PLAN_UUID REN_UUID, e.EXPIRATION_DATE EXP_DT
+  FROM ${W}.EXPIRING_POLICIES e
+  WHERE e.RENEWAL_ID = ${RID}),
+pk AS (SELECT bp.UUID, bp.STATE, bp.FUNDING_TYPE, c.KEY CARRIER_KEY
+  FROM ${W}.BENEFITS_PLANS bp
+  LEFT JOIN ${W}.CARRIERS c ON STARTSWITH(bp.KEY, c.KEY || '_')
+  WHERE bp.UUID IN (SELECT EXP_UUID FROM ep UNION SELECT REN_UUID FROM ep WHERE REN_UUID IS NOT NULL)
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY bp.UUID ORDER BY LENGTH(c.KEY) DESC NULLS LAST) = 1),
+expc AS (SELECT ep.LOC,
+    REGEXP_REPLACE(COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:type::STRING,
+                            PARSE_JSON(cc.CALCULATOR_INPUTS):type::STRING),'^single_line_','') EE_CALC,
+    COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:percentage::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:amount::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):amount::STRING) EE_AMT,
+    PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:type::STRING DEP_CALC,
+    COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:percentage::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:amount::STRING) DEP_AMT
+  FROM ep
+  JOIN ${W}.POLICIES pol ON pol.BENEFITS_PLAN_UUID = ep.EXP_UUID
+  JOIN ${W}.BENEFITS_PACKAGES bpk ON bpk.ID = pol.BENEFITS_PACKAGE_ID
+  JOIN ${W}.RENEWALS r ON r.ID = ${RID} AND r.COMPANY_ID = bpk.COMPANY_ID
+  JOIN ${W}.POLICY_CONTRIBUTIONS pcx ON pcx.POLICY_ID = pol.ID
+  JOIN ${W}.COMPANY_CONTRIBUTIONS cc ON cc.ID = pcx.COMPANY_CONTRIBUTION_ID
+  WHERE pol.EFFECTIVE_DATE <= ep.EXP_DT
+    AND (pol.EXPIRATION_DATE IS NULL OR pol.EXPIRATION_DATE >= ep.EXP_DT)),
+expagg AS (SELECT LOC, LISTAGG(DISTINCT EE_CALC,' | ') EXP_EE_CALC, LISTAGG(DISTINCT EE_AMT,' | ') EXP_EE_AMT,
+    LISTAGG(DISTINCT DEP_CALC,' | ') EXP_DEP_CALC, LISTAGG(DISTINCT DEP_AMT,' | ') EXP_DEP_AMT
+  FROM expc GROUP BY 1),
+off AS (
+  SELECT 'medical' LOC, COMPANY_CONTRIBUTION_ID CCID, RECOMMENDED, "DEFAULT" DFLT, ID OID FROM ${W}.MEDICAL_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'dental',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.DENTAL_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'vision',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.VISION_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'short_term_disability',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.SHORT_TERM_DISABILITY_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'long_term_disability',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.LONG_TERM_DISABILITY_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'life',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.LIFE_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}
+  UNION ALL SELECT 'voluntary_life',COMPANY_CONTRIBUTION_ID,RECOMMENDED,"DEFAULT",ID FROM ${W}.VOLUNTARY_LIFE_PACKAGE_OFFERINGS WHERE RENEWAL_ID = ${RID}),
+renc AS (SELECT o.LOC, o.RECOMMENDED REN_REC, o.DFLT REN_DFLT,
+    REGEXP_REPLACE(COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:type::STRING,
+                            PARSE_JSON(cc.CALCULATOR_INPUTS):type::STRING),'^single_line_','') REN_EE_CALC,
+    COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:percentage::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):employee_calculator:amount::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):amount::STRING) REN_EE_AMT,
+    PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:type::STRING REN_DEP_CALC,
+    COALESCE(PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:percentage::STRING,
+             PARSE_JSON(cc.CALCULATOR_INPUTS):dependents_calculator:amount::STRING) REN_DEP_AMT
+  FROM off o JOIN ${W}.COMPANY_CONTRIBUTIONS cc ON cc.ID = o.CCID
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY o.LOC ORDER BY o.RECOMMENDED DESC, o.DFLT DESC, o.OID DESC) = 1),
+reg AS (
+  SELECT x.CARRIER_KEY, x.STATE_ABBREVIATION ST, 'fully_insured' FT, x.SUPPORTED_CALCULATORS SC
+    FROM ${W}.CARRIER_REGISTRY_CONTRIBUTIONS_SUPPORTED_CALCULATORS x
+    WHERE x.EFFECTIVE_DATE <= '${DATE}'
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY x.CARRIER_KEY, x.STATE_ABBREVIATION ORDER BY x.EFFECTIVE_DATE DESC, x.ID DESC) = 1
+  UNION ALL
+  SELECT x.CARRIER_KEY, x.STATE_ABBREVIATION, 'level_funded', x.SUPPORTED_CALCULATORS
+    FROM ${W}.CARRIER_REGISTRY_CONTRIBUTIONS_LF_SUPPORTED_CALCULATORS x
+    WHERE x.EFFECTIVE_DATE <= '${DATE}'
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY x.CARRIER_KEY, x.STATE_ABBREVIATION ORDER BY x.EFFECTIVE_DATE DESC, x.ID DESC) = 1),
+minf AS (SELECT f.CARRIER_KEY, f.CARRIER_STATE ST, f.FUNDING_TYPE FT, f.RULE_CONFIGURATION_ID RCID
+  FROM ${W}.UNDERWRITING_RULES_RULE_CONFIGURATION_FOUNDATIONS f
+  WHERE f.RULE_CONFIGURATION_TYPE = 'UnderwritingRules::MinimumContributionRuleConfiguration'
+    AND f.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY f.CARRIER_KEY, f.CARRIER_STATE, f.FUNDING_TYPE ORDER BY f.EFFECTIVE_DATE DESC, f.ID DESC) = 1),
+minv AS (SELECT mf.CARRIER_KEY, mf.ST, mf.FT, mc.CONTRIBUTION_TYPE CT, MAX(md.MINIMUM_VALUE) MINVAL
+  FROM minf mf
+  JOIN ${W}.UNDERWRITING_RULES_MINIMUM_CONTRIBUTIONS mc ON mc.MINIMUM_CONTRIBUTION_RULE_CONFIGURATION_ID = mf.RCID
+  JOIN ${W}.UNDERWRITING_RULES_MINIMUM_CONTRIBUTION_DETAILS md ON md.MINIMUM_CONTRIBUTION_ID = mc.ID AND md.PARTICIPANT_TYPE = 'employee'
+  GROUP BY 1,2,3,4),
+base AS (SELECT ep.LOC, COUNT(*) N_PLANS, SUM(IFF(ep.REN_UUID IS NULL,1,0)) N_NO_SUCC,
+    NULLIF(LISTAGG(DISTINCT e.CARRIER_KEY,','),'') EXP_CARRIER, NULLIF(LISTAGG(DISTINCT e.STATE,','),'') EXP_STATE,
+    NULLIF(LISTAGG(DISTINCT r.CARRIER_KEY,','),'') REN_CARRIER, NULLIF(LISTAGG(DISTINCT r.STATE,','),'') REN_STATE,
+    ANY_VALUE(r.CARRIER_KEY) RCK, ANY_VALUE(r.STATE) RST, ANY_VALUE(r.FUNDING_TYPE) RFT,
+    LISTAGG(DISTINCT ep.EXP_DT::STRING,' | ') EXP_DT,
+    LISTAGG(DISTINCT DATEADD(day,1,ep.EXP_DT)::STRING,' | ') HIPPO_REN_EFF
+  FROM ep LEFT JOIN pk e ON e.UUID = ep.EXP_UUID LEFT JOIN pk r ON r.UUID = ep.REN_UUID GROUP BY 1)
+SELECT b.LOC, b.N_PLANS, b.N_NO_SUCC, b.EXP_DT, b.HIPPO_REN_EFF,
+  b.EXP_CARRIER, b.EXP_STATE, b.REN_CARRIER, b.REN_STATE, b.RFT REN_FUNDING,
+  a.EXP_EE_CALC, a.EXP_EE_AMT, a.EXP_DEP_CALC, a.EXP_DEP_AMT,
+  c.REN_EE_CALC, c.REN_EE_AMT, c.REN_DEP_CALC, c.REN_DEP_AMT, c.REN_REC, c.REN_DFLT,
+  g.SC ALLOWED_CALCS, mv.MINVAL MIN_EE_PCT,
+  CASE WHEN b.LOC IN ('hsa','fsa','dca') THEN 'NA_ACCOUNT'
+       WHEN b.RCK IS NULL THEN 'UNKNOWN_NO_SUCCESSOR'
+       WHEN g.SC IS NULL OR g.SC = '{}' THEN 'UNKNOWN_NO_REGISTRY'
+       WHEN c.REN_EE_CALC IS NULL THEN 'UNKNOWN_NO_SCHEME'
+       WHEN ARRAY_CONTAINS(c.REN_EE_CALC::VARIANT, SPLIT(TRIM(g.SC,'{}'),',')) THEN 'ALLOWED'
+       ELSE 'NOT_ALLOWED' END CALC_VERDICT,
+  CASE WHEN b.LOC IN ('hsa','fsa','dca') THEN 'NA_ACCOUNT'
+       WHEN mv.MINVAL IS NULL THEN 'NO_MINIMUM'
+       WHEN c.REN_EE_AMT IS NULL THEN 'UNKNOWN_NO_SCHEME'
+       WHEN c.REN_EE_CALC IN ('percentage','percentage_of_base')
+         THEN IFF(TRY_TO_DOUBLE(c.REN_EE_AMT)*100 >= mv.MINVAL,'MEETS_MINIMUM','BELOW_MINIMUM')
+       ELSE 'UNKNOWN_NOT_PCT' END MIN_VERDICT
+FROM base b
+LEFT JOIN expagg a ON a.LOC = b.LOC
+LEFT JOIN renc   c ON c.LOC = b.LOC
+LEFT JOIN reg    g ON g.CARRIER_KEY = b.RCK AND g.ST = b.RST AND g.FT = b.RFT
+LEFT JOIN minv  mv ON mv.CARRIER_KEY = b.RCK AND mv.ST = b.RST AND mv.FT = b.RFT AND mv.CT = c.REN_EE_CALC
+ORDER BY CASE b.LOC WHEN 'medical' THEN 0 WHEN 'dental' THEN 1 WHEN 'vision' THEN 2 ELSE 3 END, b.LOC`; }
+
+// SNOW_C — 3A quoting scheme: prior-year vs renewal-year medical scheme, plus the
+// in-force group-level quoting config that backs Hippo Overview's "Current Medical
+// Rating Structure". Quoting periods are quarterly, so bound + dedupe per plan.
+function SNOW_C(RID, DATE, DBEFORE){ const W = "DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII"; return `
+WITH ep AS (
+  SELECT e.ID EP_ID, e.BENEFITS_PLAN_UUID PRIOR_UUID,
+         e.EFFECTIVE_SUCCESSOR_PLAN_UUID RENEW_UUID, e.EFFECTIVE_DATE PRIOR_EFF
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.EXPIRING_POLICIES e
+  WHERE e.RENEWAL_ID = ${RID} AND e.EXPIRATION_DATE = '${DBEFORE}'
+    AND e.LINE_OF_COVERAGE = 'medical'),
+qp_prior AS (
+  SELECT ep.EP_ID, qp.QUOTING_SCHEME_KEY
+  FROM ep JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.QUOTING_PERIODS qp
+    ON qp.BENEFITS_PLAN_UUID = ep.PRIOR_UUID AND qp.EFFECTIVE_DATE <= ep.PRIOR_EFF
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ep.EP_ID ORDER BY qp.EFFECTIVE_DATE DESC, qp.ID DESC) = 1),
+qp_renew AS (
+  SELECT ep.EP_ID, qp.QUOTING_SCHEME_KEY
+  FROM ep JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.QUOTING_PERIODS qp
+    ON qp.BENEFITS_PLAN_UUID = ep.RENEW_UUID AND qp.EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ep.EP_ID ORDER BY qp.EFFECTIVE_DATE DESC, qp.ID DESC) = 1),
+cur AS (
+  SELECT PARSE_JSON(gqc.CONFIGURATION):quoting_scheme_key::STRING CUR_SCHEME,
+         ARRAY_TO_STRING(ARRAY_SORT(OBJECT_KEYS(PARSE_JSON(gqc.CONFIGURATION):group_quoting_factors)),',') CUR_FACTORS
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.RENEWALS r
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.BENEFITS_PACKAGES pkg ON pkg.COMPANY_ID = r.COMPANY_ID
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.POLICIES p ON p.BENEFITS_PACKAGE_ID = pkg.ID
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.HEALTH_POLICY_DETAILS hpd
+    ON hpd.ID = p.POLICY_DETAIL_ID AND p.POLICY_DETAIL_TYPE = 'HealthPolicyDetail'
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.ACTIVE_BENEFITS_GROUP_LEVEL_QUOTING_CONFIGURATIONS gqc
+    ON gqc.ID = hpd.GROUP_LEVEL_QUOTING_CONFIGURATION_ID
+  WHERE r.ID = ${RID} AND p.BENEFIT_TYPE = 'medical' AND p.VISIBLE
+    AND p.EFFECTIVE_DATE <= '${DBEFORE}' AND COALESCE(p.EXPIRATION_DATE,'9999-12-31') >= '${DBEFORE}'
+  QUALIFY ROW_NUMBER() OVER (ORDER BY p.IS_BASE DESC, p.EFFECTIVE_DATE DESC, p.ID DESC) = 1),
+addr AS (
+  -- 9A: the group address of record in Hippo. Only the company mailing/filing
+  -- address is used; COMPANIES.ADDRESSES is a per-worksite list that includes
+  -- individual employees' work addresses and is deliberately not read here.
+  SELECT PARSE_JSON(c.MAILING_ADDRESS) m, PARSE_JSON(c.FILING_ADDRESS) f
+  FROM ${W}.COMPANIES c
+  JOIN ${W}.RENEWALS r ON r.ID = ${RID} AND r.COMPANY_ID = c.ID)
+SELECT (SELECT COUNT(*) FROM ep) N_MED,
+  (SELECT COUNT(*) FROM ep WHERE RENEW_UUID IS NULL) N_NO_SUCCESSOR,
+  (SELECT LISTAGG(DISTINCT QUOTING_SCHEME_KEY,'|') FROM qp_prior) PRIOR_SCHEME,
+  (SELECT LISTAGG(DISTINCT QUOTING_SCHEME_KEY,'|') FROM qp_renew) RENEW_SCHEME,
+  (SELECT CUR_SCHEME FROM cur) CUR_SCHEME,
+  (SELECT CUR_FACTORS FROM cur) CUR_FACTORS,
+  (SELECT NULLIF(TRIM(CONCAT_WS(' ', m:street_1::STRING, m:street_2::STRING)),'') FROM addr) ADDR_STREET,
+  (SELECT m:city::STRING FROM addr)  ADDR_CITY,
+  (SELECT m:state::STRING FROM addr) ADDR_STATE,
+  (SELECT m:zip::STRING FROM addr)   ADDR_ZIP,
+  (SELECT m:updated_at::STRING FROM addr) ADDR_UPDATED,
+  (SELECT IFF(m:id::STRING IS NOT DISTINCT FROM f:id::STRING, TRUE, FALSE) FROM addr) ADDR_MAIL_EQ_FILING,
+  (SELECT NULLIF(TRIM(CONCAT_WS(' ', f:street_1::STRING, f:street_2::STRING)),'') FROM addr) FILING_STREET,
+  (SELECT f:city::STRING FROM addr)  FILING_CITY,
+  (SELECT f:state::STRING FROM addr) FILING_STATE,
+  (SELECT f:zip::STRING FROM addr)   FILING_ZIP`; }
+
+function SNOW_B(RID, DATE, DBEFORE){ return `
+WITH plan_carrier AS (
+  SELECT p.UUID plan_uuid, p.STATE plan_state, c.KEY carrier_key
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.BENEFITS_PLANS p
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.CARRIERS c ON STARTSWITH(p.KEY, c.KEY || '_')
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY p.ID ORDER BY LENGTH(c.KEY) DESC) = 1),
+wp AS (SELECT CARRIER_KEY, STATE_ABBREVIATION, LINE_OF_COVERAGE,
+    NEW_RELATIONSHIP_ALLOWED_WAITING_PERIODS nw, EXISTING_RELATIONSHIP_ALLOWED_WAITING_PERIODS ew
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.CARRIER_REGISTRY_WAITING_PERIOD_CONFIGURATIONS
+  WHERE EFFECTIVE_DATE <= '${DATE}'
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY CARRIER_KEY, STATE_ABBREVIATION, LINE_OF_COVERAGE ORDER BY EFFECTIVE_DATE DESC, ID DESC) = 1),
+ep AS (SELECT RENEWAL_ID, LINE_OF_COVERAGE, BENEFITS_PLAN_UUID, EFFECTIVE_SUCCESSOR_PLAN_UUID, ID
+  FROM DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.EXPIRING_POLICIES
+  WHERE RENEWAL_ID = ${RID} AND EFFECTIVE_SUCCESSOR_PLAN_UUID IS NOT NULL AND EXPIRATION_DATE = '${DBEFORE}'),
+grp AS (SELECT ep.RENEWAL_ID, ep.LINE_OF_COVERAGE, ep.BENEFITS_PLAN_UUID,
+    ep.EFFECTIVE_SUCCESSOR_PLAN_UUID, pol.WAITING_PERIOD gwp
+  FROM ep JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.RENEWALS r ON r.ID = ep.RENEWAL_ID
+  JOIN DATA_WAREHOUSE_RC1.HAWAIIAN_ICE_PRODUCTION_NO_PII.POLICIES pol
+    ON pol.BENEFITS_PACKAGE_ID = r.BENEFITS_PACKAGE_ID AND pol.BENEFITS_PLAN_UUID = ep.BENEFITS_PLAN_UUID
+  WHERE pol.WAITING_PERIOD IS NOT NULL
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ep.RENEWAL_ID, ep.BENEFITS_PLAN_UUID ORDER BY pol.ID DESC) = 1),
+chk AS (SELECT g.RENEWAL_ID rid, g.LINE_OF_COVERAGE loc, g.gwp,
+    IFF(o.carrier_key=s.carrier_key,'existing','new') rel,
+    IFF(o.carrier_key=s.carrier_key, wp.ew, wp.nw) allowed,
+    ARRAY_CONTAINS(g.gwp::VARIANT, SPLIT(TRIM(IFF(o.carrier_key=s.carrier_key, wp.ew, wp.nw),'{}'), ',')) ok
+  FROM grp g JOIN plan_carrier s ON s.plan_uuid = g.EFFECTIVE_SUCCESSOR_PLAN_UUID
+  JOIN plan_carrier o ON o.plan_uuid = g.BENEFITS_PLAN_UUID
+  LEFT JOIN wp ON wp.CARRIER_KEY=s.carrier_key AND wp.STATE_ABBREVIATION=s.plan_state AND wp.LINE_OF_COVERAGE=g.LINE_OF_COVERAGE)
+SELECT rid RID, COUNT(*) N_CHECKED, SUM(IFF(ok,1,0)) N_OK,
+  SUM(IFF(allowed IS NULL,1,0)) N_UNKNOWN,
+  LISTAGG(IFF(ok OR allowed IS NULL, NULL, loc || ' (' || gwp || ', ' || rel || ')'), '; ') BAD
+FROM chk GROUP BY rid`; }
+
+$("#runBtn").addEventListener("click", run);
+$("#opp").addEventListener("keydown", e=>{ if(e.key==="Enter") run(); });
+try { const last = localStorage.getItem("gateOpp"); if(last) $("#opp").value = last; } catch(e){}
+</script>
