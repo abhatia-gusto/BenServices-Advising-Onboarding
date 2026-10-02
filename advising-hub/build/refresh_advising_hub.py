@@ -97,7 +97,7 @@ OVERLAY = ["sf_opp_url","hippo_url","company","contribution","bo_url","bo_status
            "alt_pub_carriers","alt_created","in_app","in_app_comment","in_app_date","surveys_12mo",
            "tickets_to_advising","tickets_list","mrr_before","mrr_after","intro_call",
            "intro_call_date","intro_connect","connect_date","last_update",
-           "last_call_date","last_connect_date","last_call_disp","case_summary",
+           "last_call_date","last_connect_date","first_call_date","last_call_disp","case_summary",
            "csat_comment"]
 # closed = frozen: restore these from the prior published snapshot after the overlay
 # DEPRECATED (2026-09): Closed opps now refresh their Snowflake-warehouse value fields daily
@@ -122,7 +122,7 @@ SF_FROZEN_FIELDS = [
     # SF activity (+ derived mirrors)
     "intro_connect", "intro_connect_date", "connect_date",
     "last_update", "last_update_date", "last_call_date", "last_connect_date",
-    "last_call_disp", "last_contact_date", "case_summary",
+    "first_call_date", "last_call_disp", "last_contact_date", "case_summary",
 ]
 
 STEPS = []
@@ -139,7 +139,7 @@ Q_OVERLAY = {
     "inapp": ["in_app","in_app_comment","in_app_date"],
     "tickets": ["tickets_to_advising","tickets_list"],
     "alt": ["alt_requested","alt_req_date","alt_pub_count","alt_pub_first","alt_pub_last","alt_pub_carriers","alt_created"],
-    "sf_activity": ["last_update","intro_connect","connect_date","last_call_date","last_connect_date","last_call_disp","case_summary","intro_call","intro_call_date"],
+    "sf_activity": ["last_update","intro_connect","connect_date","last_call_date","last_connect_date","first_call_date","last_call_disp","case_summary","intro_call","intro_call_date"],
     "cases": ["case_summary"],
     "mrr": ["mrr_before","mrr_after"],
 }
@@ -741,6 +741,14 @@ def merge_freeze(prior_path):
                 pf, pc = sfmcp_pk[oid]
                 row["packets_files"] = int(fnum(pf) or 0)
                 row["packet_carriers"] = pc
+            # Per-line "Packet ✓": recompute EVERY run for Open/PF from the live packet_carriers
+            # (was a static 9/1 snapshot in assemble_full.py -> missed all later packets).
+            if is_open_pf and isinstance(row.get("lines"), list):
+                _pcs = {x.rsplit(" (", 1)[0].strip().lower()
+                        for x in str(row.get("packet_carriers") or "").split(" · ") if x.strip()}
+                for _l in row["lines"]:
+                    _cb = [c.strip().lower() for c in str(_l.get("carrier") or "").split(",") if c.strip()]
+                    _l["packet"] = bool(_pcs and any(c in _pcs for c in _cb))
         if not is_open_pf:                              # CLOSED — Snowflake fields already refreshed above
             # Freeze ONLY the Salesforce-sourced fields: carry forward the prior published value so
             # they stay pinned to the close-time snapshot. Everything else (Snowflake) stays live.
@@ -1020,16 +1028,19 @@ def verify(n_opps, prior_path=None):
     return {"pii": pii, "at_risk_high": at_risk_high, "mrr_total": mrr_total}
 
 def _publish_token():
-    """ShareSomething publish token — read from env or the gitignored snowflake_pat.env
-    (never hardcoded/committed, per security policy). Set SHARESOME_PUBLISH_TOKEN there."""
+    """ShareSomething publish token — read from env, then the gitignored sharesome_publish.env
+    (canonical home for ShareSomething keys shared across BenOps dashboards), then the legacy
+    snowflake_pat.env as a back-compat fallback. Never hardcoded/committed, per security policy.
+    Keep publish keys in sharesome_publish.env and DB creds in snowflake_pat.env, separate."""
     import re
     t = os.environ.get("SHARESOME_PUBLISH_TOKEN")
     if t: return t.strip()
-    envp = os.path.join(HERE, "snowflake_pat.env")
-    if os.path.exists(envp):
-        m = re.search(r'(?:SHARESOME_PUBLISH_TOKEN|PUBLISH_TOKEN)\s*=\s*(\S+)', open(envp).read())
-        if m: return m.group(1).strip().strip('"').strip("'")
-    raise RuntimeError("publish token not found — set SHARESOME_PUBLISH_TOKEN in snowflake_pat.env")
+    for fn in ("sharesome_publish.env", "snowflake_pat.env"):
+        envp = os.path.join(HERE, fn)
+        if os.path.exists(envp):
+            m = re.search(r'(?:SHARESOME_PUBLISH_TOKEN|PUBLISH_TOKEN)\s*=\s*(\S+)', open(envp).read())
+            if m: return m.group(1).strip().strip('"').strip("'")
+    raise RuntimeError("publish token not found — set SHARESOME_PUBLISH_TOKEN in sharesome_publish.env")
 
 def publish():
     r = subprocess.run([VENV_PY, os.path.join(HERE,"push_html.py"), HTML,
