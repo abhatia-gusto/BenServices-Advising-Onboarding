@@ -45,3 +45,7 @@ __pycache__/
 *.pyc
 /tmp/
 .DS_Store
+
+# Renewal Stage Gate — the tool template carries the canonical SOQL + SNOW_A–F
+# queries and NO customer rows, so it is tracked despite the blanket *.html rule.
+!renewal-stage-gate/_rsg_pipeline/renewal-gate-check-tool.html
