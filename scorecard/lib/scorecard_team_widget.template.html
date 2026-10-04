@@ -1,0 +1,57 @@
+<style>
+.sc *{box-sizing:border-box}.sc{font-size:12px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.bar button{font:inherit;font-size:12px;padding:4px 10px;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-primary);border-radius:6px;cursor:pointer}
+.bar button.on{background:var(--text-primary);color:var(--bg-primary,#fff)}
+.hint{color:var(--text-muted);font-size:11px}
+.lg{display:flex;gap:10px;font-size:11px;color:var(--text-secondary);margin-left:auto}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.team{margin:0 0 18px}.team h3{font-size:13px;margin:0 0 5px;font-weight:500;color:var(--text-primary)}
+.wrap{overflow-x:auto;border:0.5px solid var(--border);border-radius:8px}
+.sc table{border-collapse:collapse;width:100%}
+.sc th,.sc td{padding:4px 6px;text-align:center;border-bottom:0.5px solid var(--border);white-space:nowrap}
+.sc th{font-weight:500;color:var(--text-secondary);font-size:11px}
+.sc td.l,.sc th.l{text-align:left;min-width:215px;padding-left:8px;color:var(--text-primary)}
+.sc td.s,.sc th.s{color:var(--text-secondary);font-size:10.5px;min-width:46px}
+.sc td.q,.sc th.q{font-weight:500;border-left:1.5px solid var(--border-strong);min-width:64px}
+.sc th.q{cursor:pointer;color:var(--text-primary)}
+.sc th .qs{display:block;font-size:9.5px;font-weight:400;color:var(--text-muted)}
+.sc td.m,.sc th.m{min-width:52px;font-size:11px}
+.sc td.v{font-family:var(--font-mono)}
+.sc tr.sec td{text-align:left;padding:7px 8px 3px;font-size:10.5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-accent);background:var(--surface-1);border-bottom:0.5px solid var(--border)}
+.g{background:var(--bg-success);color:var(--text-success)}.a{background:var(--bg-warning);color:var(--text-warning)}.r{background:var(--bg-danger);color:var(--text-danger)}
+.sc tr.d td{font-size:10.5px}.sc tr.d td.l{padding-left:24px;color:var(--text-secondary)}
+.sc tr.p{cursor:pointer}.ch{display:inline-block;width:10px;font-size:9px;color:var(--text-accent);transition:transform .12s}.op .ch{transform:rotate(90deg)}
+.nt{font-size:10.5px;color:var(--text-muted);line-height:1.5;margin-top:4px}
+</style>
+<div class="sc">
+<div class="bar"><button id="bQ" class="on">Quarters only</button><button id="bM">Quarters + months</button><span class="hint">click a quarter header to expand it · ▸ rows expand to sub-statuses</span>
+<span class="lg"><span><i style="background:var(--bg-success)"></i>at/above SLO</span><span><i style="background:var(--bg-warning)"></i>near</span><span><i style="background:var(--bg-danger)"></i>below</span></span></div>
+<div id="root"></div>
+<div class="nt">__NOTE__</div>
+</div>
+<script>
+const Q=__Q__;
+const ML=__ML__;
+const T=__T__;
+const open={};Q.forEach(q=>open[q.id]=false);
+function rag(v,g,d,gr,am){if(v==null)return"";const G=gr!=null?gr:g;const A=am!=null?am:(d=="hi"?G*0.88:G*1.25);return d=="hi"?(v>=G?"g":(v>=A?"a":"r")):(v<=G?"g":(v<=A?"a":"r"));}
+function fmt(v,k){if(v==null)return"–";return k=="p"?Math.round(v):(k=="p1"?v.toFixed(1):v.toFixed(2));}
+function cells(qv,mv,k,g,d,gr,am){let h="";Q.forEach((q,qi)=>{const v=qv[qi];h+='<td class="v q '+rag(v,g,d,gr,am)+'">'+fmt(v,k)+'</td>';if(open[q.id])q.idx.forEach(i=>{const x=mv[i];h+='<td class="v m '+rag(x,g,d,gr,am)+'">'+fmt(x,k)+'</td>';});});return h;}
+function ncols(){return 2+Q.reduce((a,q)=>a+1+(open[q.id]?q.idx.length:0),0);}
+function render(){let html="",rid=0;
+T.forEach(t=>{let h='<div class="team"><h3>'+t[0]+'</h3><div class="wrap"><table><thead><tr><th class="l">Metric</th><th class="s">SLO</th>';
+Q.forEach(q=>{h+='<th class="q" data-q="'+q.id+'">'+(open[q.id]?'▾ ':'▸ ')+q.id+'<span class="qs">'+q.l+'</span></th>';if(open[q.id])q.idx.forEach(i=>h+='<th class="m">'+ML[i]+'</th>');});
+h+='</tr></thead><tbody>';
+t[1].forEach(sc=>{h+='<tr class="sec"><td colspan="'+ncols()+'">'+sc[0]+'</td></tr>';
+sc[1].forEach(r=>{const[n,k,g,d,gr,am,qv,mv,det]=r;const id="r"+(rid++);
+h+='<tr'+(det?' class="p" data-d="'+id+'"':'')+'><td class="l">'+(det?'<span class="ch">▶</span> ':'')+n+'</td><td class="s">'+(d=="hi"?"≥":"≤")+(k[0]=="p"?g+"%":g)+'</td>'+cells(qv,mv,k,g,d,gr,am)+'</tr>';
+if(det)det.forEach(s=>{h+='<tr class="d" data-p="'+id+'" style="display:none"><td class="l">'+s[0]+'</td><td class="s">—</td>'+cells(s[1],s[2],k,g,d,gr,am)+'</tr>';});});});
+html+=h+'</tbody></table></div></div>';});
+document.getElementById('root').innerHTML=html;
+document.querySelectorAll('th.q').forEach(th=>th.onclick=()=>{open[th.dataset.q]=!open[th.dataset.q];sync();render();});
+document.querySelectorAll('tr.p').forEach(tr=>tr.onclick=()=>{const rs=document.querySelectorAll('tr[data-p="'+tr.dataset.d+'"]');const s=rs[0].style.display=='none';rs.forEach(x=>x.style.display=s?'table-row':'none');tr.classList.toggle('op',s);});}
+function sync(){document.getElementById('bM').classList.toggle('on',Q.every(q=>open[q.id]));document.getElementById('bQ').classList.toggle('on',Q.every(q=>!open[q.id]));}
+document.getElementById('bQ').onclick=()=>{Q.forEach(q=>open[q.id]=false);sync();render();};
+document.getElementById('bM').onclick=()=>{Q.forEach(q=>open[q.id]=true);sync();render();};
+render();
+</script>
