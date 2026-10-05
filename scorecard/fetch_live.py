@@ -60,10 +60,12 @@ def connect(env):
     c.cursor().execute("alter session set timezone='America/Denver'")
     return c
 
+BATCH = 5000  # stream rows in batches so a wide pull never loads the whole result set into memory
+
 def run(c, sql):
+    """Return an executed cursor; callers stream rows with fetchmany (never fetchall)."""
     cur = c.cursor(); cur.execute(sql)
-    cols = [d[0] for d in cur.description]
-    return cols, cur.fetchall()
+    return cur
 
 def prep(name, subs):
     s = open(os.path.join(QDIR, name)).read().strip().rstrip(";")
@@ -77,22 +79,23 @@ def _cell(v):
     if isinstance(v, (datetime.date,)): return v.strftime("%Y-%m-%d")
     return str(v)
 
-def write_csv(path, cols, rows):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(cols)
-        for r in rows:
-            w.writerow([_cell(v) for v in r])
-    return len(rows)
+def _stream_rows(cur, writer):
+    """Pump the cursor through a csv.writer in batches; return row count."""
+    n = 0
+    while True:
+        batch = cur.fetchmany(BATCH)
+        if not batch:
+            break
+        for r in batch:
+            writer.writerow([_cell(v) for v in r]); n += 1
+    return n
 
-def csv_text(cols, rows):
-    import io
-    buf = io.StringIO(); w = csv.writer(buf)
-    w.writerow(cols)
-    for r in rows:
-        w.writerow([_cell(v) for v in r])
-    return buf.getvalue()
+def write_csv(path, cur):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    cols = [d[0] for d in cur.description]
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f); w.writerow(cols)
+        return _stream_rows(cur, w)
 
 # wide windows (bucketing happens downstream by close/end month) -------------
 DR  = [("{{Date Range Start}}", "2024-01-01"), ("{{Date Range End}}", TODAY)]
@@ -103,15 +106,37 @@ EM  = [("{{ TP Date Range Start }}", "2024-01-01"), ("{{ TP Date Range End }}", 
 CS  = [("{{Date Start}}", "2025-01-01"), ("{{Date End}}", TODAY), ("{{ Date Start }}", "2025-01-01"), ("{{ Date End }}", TODAY)]
 IA  = [("{{survey_start_date}}", "2025-01-01"), ("{{survey_end_date}}", TODAY), ("{{workflow_status}}", "'Completed','Abandoned'")]
 
-def emit_embed(path, tag, cols, rows, gz=False):
-    """Reproduce a dashboard HTML embed the compute reads: a <script id=TAG>…</script>
-    whose body is the CSV (gz=True → gzip+base64, as email-sla-dashboard-v10)."""
+def emit_embed(path, tag, cur, gz=False):
+    """Reproduce a dashboard HTML embed the compute reads: a <script id=TAG>…</script> whose body is
+    the CSV (gz=True → gzip+base64, as email-sla-dashboard-v10). Streamed, so wide pulls stay low-memory.
+    No newline between > and body: compute slices from the first '>' after the id to the next '</'."""
+    import io as _io
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    body = csv_text(cols, rows)
-    if gz:
-        body = base64.b64encode(gzip.compress(body.encode("utf-8"))).decode("ascii")
-    # no newline between > and body: compute slices from the first '>' after the id to the next '</'
-    open(path, "w", encoding="utf-8").write('<script type="application/octet-stream" id="%s">%s</script>' % (tag, body))
+    cols = [d[0] for d in cur.description]
+    open_tag = '<script type="application/octet-stream" id="%s">' % tag
+    if not gz:
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            f.write(open_tag)
+            w = csv.writer(f); w.writerow(cols)
+            n = _stream_rows(cur, w)
+            f.write("</script>")
+        return n
+    # gz: stream CSV → gzip temp file, then base64 that file in 3-byte-aligned chunks into the html
+    tmp = path + ".csv.gz"
+    with gzip.open(tmp, "wt", newline="", encoding="utf-8") as gzf:
+        w = csv.writer(gzf); w.writerow(cols)
+        n = _stream_rows(cur, w)
+    with open(path, "w", encoding="utf-8") as f, open(tmp, "rb") as raw:
+        f.write(open_tag)
+        while True:
+            chunk = raw.read(57 * 1024)  # multiple of 3 → base64 chunks concatenate cleanly
+            if not chunk:
+                break
+            f.write(base64.b64encode(chunk).decode("ascii"))
+        f.write("</script>")
+    try: os.remove(tmp)
+    except OSError: pass
+    return n
 
 # ---------------- source → artifact map ----------------
 def fetch(c, keys, workdir):
@@ -121,51 +146,35 @@ def fetch(c, keys, workdir):
     log = []
 
     if do("bo"):
-        cols, rows = run(c, prep("bo_grain_sla_v11.sql", DR + DRc))
-        log.append(("bo_sla_v11_clean.csv", write_csv(os.path.join(workdir, "bo_sla_v11_clean.csv"), cols, rows)))
+        log.append(("bo_sla_v11_clean.csv", write_csv(os.path.join(workdir, "bo_sla_v11_clean.csv"), run(c, prep("bo_grain_sla_v11.sql", DR + DRc)))))
     if do("adv"):
-        cols, rows = run(c, prep("advising_opp_sla.sql", OPP))
-        log.append(("queries/advising_opp_data_latest.csv", write_csv(os.path.join(Q, "advising_opp_data_latest.csv"), cols, rows)))
+        log.append(("queries/advising_opp_data_latest.csv", write_csv(os.path.join(Q, "advising_opp_data_latest.csv"), run(c, prep("advising_opp_sla.sql", OPP)))))
     if do("byb"):
-        cols, rows = run(c, prep("byb_bo_sla_v7.sql", DR))
-        log.append(("queries/byb_data_2024-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "byb_data_2024-01-01_to_%s.csv" % TODAY), cols, rows)))
+        log.append(("queries/byb_data_2024-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "byb_data_2024-01-01_to_%s.csv" % TODAY), run(c, prep("byb_bo_sla_v7.sql", DR)))))
     if do("bt"):
-        cols, rows = run(c, prep("bt_bo_sla_v8.sql", DR))
-        log.append(("queries/bt_data_2024-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "bt_data_2024-01-01_to_%s.csv" % TODAY), cols, rows)))
+        log.append(("queries/bt_data_2024-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "bt_data_2024-01-01_to_%s.csv" % TODAY), run(c, prep("bt_bo_sla_v8.sql", DR)))))
     if do("mrr"):
-        cols, rows = run(c, prep("mrr_cohort.sql", MRR))
-        log.append(("advising_mrr_cohort_%s.csv" % TODAY, write_csv(os.path.join(workdir, "advising_mrr_cohort_%s.csv" % TODAY), cols, rows)))
+        log.append(("advising_mrr_cohort_%s.csv" % TODAY, write_csv(os.path.join(workdir, "advising_mrr_cohort_%s.csv" % TODAY), run(c, prep("mrr_cohort.sql", MRR)))))
     if do("csat"):
-        cols, rows = run(c, prep("csat.sql", CS))
-        log.append(("queries/csat_data_2025-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "csat_data_2025-01-01_to_%s.csv" % TODAY), cols, rows)))
+        log.append(("queries/csat_data_2025-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "csat_data_2025-01-01_to_%s.csv" % TODAY), run(c, prep("csat.sql", CS)))))
     if do("inapp"):
-        cols, rows = run(c, prep("inapp.sql", IA))
-        log.append(("queries/inapp_data_2025-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "inapp_data_2025-01-01_to_%s.csv" % TODAY), cols, rows)))
+        log.append(("queries/inapp_data_2025-01-01_to_%s.csv" % TODAY, write_csv(os.path.join(Q, "inapp_data_2025-01-01_to_%s.csv" % TODAY), run(c, prep("inapp.sql", IA)))))
     if do("avail"):
-        cols, rows = run(c, prep("av_pit.sql", []))
-        log.append(("_data_v2/av_pit.csv", write_csv(os.path.join(DV, "av_pit.csv"), cols, rows)))
-        cols, rows = run(c, prep("calls_pit.sql", []))
-        log.append(("_data_v2/calls_pit.csv", write_csv(os.path.join(DV, "calls_pit.csv"), cols, rows)))
+        log.append(("_data_v2/av_pit.csv", write_csv(os.path.join(DV, "av_pit.csv"), run(c, prep("av_pit.sql", [])))))
+        log.append(("_data_v2/calls_pit.csv", write_csv(os.path.join(DV, "calls_pit.csv"), run(c, prep("calls_pit.sql", [])))))
     if do("roster"):
-        cols, rows = run(c, prep("roster_calls.sql", []))
-        log.append(("_data_v2/roster_calls.csv", write_csv(os.path.join(DV, "roster_calls.csv"), cols, rows)))
-        cols, rows = run(c, prep("roster_npr.sql", []))
+        log.append(("_data_v2/roster_calls.csv", write_csv(os.path.join(DV, "roster_calls.csv"), run(c, prep("roster_calls.sql", [])))))
+        cur = run(c, prep("roster_npr.sql", [])); cols = [d[0] for d in cur.description]
         os.makedirs(OA, exist_ok=True)
-        recs = [dict(zip(cols, [ _cell(v) for v in r ])) for r in rows]
+        recs = [dict(zip(cols, [_cell(v) for v in r])) for r in cur.fetchall()]  # NP&R roster is small
         json.dump(recs, open(os.path.join(OA, "roster.json"), "w"))
         log.append(("oa_dash/data/roster.json", len(recs)))
     if do("email"):
-        cols, rows = run(c, prep("email_sla_attp.sql", EM))
-        emit_embed(os.path.join(workdir, "email-sla-dashboard-v10.html"), "__EMBED__", cols, rows, gz=True)
-        log.append(("email-sla-dashboard-v10.html (embed)", len(rows)))
+        log.append(("email-sla-dashboard-v10.html (embed)", emit_embed(os.path.join(workdir, "email-sla-dashboard-v10.html"), "__EMBED__", run(c, prep("email_sla_attp.sql", EM)), gz=True)))
     if do("ticket"):
-        cols, rows = run(c, prep("ticket_sla_v12.sql", DR))
-        emit_embed(os.path.join(workdir, "ticket_sla_by_flow_v12.html"), "__EMBED__", cols, rows, gz=False)
-        log.append(("ticket_sla_by_flow_v12.html (embed)", len(rows)))
+        log.append(("ticket_sla_by_flow_v12.html (embed)", emit_embed(os.path.join(workdir, "ticket_sla_by_flow_v12.html"), "__EMBED__", run(c, prep("ticket_sla_v12.sql", DR)), gz=False)))
     if do("ready"):  # operating-metrics embed: Ready-by-1st AND New Plan cohort cancel
-        cols, rows = run(c, prep("operating_metrics_difot.sql", []))
-        emit_embed(os.path.join(workdir, "benservices_operating_metrics_dashboard_v1.html"), "embeddedData", cols, rows, gz=False)
-        log.append(("benservices_operating_metrics_dashboard_v1.html (embed)", len(rows)))
+        log.append(("benservices_operating_metrics_dashboard_v1.html (embed)", emit_embed(os.path.join(workdir, "benservices_operating_metrics_dashboard_v1.html"), "embeddedData", run(c, prep("operating_metrics_difot.sql", [])), gz=False)))
     return log
 
 def main():
