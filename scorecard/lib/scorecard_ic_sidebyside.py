@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 """Render IC side-by-side per PE (this quarter QTD). Static HTML, values pre-computed.
-Reads scorecard_ic_data.json → writes _scorecard_ic_sbs.html + standalone BenOps_Scorecard_IC_Q2FY27.html."""
-import os,json
+Reads scorecard_ic_data.json → writes _scorecard_ic_sbs.html + standalone BenOps_Scorecard_IC_Q2FY27.html.
+Recent hires / internal transfers (new_hire_default_off.json) are flagged ** and sectioned to the RIGHT
+of each PE's ramped ICs (blue divider + light background), so they don't distort the read on the team."""
+import os,json,re
 HERE=os.path.dirname(os.path.abspath(__file__))
 d=json.load(open(os.path.join(HERE,"scorecard_ic_data.json")))
 META=d["meta"]; WIN=d["window"]
+# --- recent-hire flag source of truth (same file the perf dashboards maintain) ---
+def norm(n): return re.sub(r'[^a-z]','',(n or '').lower())
+try:
+    _nh=json.load(open(os.path.join(HERE,"new_hire_default_off.json")))
+except Exception:
+    _nh={"advising":[],"npr":[],"broker":[]}
+NEW={k:{norm(x) for x in _nh.get(k,[])} for k in ("advising","npr","broker")}
+LEAD2TEAM={"Micah Sanchez":"advising","Lynne Petre":"advising","Lee Ann Volosin":"npr","Aman Bhatia":"npr","Martin Ribas":"broker"}
+def is_new(ic,leader): return norm(ic) in NEW.get(LEAD2TEAM.get(leader,""),set())
 def val(c,k):
     n,dd=c
     if not dd: return None
@@ -29,7 +40,7 @@ CSS="""<style>
 .ic h2{font-size:14px;font-weight:600;margin:2px 0;color:var(--text-primary)}
 .ic .sub{color:var(--text-muted);font-size:11px;font-weight:400}
 .ic .nt{font-size:10.5px;color:var(--text-muted);line-height:1.5;margin:6px 0 10px}
-.ic .lg{display:flex;gap:10px;font-size:11px;color:var(--text-secondary);margin:2px 0 10px}.ic .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.ic .lg{display:flex;gap:10px;font-size:11px;color:var(--text-secondary);margin:2px 0 10px;flex-wrap:wrap}.ic .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .ic .lead{margin:16px 0 2px;font-size:12.5px;font-weight:700;color:var(--text-primary);border-top:1.5px solid var(--border-strong);padding-top:8px}
 .ic .lead .r{font-weight:400;color:var(--text-muted);font-size:11px}
 .ic .pe{margin:8px 0 3px;font-size:12px;font-weight:600;color:var(--text-accent)}
@@ -43,29 +54,42 @@ CSS="""<style>
 .ic th.v{font-family:inherit;font-size:10px;line-height:1.1}
 .ic .g{background:var(--bg-success);color:var(--text-success)}.ic .a{background:var(--bg-warning);color:var(--text-warning)}.ic .r2{background:var(--bg-danger);color:var(--text-danger)}
 .ic .na{color:var(--text-faint,#bbb)}
+.ic td.nw,.ic th.nw{background:var(--surface-1,#f6f6f4)}
+.ic td.nwb,.ic th.nwb{border-left:2px solid var(--text-accent,#5b5bd6)}
 </style>"""
 H=[CSS,'<div class="ic">']
 H.append(f'<h2>IC scorecard — PE by PE, ICs side by side <span class="sub">· Q2 FY27 QTD ({WIN[0][:7]}–{WIN[-1][:7]})</span></h2>')
-H.append('<div class="nt">Each table = one PE (team lead); columns = that PE\'s ICs; cells = Q2 FY27 QTD (Σnum ÷ Σden). Owned-work keys off the record owner; phone/email mapped to the IC by name/agent/email (blank where unmapped). · = no volume for that IC/metric. Oct is month-to-date. ICs ordered by Q2 volume.</div>')
-H.append('<div class="lg"><span><i style="background:var(--bg-success)"></i>at/above SLO</span><span><i style="background:var(--bg-warning)"></i>near</span><span><i style="background:var(--bg-danger)"></i>below</span></div>')
+H.append('<div class="nt">Each table = one PE (team lead); columns = that PE\'s ICs; cells = Q2 FY27 QTD (Σnum ÷ Σden). Owned-work keys off the record owner; phone/email mapped to the IC by name/agent/email (blank where unmapped). · = no volume for that IC/metric. Oct is month-to-date. Ramped ICs ordered by Q2 volume; <b>recent hires / transfers are marked ** and sectioned to the right</b> (blue divider, shaded) so they don\'t distort the ramped-team read — they are still fully scored.</div>')
+H.append('<div class="lg"><span><i style="background:var(--bg-success)"></i>at/above SLO</span><span><i style="background:var(--bg-warning)"></i>near</span><span><i style="background:var(--bg-danger)"></i>below</span><span><i style="background:var(--surface-1,#f6f6f4);border:1px solid var(--border)"></i>** recent hire / transfer</span></div>')
 curL=None
 for g in groups:
     if g["leader"]!=curL:
         curL=g["leader"]; H.append(f'<div class="lead">{curL} <span class="r">· leader</span></div>')
-    ics=g["ics"]; mets=g["metrics"]
-    H.append(f'<div class="pe">PE: {g["pe"]} <span class="sub">· {len(ics)} ICs</span></div>')
+    mets=g["metrics"]; leader=g["leader"]
+    # ramped first (volume order preserved, stable), recent hires to the right
+    ics=sorted(g["ics"],key=lambda col: 1 if is_new(col["ic"],leader) else 0)
+    first_new=next((i for i,col in enumerate(ics) if is_new(col["ic"],leader)),None)
+    nnew=sum(1 for col in ics if is_new(col["ic"],leader))
+    def colcls(i,col):
+        c="v"
+        if is_new(col["ic"],leader): c+=" nw"+(" nwb" if i==first_new else "")
+        return c
+    pehdr=f'<div class="pe">PE: {g["pe"]} <span class="sub">· {len(ics)} ICs'+(f' · {nnew} recent **' if nnew else '')+'</span></div>'
+    H.append(pehdr)
     H.append('<div class="wrap"><table><thead><tr><th class="l">Metric</th><th class="s">SLO</th>')
-    for col in ics:
-        nm=col["ic"]; first=nm.split()[0]; last=(nm.split()[-1][:1]+'.') if len(nm.split())>1 else ''
-        H.append(f'<th class="v" title="{nm}">{first}<br>{last}</th>')
+    for i,col in enumerate(ics):
+        nm=col["ic"]; parts=nm.split(); first=parts[0]; last=(parts[-1][:1]+'.') if len(parts)>1 else ''
+        star=' **' if is_new(nm,leader) else ''
+        H.append(f'<th class="{colcls(i,col)}" title="{nm}{star}">{first}<br>{last}{star}</th>')
     H.append('</tr></thead><tbody>')
     for m in mets:
         g0,dr,k=META[m]
         H.append(f'<tr><td class="l">{m}</td><td class="s">{slo(g0,dr,k)}</td>')
-        for col in ics:
+        for i,col in enumerate(ics):
             c=col["cells"].get(m)
-            if not c: H.append('<td class="v na">·</td>'); continue
-            v=val(c,k); H.append(f'<td class="v {rag(v,g0,dr,k)}">{fmt(v,k)}</td>')
+            base=colcls(i,col)
+            if not c: H.append(f'<td class="{base} na">·</td>'); continue
+            v=val(c,k); H.append(f'<td class="{base} {rag(v,g0,dr,k)}">{fmt(v,k)}</td>')
         H.append('</tr>')
     H.append('</tbody></table></div>')
 H.append('</div>')

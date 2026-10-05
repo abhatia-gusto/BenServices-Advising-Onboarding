@@ -18,8 +18,11 @@ Outputs in <workdir>:
   team : scorecard_team_data.json, _scorecard_combined_widget.html (tables+cancel charts),
          BenOps_Scorecard_TeamView_<Mon><Yr>.html
   pe   : scorecard_pe2_data.json, _scorecard_pe2_combined.html, _scorecard_pe2_sbs.html,
-         BenOps_Scorecard_PEbyLead_<Mon><Yr>.html
+         BenOps_Scorecard_PEbyLead_<Mon><Yr>.html   (team-lead / PE layer)
+  pepe : scorecard_pe_data.json, _scorecard_pe_combined.html,
+         BenOps_Scorecard_PE_<Mon><Yr>.html          (leadership / PEPE layer: Micah/Lynne/Lee Ann/Aman/Martin)
   ic   : scorecard_ic_data.json, _scorecard_ic_sbs.html, BenOps_Scorecard_IC_<Q>.html
+         (recent hires flagged ** and sectioned right)
 """
 import os, sys, shutil, subprocess, argparse, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +47,8 @@ def main():
     ap.add_argument("--start", help="YYYY-MM first month (default: Q3 of prior FY)")
     ap.add_argument("--window", help="IC quarter months, comma list (default: latest FY quarter)")
     ap.add_argument("--workdir", default=os.path.join(HERE, "_run"))
-    ap.add_argument("--views", default="team,pe,ic")
+    ap.add_argument("--views", default="team,pe,pepe,ic",
+                    help="team=4-team view; pe=team-lead (PE) layer; pepe=leadership (PEPE) layer; ic=per-IC")
     ap.add_argument("--skip-fetch", action="store_true", help="reuse inputs already in workdir")
     ap.add_argument("--creds", default=os.path.join(HERE, "snowflake_pat.env"))
     a = ap.parse_args()
@@ -67,13 +71,16 @@ def main():
         step(wd, "scorecard_pe2_compute.py", *tcompute)
         step(wd, "scorecard_pe2_render.py")
         step(wd, "scorecard_pe2_sidebyside.py")
+    if "pepe" in views:
+        step(wd, "scorecard_pe_compute.py", *tcompute)
+        step(wd, "scorecard_pe_render.py")
     if "ic" in views:
         step(wd, "scorecard_ic_compute.py", *(["--window", a.window] if a.window else []))
         step(wd, "scorecard_ic_sidebyside.py")
 
     print("\nOutputs in", wd)
     for p in ["_scorecard_combined_widget.html", "_scorecard_pe2_combined.html",
-              "_scorecard_pe2_sbs.html", "_scorecard_ic_sbs.html"]:
+              "_scorecard_pe2_sbs.html", "_scorecard_pe_combined.html", "_scorecard_ic_sbs.html"]:
         fp = os.path.join(wd, p)
         if os.path.exists(fp):
             print("  %-36s %d bytes" % (p, os.path.getsize(fp)))

@@ -28,13 +28,14 @@ export SNOWFLAKE_ACCOUNT=GUSTO-WAREHOUSE SNOWFLAKE_USER=you@gusto.com SNOWFLAKE_
 
 # 3. build all three views for a month
 python3 run.py --through 2026-10
-#    options: --start 2025-11   --views team,pe,ic   --window 2026-08,2026-09,2026-10 (IC quarter)
+#    options: --start 2025-11   --views team,pe,pepe,ic   --window 2026-08,2026-09,2026-10 (IC quarter)
 #             --workdir _run     --skip-fetch (reuse already-materialized inputs)
 ```
 Outputs land in `--workdir` (default `./_run`):
 - **team**: `_scorecard_combined_widget.html` (tables + cancel charts), `BenOps_Scorecard_TeamView_<Mon><Yr>.html`
-- **PE**: `_scorecard_pe2_combined.html`, `_scorecard_pe2_sbs.html`, `BenOps_Scorecard_PEbyLead_<Mon><Yr>.html`
-- **IC**: `_scorecard_ic_sbs.html`, `BenOps_Scorecard_IC_<Q>.html` (recent hires flagged `**`, sectioned right)
+- **pe** (team-lead layer): `_scorecard_pe2_combined.html`, `_scorecard_pe2_sbs.html`, `BenOps_Scorecard_PEbyLead_<Mon><Yr>.html`
+- **pepe** (leadership layer — Micah/Lynne/Lee Ann/Aman/Martin as columns): `_scorecard_pe_combined.html`, `BenOps_Scorecard_PE_<Mon><Yr>.html`
+- **ic**: `_scorecard_ic_sbs.html`, `BenOps_Scorecard_IC_<Q>.html` (recent hires flagged `**`, sectioned right)
 
 The `_*.html` fragments are self-contained — paste into `show_widget`, or open the standalone files.
 

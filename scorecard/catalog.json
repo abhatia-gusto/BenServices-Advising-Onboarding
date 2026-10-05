@@ -53,8 +53,9 @@
   "lib": [
     "lib/scorecard_compute.py (shared helpers + metric defs)",
     "lib/scorecard_team_compute.py + scorecard_team_render.py + scorecard_cancel_render.py (TEAM view)",
-    "lib/scorecard_pe2_compute.py + scorecard_pe2_render.py + scorecard_pe2_sidebyside.py (PE/team-lead view)",
-    "lib/scorecard_ic_compute.py + scorecard_ic_sidebyside.py (IC view)",
+    "lib/scorecard_pe2_compute.py + scorecard_pe2_render.py + scorecard_pe2_sidebyside.py (PE = team-lead layer)",
+    "lib/scorecard_pe_compute.py + scorecard_pe_render.py (PEPE = leadership layer: Micah/Lynne/Lee Ann/Aman/Martin)",
+    "lib/scorecard_ic_compute.py + scorecard_ic_sidebyside.py (IC view; recent hires flagged ** and sectioned right via new_hire_default_off.json)",
     "lib/scorecard_team_widget.template.html (team widget shell)",
     "lib/new_hire_default_off.json (IC ** recent-hire flag source of truth)"
   ]
