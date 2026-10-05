@@ -75,6 +75,7 @@ def prep(name, subs):
 
 def _cell(v):
     if v is None: return ""
+    if isinstance(v, bool): return "true" if v else "false"   # match dashboard CSV exports (lowercase); compute does raw string compares on ticket/email flags
     if isinstance(v, (datetime.datetime,)): return v.strftime("%Y-%m-%d %H:%M:%S")
     if isinstance(v, (datetime.date,)): return v.strftime("%Y-%m-%d")
     return str(v)
