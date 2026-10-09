@@ -296,12 +296,43 @@ def do_email():
     return em
 
 # ============ ASSEMBLE ============
+def do_ticketsla():
+    from datetime import datetime
+    foa=acc(); oaadv=acc()
+    path=os.path.join(HERE,"ticket_sla_by_flow_v12.html")
+    if not os.path.exists(path):
+        COV["ticket_foa"]=None; COV["ticket_oaadv"]=None; return {"FOA":foa,"OAADV_SLA":oaadv}
+    html=open(path,encoding="utf-8",errors="replace").read()
+    si=html.find(">",html.find('id="__EMBED__"'))+1; ei=html.find("</",si); raw=html[si:ei]
+    def pts(x):
+        x=(x or "").strip()
+        for f in ("%Y-%m-%dT%H:%M:%S","%Y-%m-%d %H:%M:%S","%Y-%m-%d"):
+            try: return datetime.strptime(x[:19],f)
+            except: pass
+        return None
+    cf=[0,0]; ca=[0,0]
+    for r in csv.DictReader(io.StringIO(raw)):
+        ct=pts(r.get("TICKET_CLOSED_TS_MT")); cr=pts(r.get("TICKET_CREATED_TS_MT"))
+        if not ct or not cr: continue
+        m="%04d-%02d"%(ct.year,ct.month)
+        if m not in MIDX: continue
+        within=1 if (ct-cr).total_seconds()/86400.0<=5 else 0
+        if r.get("TICKET_REPORTING_TEAM")=="Fulfillment" and r.get("HAS_OA_TOUCH")=="true":
+            pe=name_pe(r.get("BENEFIT_ORDER_OWNER")); cf[1]+=1; cf[0]+= 1 if pe else 0
+            add(foa,pe,m,1,within)
+        elif r.get("TICKET_REPORTING_TEAM")=="Implementation Advocate" and r.get("TICKET_TEAM")=="Benefits Advising" and r.get("IS_OPEN")!="true":
+            pe=name_pe(r.get("TICKET_OWNER_NAME")); ca[1]+=1; ca[0]+= 1 if pe else 0
+            add(oaadv,pe,m,1,within)
+    COV["ticket_foa"]=round(100*cf[0]/cf[1],1) if cf[1] else None
+    COV["ticket_oaadv"]=round(100*ca[0]/ca[1],1) if ca[1] else None
+    return {"FOA":foa,"OAADV_SLA":oaadv}
+
 def fq(m):
     y,mm=int(m[:4]),int(m[5:7]); idx=(mm-5)%12; q=idx//3+1; fy=y+1 if mm>=5 else y
     return "Q%d FY%02d"%(q,fy%100)
 
 def main():
-    A=do_adv(); B=do_bo(); Y=do_byb(); T=do_bt(); C=do_csat(); MRR,mrrfile=do_mrr(); AV,AB=do_phone(); EM=do_email()
+    A=do_adv(); B=do_bo(); Y=do_byb(); T=do_bt(); C=do_csat(); MRR,mrrfile=do_mrr(); AV,AB=do_phone(); EM=do_email(); TK=do_ticketsla()
     def det(d): return [{"n":l,"c":d[l]} for l in d]
     # row builder: pick this PE's series from an accumulator
     def R(n,a,k,g,dirn,sec,gr=None,am=None,detmap=None):
@@ -311,6 +342,7 @@ def main():
          R("Advising — ER Confirm (≤5d)",A["ER"],"p",70,"hi","Status SLAs"),
          R("Advising — Alt Requested (≤5d)",A["ALT"],"p",60,"hi","Status SLAs"),
          R("OA→Advising ticket rate (Renewal)",B["OAADV"],"r",0.3,"lo","Tickets"),
+         R("OA→Advising Ticket SLA (≤5d) †",TK["OAADV_SLA"],"p",80,"hi","Tickets",am=70),
          R("Phone availability (80–105%)",AV,"p",80,"hi","Phone & email"),
          R("Phone abandon rate",AB,"p",30,"lo","Phone & email"),
          R("Email SLO (≤4h)",EM,"p",90,"hi","Phone & email"),
@@ -320,6 +352,7 @@ def main():
          R("Benefit Order NP+Renewal (≤30d)",B["E2E"],"p",80,"hi","Overall SLAs (E2E)",gr=80,am=65,detmap={"New Plan":B["E2NP"],"Renewal":B["E2REN"]}),
          R("Ful→OA ticket rate — New Plan",B["TRNP"],"r",1.2,"lo","Tickets"),
          R("Ful→OA ticket rate — Renewal",B["TRREN"],"r",0.37,"lo","Tickets"),
+         R("Ful→OA Ticket SLA (≤5d) †",TK["FOA"],"p",80,"hi","Tickets",am=70),
          R("New Plan cancel rate (close month)",B["NPC"],"p",15,"lo","Cancel rate"),
          R("Renewal CSAT (avg 1–5)",C["Renewal CSAT"],"s",4.0,"hi","Customer experience"),
          R("New Benefits CSAT (avg 1–5)",C["New Benefits CSAT"],"s",4.25,"hi","Customer experience"),

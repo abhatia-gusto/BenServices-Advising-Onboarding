@@ -55,11 +55,11 @@ CSS="""<style>
 .ic .g{background:var(--bg-success);color:var(--text-success)}.ic .a{background:var(--bg-warning);color:var(--text-warning)}.ic .r2{background:var(--bg-danger);color:var(--text-danger)}
 .ic .na{color:var(--text-faint,#bbb)}
 .ic td.nw,.ic th.nw{background:var(--surface-1,#f6f6f4)}
-.ic td.nwb,.ic th.nwb{border-left:2px solid var(--text-accent,#5b5bd6)}
+.ic td.nwb,.ic th.nwb{border-left:2px solid var(--text-primary,#333)}
 </style>"""
 H=[CSS,'<div class="ic">']
 H.append(f'<h2>IC scorecard — PE by PE, ICs side by side <span class="sub">· Q2 FY27 QTD ({WIN[0][:7]}–{WIN[-1][:7]})</span></h2>')
-H.append('<div class="nt">Each table = one PE (team lead); columns = that PE\'s ICs; cells = Q2 FY27 QTD (Σnum ÷ Σden). Owned-work keys off the record owner; phone/email mapped to the IC by name/agent/email (blank where unmapped). · = no volume for that IC/metric. Oct is month-to-date. Ramped ICs ordered by Q2 volume; <b>recent hires / transfers are marked ** and sectioned to the right</b> (blue divider, shaded) so they don\'t distort the ramped-team read — they are still fully scored.</div>')
+H.append('<div class="nt">Each table = one PE (team lead); columns = that PE\'s ICs; cells = Q2 FY27 QTD (Σnum ÷ Σden). Owned-work keys off the record owner; phone/email mapped to the IC by name/agent/email (blank where unmapped). · = no volume for that IC/metric. Oct is month-to-date. ICs ordered by Q2 volume; <b>recent hires / transfers are marked ** and set off by a solid divider line</b> (no shading) — fully scored and color-coded.</div>')
 H.append('<div class="lg"><span><i style="background:var(--bg-success)"></i>at/above SLO</span><span><i style="background:var(--bg-warning)"></i>near</span><span><i style="background:var(--bg-danger)"></i>below</span><span><i style="background:var(--surface-1,#f6f6f4);border:1px solid var(--border)"></i>** recent hire / transfer</span></div>')
 curL=None
 for g in groups:
@@ -72,7 +72,7 @@ for g in groups:
     nnew=sum(1 for col in ics if is_new(col["ic"],leader))
     def colcls(i,col):
         c="v"
-        if is_new(col["ic"],leader): c+=" nw"+(" nwb" if i==first_new else "")
+        if is_new(col["ic"],leader) and i==first_new: c+=" nwb"  # solid divider only, no shading
         return c
     pehdr=f'<div class="pe">PE: {g["pe"]} <span class="sub">· {len(ics)} ICs'+(f' · {nnew} recent **' if nnew else '')+'</span></div>'
     H.append(pehdr)

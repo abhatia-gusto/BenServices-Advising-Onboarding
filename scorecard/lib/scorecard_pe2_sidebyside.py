@@ -16,6 +16,14 @@ def value(c,k):
     n,dd=qsum(c)
     if not dd: return None
     return (n/dd if k in("s","r") else 100*n/dd)
+def aggval(cols,k):
+    n=dd=0.0
+    for c in cols.values():
+        if not c: continue
+        for i in QIDX:
+            if c[i] and c[i][1]: n+=c[i][0]; dd+=c[i][1]
+    if not dd: return None
+    return (n/dd if k in("s","r") else 100*n/dd)
 def fmt(v,k):
     if v is None: return "–"
     if k=="p": return str(round(v))
@@ -48,6 +56,7 @@ CSS="""<style>
 .sb td.l,.sb th.l{text-align:left;min-width:215px;padding-left:8px;color:var(--text-primary)}
 .sb td.s,.sb th.s{color:var(--text-secondary);font-size:10.5px;min-width:42px}
 .sb td.p,.sb th.p{border-left:1.5px solid var(--border-strong);min-width:74px;font-weight:500;font-family:var(--font-mono)}
+.sb td.agg,.sb th.agg{border-left:2.5px solid var(--text-primary,#333);font-weight:700}
 .sb th.p{font-family:inherit}
 .sb tr.sec td{text-align:left;padding:6px 8px 3px;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-accent);background:var(--surface-1)}
 .sb .g{background:var(--bg-success);color:var(--text-success)}.sb .a{background:var(--bg-warning);color:var(--text-warning)}.sb .r2{background:var(--bg-danger);color:var(--text-danger)}
@@ -71,18 +80,19 @@ def leader_rows(L):
 
 html=[CSS,'<div class="sb">']
 html.append('<h2>PEs side by side — this quarter (%s · Aug–Oct \'26) <span class="sub">· by leader</span></h2>'%LASTQ)
-html.append('<div class="nt"><b>PE = the IC\'s direct manager (team lead)</b>, grouped under their leader. Kelly, Adrienne, Alex, Brooke report to <b>Aman</b> directly (ex-Rehana NP&amp;R). Cumulative Q2 FY27 QTD (Σnum ÷ Σden). Phone &amp; email by each IC\'s current PE (coverage: avail %s%%, abandon %s%%, email %s%%). Σ PEs reconciles to leader = team = scorecard (≤0.1pp). Click ▸ to expand sub-statuses.</div>'%(COV.get("availability"),COV.get("abandon"),COV.get("email")))
+html.append('<div class="nt"><b>PE = the IC\'s direct manager (team lead)</b>, grouped under their leader. Kelly, Adrienne, Alex, Brooke report to <b>Aman</b> directly (ex-Rehana NP&amp;R). Cumulative Q2 FY27 QTD (Σnum ÷ Σden). Phone &amp; email by each IC\'s current PE (coverage: avail %s%%, abandon %s%%, email %s%%). Σ PEs reconciles to leader = team = scorecard (≤0.1pp). The <b>Σ column</b> after the solid line is the leader\'s volume-weighted quarter aggregate. Click ▸ to expand sub-statuses.</div>'%(COV.get("availability"),COV.get("abandon"),COV.get("email")))
 html.append('<div class="bar"><button id="exp">Expand all sub-statuses</button><span class="lg"><span><i style="background:var(--bg-success)"></i>at/above SLO</span><span><i style="background:var(--bg-warning)"></i>near</span><span><i style="background:var(--bg-danger)"></i>below</span></span></div>')
 rid=0
 for L in LEAD:
     html.append('<div class="grp">%s <span class="r">· %s · %d PEs</span></div>'%(L["name"],"reports to Aman directly" if L["direct"] else "reports to Aman",len(L["pes"])))
     html.append('<div class="wrap"><table><thead><tr><th class="l">Metric</th><th class="s">SLO</th>')
     for pe in L["pes"]: html.append('<th class="p">%s</th>'%pe["name"])
+    html.append('<th class="p agg">\u03a3 %s<span class="sub"> (all)</span></th>'%L["name"].split()[0])
     html.append('</tr></thead><tbody>')
     sec=None
     for r in leader_rows(L):
         if r["sec"]!=sec:
-            sec=r["sec"]; html.append('<tr class="sec"><td colspan="%d">%s</td></tr>'%(2+len(L["pes"]),sec))
+            sec=r["sec"]; html.append('<tr class="sec"><td colspan="%d">%s</td></tr>'%(3+len(L["pes"]),sec))
         dn=list(r["dets"].keys()); hd=len(dn)>0; rid+=1; rowid="g%d"%rid
         html.append('<tr class="%s"%s><td class="l">%s%s</td><td class="s">%s</td>'%(
             "par" if hd else "", (' data-d="%s"'%rowid) if hd else "",
@@ -92,6 +102,7 @@ for L in LEAD:
             if c is None: html.append('<td class="p na">·</td>')
             else:
                 v=value(c,r["k"]); html.append('<td class="p %s">%s</td>'%(rag(v,r),fmt(v,r["k"])))
+        av=aggval(r["cols"],r["k"]); html.append('<td class="p agg %s">%s</td>'%(rag(av,r),fmt(av,r["k"])))
         html.append('</tr>')
         for s in dn:
             html.append('<tr class="d" data-p="%s" style="display:none"><td class="l">%s</td><td class="s">—</td>'%(rowid,s))
@@ -100,6 +111,7 @@ for L in LEAD:
                 if c is None: html.append('<td class="p na">·</td>')
                 else:
                     v=value(c,r["k"]); html.append('<td class="p %s">%s</td>'%(rag(v,r),fmt(v,r["k"])))
+            av=aggval(r["dets"][s],r["k"]); html.append('<td class="p agg %s">%s</td>'%(rag(av,r),fmt(av,r["k"])))
             html.append('</tr>')
     html.append('</tbody></table></div>')
 html.append('</div>')

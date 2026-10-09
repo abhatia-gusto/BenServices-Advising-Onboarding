@@ -193,6 +193,28 @@ def do():
         if "Within SLA" not in st and "Past SLA" not in st: continue
         add(em,cic(r.get("CASE_OWNER_NAME_AT_TP")),1,1 if "Within SLA" in st else 0)
     M["Email SLO (≤4h)"]=em
+    # ---- Ticket SLA (Ful→OA, OA→Advising) keyed by TICKET_OWNER_NAME -> IC ----
+    from datetime import datetime as _dt
+    def _pts(x):
+        x=(x or "").strip()
+        for f in ("%Y-%m-%dT%H:%M:%S","%Y-%m-%d %H:%M:%S","%Y-%m-%d"):
+            try: return _dt.strptime(x[:19],f)
+            except: pass
+        return None
+    tfoa=acc(); toaadv=acc(); tp=os.path.join(HERE,"ticket_sla_by_flow_v12.html")
+    if os.path.exists(tp):
+        h=open(tp,encoding="utf-8",errors="replace").read()
+        s3=h.find(">",h.find('id="__EMBED__"'))+1; e3=h.find("</",s3); raw3=h[s3:e3]
+        for r in csv.DictReader(io.StringIO(raw3)):
+            ct=_pts(r.get("TICKET_CLOSED_TS_MT")); cr=_pts(r.get("TICKET_CREATED_TS_MT"))
+            if not ct or not cr: continue
+            if ("%04d-%02d"%(ct.year,ct.month)) not in WS: continue
+            within=1 if (ct-cr).total_seconds()/86400.0<=5 else 0
+            if r.get("TICKET_REPORTING_TEAM")=="Fulfillment" and r.get("HAS_OA_TOUCH")=="true":
+                add(tfoa,cic(r.get("BENEFIT_ORDER_OWNER")),1,within)
+            elif r.get("TICKET_REPORTING_TEAM")=="Implementation Advocate" and r.get("TICKET_TEAM")=="Benefits Advising" and r.get("IS_OPEN")!="true":
+                add(toaadv,cic(r.get("TICKET_OWNER_NAME")),1,within)
+    M["Ful→OA Ticket SLA (≤5d)"]=tfoa; M["OA→Advising Ticket SLA (≤5d)"]=toaadv
 do()
 
 # ---- metric meta (goal/dir/kind) + which metrics apply per leader-team ----
@@ -202,9 +224,10 @@ META={"Advising — RFD (≤5d)":(60,"hi","p"),"Advising — ER Confirm (≤5d)"
  "BYB Ready Intro (≤3d)":(80,"hi","p"),"BYB Implementation (≤5d)":(80,"hi","p"),"BYB Transition (≤2d)":(80,"hi","p"),"BYB E2E (≤60d)":(80,"hi","p"),"BYB cancel":(15,"lo","p"),
  "BT Qualification (≤5d)":(80,"hi","p"),"BT Implementation (≤5d)":(80,"hi","p"),"BT Transition (≤2d)":(80,"hi","p"),"BT E2E (≤35d)":(80,"hi","p"),"BT cancel":(10,"lo","p"),
  "Renewal CSAT (1–5)":(4.0,"hi","s"),"New Benefits CSAT (1–5)":(4.25,"hi","s"),"BYB CSAT (1–5)":(4.25,"hi","s"),"BT CSAT (1–5)":(4.25,"hi","s"),"In-App Sentiment (1–5)":(4.0,"hi","s"),
- "Net MRR Retention %":(100,"hi","p1"),"Phone availability (80–105%)":(80,"hi","p"),"Phone abandon rate":(30,"lo","p"),"Email SLO (≤4h)":(90,"hi","p")}
-ADV=["Advising — RFD (≤5d)","Advising — ER Confirm (≤5d)","Advising — Alt Requested (≤5d)","Phone availability (80–105%)","Phone abandon rate","Email SLO (≤4h)","In-App Sentiment (1–5)","Net MRR Retention %"]
-NPR=["% BO all-OA (≤1d/stg)","Benefit Order ≤30d","Ful→OA rate — New Plan","Ful→OA rate — Renewal","New Plan cancel","Renewal CSAT (1–5)","New Benefits CSAT (1–5)","Phone availability (80–105%)","Phone abandon rate","Email SLO (≤4h)"]
+ "Net MRR Retention %":(100,"hi","p1"),"Phone availability (80–105%)":(80,"hi","p"),"Phone abandon rate":(30,"lo","p"),"Email SLO (≤4h)":(90,"hi","p"),
+ "Ful→OA Ticket SLA (≤5d)":(80,"hi","p"),"OA→Advising Ticket SLA (≤5d)":(80,"hi","p")}
+ADV=["Advising — RFD (≤5d)","Advising — ER Confirm (≤5d)","Advising — Alt Requested (≤5d)","OA→Advising Ticket SLA (≤5d)","Phone availability (80–105%)","Phone abandon rate","Email SLO (≤4h)","In-App Sentiment (1–5)","Net MRR Retention %"]
+NPR=["% BO all-OA (≤1d/stg)","Benefit Order ≤30d","Ful→OA rate — New Plan","Ful→OA rate — Renewal","Ful→OA Ticket SLA (≤5d)","New Plan cancel","Renewal CSAT (1–5)","New Benefits CSAT (1–5)","Phone availability (80–105%)","Phone abandon rate","Email SLO (≤4h)"]
 BYBT=["BYB Ready Intro (≤3d)","BYB Implementation (≤5d)","BYB Transition (≤2d)","BYB E2E (≤60d)","BYB cancel","BYB CSAT (1–5)","BT Qualification (≤5d)","BT Implementation (≤5d)","BT Transition (≤2d)","BT E2E (≤35d)","BT cancel","BT CSAT (1–5)","Phone availability (80–105%)","Phone abandon rate","Email SLO (≤4h)"]
 LEADMETRICS={"Micah Sanchez":ADV,"Lynne Petre":ADV,"Lee Ann Volosin":NPR,"Aman Bhatia":NPR,"Martin Ribas":BYBT}
 

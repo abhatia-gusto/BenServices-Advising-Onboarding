@@ -36,6 +36,7 @@ CSS="""<style>
 .pe th .qs{display:block;font-size:9.5px;font-weight:400;color:var(--text-muted)}
 .pe td.m,.pe th.m{min-width:48px;font-size:11px}
 .pe td.pcol,.pe th.pcol{border-left:1.5px solid var(--border-strong);min-width:66px;font-weight:500}
+.pe td.agg,.pe th.agg{border-left:2.5px solid var(--text-primary,#333);font-weight:700}
 .pe th.pcol .qs{display:block;font-size:9.5px;font-weight:400;color:var(--text-muted)}
 .pe td.v{font-family:var(--font-mono)}
 .pe tr.sec td{text-align:left;padding:6px 8px 3px;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-accent);background:var(--surface-1)}
@@ -98,17 +99,19 @@ function leaderRows(L){const order=[],seen={};
  L.pes.forEach(pe=>pe.rows.forEach(r=>{if(!(r.n in seen)){seen[r.n]={n:r.n,sec:r.sec,k:r.k,g:r.g,gr:r.gr,am:r.am,d:r.d,dets:{},cols:{}};order.push(r.n);}
   const o=seen[r.n];o.cols[pe.name]=r.c;if(r.det)r.det.forEach(s=>{o.dets[s.n]=o.dets[s.n]||{};o.dets[s.n][pe.name]=s.c;});}));
  return order.map(n=>seen[n]);}
+function aggCols(m,k){let n=0,dd=0;for(const nm in m){const c=m[nm];if(!c)continue;QIDX.forEach(i=>{if(c[i]&&c[i][1]){n+=c[i][0];dd+=c[i][1];}});}if(!dd)return null;return (k==='s'||k==='r')?n/dd:100*n/dd;}
 function renderB(){let html='',gid=0;
  LEAD.forEach(L=>{html+='<div class="grp">'+L.name+' <span class="r">· '+(L.direct?'reports to Aman directly':'reports to Aman')+'</span></div>';
   const BR=leaderRows(L);html+='<div class="wrap"><table><thead><tr><th class="l">Metric</th><th class="s">SLO</th>';
-  L.pes.forEach(pe=>html+='<th class="pcol">'+pe.name+'</th>');html+='</tr></thead><tbody>';let sec=null;
-  BR.forEach(r=>{if(r.sec!==sec){sec=r.sec;html+='<tr class="sec"><td colspan="'+(2+L.pes.length)+'">'+sec+'</td></tr>';}
+  L.pes.forEach(pe=>html+='<th class="pcol">'+pe.name+'</th>');html+='<th class="pcol agg">\u03a3 '+L.name.split(' ')[0]+'</th>';html+='</tr></thead><tbody>';let sec=null;
+  BR.forEach(r=>{if(r.sec!==sec){sec=r.sec;html+='<tr class="sec"><td colspan="'+(3+L.pes.length)+'">'+sec+'</td></tr>';}
    const dn=Object.keys(r.dets);const hd=dn.length>0;const id='B'+(gid++);
    html+='<tr'+(hd?' class="p" data-d="'+id+'"':'')+'><td class="l">'+(hd?'<span class="ch">▶</span> ':'')+r.n+'</td><td class="s">'+slo(r)+'</td>';
    L.pes.forEach(pe=>{const c=r.cols[pe.name];const v=c?val(qsum(c,QIDX),r.k):null;html+='<td class="v pcol '+rag(v,r)+'">'+(c?fmt(v,r.k):'·')+'</td>';});
+   {const av=aggCols(r.cols,r.k);html+='<td class="v pcol agg '+rag(av,r)+'">'+fmt(av,r.k)+'</td>';}
    html+='</tr>';
    dn.forEach(s=>{html+='<tr class="d" data-p="'+id+'" style="display:'+(expB?'table-row':'none')+'"><td class="l">'+s+'</td><td class="s">—</td>';
-    L.pes.forEach(pe=>{const c=r.dets[s][pe.name];const v=c?val(qsum(c,QIDX),r.k):null;html+='<td class="v pcol '+rag(v,r)+'">'+(c?fmt(v,r.k):'·')+'</td>';});html+='</tr>';});});
+    L.pes.forEach(pe=>{const c=r.dets[s][pe.name];const v=c?val(qsum(c,QIDX),r.k):null;html+='<td class="v pcol '+rag(v,r)+'">'+(c?fmt(v,r.k):'·')+'</td>';});{const av=aggCols(r.dets[s],r.k);html+='<td class="v pcol agg '+rag(av,r)+'">'+fmt(av,r.k)+'</td>';}html+='</tr>';});});
   html+='</tbody></table></div>';});
  const root=document.getElementById('secB');root.innerHTML=html;
  root.querySelectorAll('tr.p').forEach(tr=>tr.onclick=()=>{const rs=root.querySelectorAll('tr[data-p="'+tr.dataset.d+'"]');const s=rs[0].style.display==='none';rs.forEach(x=>x.style.display=s?'table-row':'none');tr.classList.toggle('op',s);});}
