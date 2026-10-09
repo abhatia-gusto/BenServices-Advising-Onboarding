@@ -78,6 +78,10 @@ def main():
         step(wd, "scorecard_ic_compute.py", *(["--window", a.window] if a.window else []))
         step(wd, "scorecard_ic_sidebyside.py")
 
+    # all-metrics verification: tie Σ leadership back to the team view (runs when both built)
+    if os.path.exists(os.path.join(wd,"scorecard_team_data.json")) and os.path.exists(os.path.join(wd,"scorecard_pe_data.json")):
+        step(wd, "scorecard_reconcile.py")
+
     print("\nOutputs in", wd)
     for p in ["_scorecard_combined_widget.html", "_scorecard_pe2_combined.html",
               "_scorecard_pe2_sbs.html", "_scorecard_pe_combined.html", "_scorecard_ic_sbs.html"]:
