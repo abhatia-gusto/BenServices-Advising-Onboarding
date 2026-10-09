@@ -10,7 +10,7 @@ person's computer. Same pattern as the sibling dashboard folders in this repo
   source-of-truth definitions behind every metric.
 - `lib/` — the compute + render scripts (byte-for-byte the ones that produced the published
   scorecard) plus the team widget template and `new_hire_default_off.json` (the IC recent-hire
-  `**` flag list).
+  `**` flag list; recent hires render inline with a solid divider (no shading)).
 - `fetch_live.py` — **materializer**: runs each query in `queries/` live against Snowflake and
   writes the exact input artifacts `lib/` consumes.
 - `run.py` — end-to-end: materialize → run compute/render → emit the three views.
@@ -35,7 +35,7 @@ Outputs land in `--workdir` (default `./_run`):
 - **team**: `_scorecard_combined_widget.html` (tables + cancel charts), `BenOps_Scorecard_TeamView_<Mon><Yr>.html`
 - **pe** (team-lead layer): `_scorecard_pe2_combined.html`, `_scorecard_pe2_sbs.html`, `BenOps_Scorecard_PEbyLead_<Mon><Yr>.html`
 - **pepe** (leadership layer — Micah/Lynne/Lee Ann/Aman/Martin as columns): `_scorecard_pe_combined.html`, `BenOps_Scorecard_PE_<Mon><Yr>.html`
-- **ic**: `_scorecard_ic_sbs.html`, `BenOps_Scorecard_IC_<Q>.html` (recent hires flagged `**`, sectioned right)
+- **ic**: `_scorecard_ic_sbs.html`, `BenOps_Scorecard_IC_<Q>.html` (recent hires flagged `**` inline with a solid divider, no shading)
 
 The `_*.html` fragments are self-contained — paste into `show_widget`, or open the standalone files.
 
@@ -66,3 +66,20 @@ a dashboard change (query → pipeline → repo → skill), owned by the scoreca
 
 Access: repo is enterprise-internal on the `abhatia-gusto` Gusto EMU account — readable by any Gusto
 enterprise GitHub member. A 404 means your GitHub isn't connected/authenticated as a Gusto user.
+
+## Recent updates (Oct 2026)
+- **Ticket SLA now in the PE / PEPE / IC views** (was team-only). Two rows, same v12 flow
+  definition and 5-day close-month calc as the team view:
+  - **OA→Advising Ticket SLA (≤5d)** under Advising — attributed by **ticket owner → current PE**
+    (that flow's owner *is* the Implementation Advocate / Advising rep; ~98% mapped).
+  - **Ful→OA Ticket SLA (≤5d)** under NP&R — attributed by **benefit-order owner → current PE**
+    (the ticket owner is a Fulfillment rep, so the NP&R-relevant owner is the BO owner; ~99–100% mapped).
+  Goal ≥80, amber ≥70. Σ PE reconciles to team (NP&R 78.7 vs 78.8; Advising 68.8 = 68.8).
+- **PE-by-lead view: Σ leader-aggregate ("blended") column** — each leader's team-lead PEs, then a
+  volume-weighted Σ column for that leader after a solid divider (in `scorecard_pe2_sidebyside.py`
+  and Section B of `scorecard_pe2_render.py`).
+- **IC view: recent hires inline** with a single solid divider (no shaded section), still `**`-flagged
+  and color-coded (`scorecard_ic_sidebyside.py`).
+- **All-metrics verification** (`lib/scorecard_reconcile.py`) — `run.py` runs it automatically when
+  both team + pepe are built: for the latest quarter it ties Σ leadership back to the team value per
+  metric (PASS/FAIL within 0.6pp / 0.02; phone & email reported as coverage-bounded INFO).
