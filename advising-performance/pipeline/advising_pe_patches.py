@@ -36,6 +36,14 @@ POOLTEAM = (
 "  var abIn=0,abAb=0;team.forEach(function(a){var ab=D.abandonData[a.name]||{};ms.forEach(function(mo){if(ab[mo]){abIn+=ab[mo].inbound||0;abAb+=ab[mo].abandonedMod||0}})});r.abandon=abIn>0?Math.round(abAb/abIn*10000)/100:null;\n"
 "  return r;\n"
 "}\n"
+"function rawFor(list,k){\n"
+"  var ms=Array.from(sMonths), n=0, d=0;\n"
+"  if(k==='quality'){ list.forEach(function(a){ms.forEach(function(mo){var x=a.quality&&a.quality[mo];if(x)d+=x.count;});}); return d?('n='+d):''; }\n"
+"  if(k==='tixRate'){ list.forEach(function(a){ms.forEach(function(mo){var x=a.tixRate&&a.tixRate[mo];if(x){n+=x.tix;d+=x.orders;}});}); return d?(n+'/'+d):''; }\n"
+"  if(k==='availability'){ list.forEach(function(a){var av=D.availData[a.name]||{};ms.forEach(function(mo){if(av[mo]){n+=av[mo].met||0;d+=av[mo].eligible||0;}});}); return d?(n+'/'+d):''; }\n"
+"  if(k==='abandon'){ list.forEach(function(a){var ab=D.abandonData[a.name]||{};ms.forEach(function(mo){if(ab[mo]){n+=ab[mo].abandonedMod||0;d+=ab[mo].inbound||0;}});}); return d?(n+'/'+d):''; }\n"
+"  list.forEach(function(a){ms.forEach(function(mo){var x=a[k]&&a[k][mo];if(x){n+=x.met;d+=x.total;}});}); return d?(n+'/'+d):'';\n"
+"}\n"
 )
 
 AVG_OLD = (
@@ -57,13 +65,13 @@ AUTOSEL_NEW = "function autoSelectICs(){sA=new Set(ALL_ADVISORS.filter(function(
 DRILL_START = "var drill = \"<div class='pe-drill'><table class='pe-drill-tbl'>\";"
 DRILL_END = "drill += \"</tbody></table></div>\";"
 DRILL_NEW = r'''var MET=[["erConfirm","ER Confirm"],["rfd","RFD+Alt"],["tixSla","Ticket SLA"],["availability","Phone Avail."],["abandon","Abandon"],["tixRate","Ticket Rate"],["quality","LAI QA"]];
-    function mcell(k,v,bold){
+    function mcell(k,v,raw,bold){
       if(v==null) return "<td class='r'>&mdash;</td>";
       var st=metricStatus(k,v);
       var bg=st==='goal'?'#E1F5EE':st==='floor'?'#FAEEDA':'#FCEBEB';
       var fg=st==='goal'?'#0F6E56':st==='floor'?'#854F0B':'#A32D2D';
       var disp=(k==='quality')?v.toFixed(0):v.toFixed(0)+'%';
-      return "<td class='r'><span style='background:"+bg+";color:"+fg+";padding:2px 8px;border-radius:10px;"+(bold?'font-weight:600;':'')+"'>"+disp+"</span></td>";
+      return "<td class='r'><span style='background:"+bg+";color:"+fg+";padding:2px 8px;border-radius:10px;"+(bold?'font-weight:600;':'')+"'>"+disp+"</span>"+(raw?"<div style='font-size:10px;color:var(--gt);margin-top:2px'>"+raw+"</div>":"")+"</td>";
     }
     var drill = "<div class='pe-drill'><table class='pe-drill-tbl'>";
     drill += "<thead><tr><th>Advisor</th>";
@@ -74,14 +82,14 @@ DRILL_NEW = r'''var MET=[["erConfirm","ER Confirm"],["rfd","RFD+Alt"],["tixSla",
     } else {
       team.forEach(function(r){
         drill += "<tr><td class='nm icnm' data-icname='"+escAttr(r.name)+"' title='Click to view report'>"+escHtml(r.name)+"</td>";
-        MET.forEach(function(m){ drill += mcell(m[0], r.metrics[m[0]], false); });
+        MET.forEach(function(m){ drill += mcell(m[0], r.metrics[m[0]], rawFor([r],m[0]), false); });
         var aW=r.att.avgWeighted, qV=r.att.qpr;
         drill += "<td class='r' style='font-weight:600;color:"+(aW==null?'var(--gt)':colAvg(aW))+"'>"+(aW==null?'&mdash;':aW.toFixed(1))+"</td>";
         drill += "<td class='r' style='font-weight:600;color:"+(qV==null?'var(--gt)':colQpr(qV))+"'>"+(qV==null?'&mdash;':qV.toFixed(1))+"</td></tr>";
       });
       var bm=poolTeam(team), batt=calcAttainment(bm);
       drill += "<tr style='border-top:2px solid #cfcfcf'><td class='nm' style='font-weight:600'>TEAM BLENDED <span class='sub'>"+team.length+" IC"+(team.length===1?"":"s")+"</span></td>";
-      MET.forEach(function(m){ drill += mcell(m[0], bm[m[0]], true); });
+      MET.forEach(function(m){ drill += mcell(m[0], bm[m[0]], rawFor(team,m[0]), true); });
       drill += "<td class='r' style='font-weight:700;color:"+(batt.avgWeighted==null?'var(--gt)':colAvg(batt.avgWeighted))+"'>"+(batt.avgWeighted==null?'&mdash;':batt.avgWeighted.toFixed(1))+"</td>";
       drill += "<td class='r' style='font-weight:700;color:"+(batt.qpr==null?'var(--gt)':colQpr(batt.qpr))+"'>"+(batt.qpr==null?'&mdash;':batt.qpr.toFixed(1))+"</td></tr>";
     }
@@ -96,6 +104,12 @@ def apply(html):
         if anchor in html:
             html = html.replace(anchor, POOLTEAM + anchor, 1)
             applied.append("poolTeam")
+    # 1b. rawFor() helper (tracking counts) — ensure present even if poolTeam already was
+    if "function rawFor(list,k){" not in html and "function renderPE(rows){" in html:
+        _rf = POOLTEAM.split("function rawFor(list,k){", 1)
+        if len(_rf) == 2:
+            html = html.replace("function renderPE(rows){", "function rawFor(list,k){" + _rf[1] + "function renderPE(rows){", 1)
+            applied.append("rawFor")
     # 2. pooled PE summary
     if "calcAttainment(poolTeam(team))" not in html and AVG_OLD in html:
         html = html.replace(AVG_OLD, AVG_NEW, 1)
