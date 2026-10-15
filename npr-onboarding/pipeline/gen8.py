@@ -285,6 +285,10 @@ function dcell(k,c,rawtxt,bold){ var ck=AREAOF[k].k; var cls=(FIRSTOF[k]?'asep '
   var inner; if(k==='ticket_rate'){ inner=valText(k,c);} else { var ic=c.status==='goal'?'ico-g':c.status==='floor'?'ico-y':'ico-r'; inner='<span class="ico '+ic+'">'+valText(k,c)+'</span>'; }
   var sub = rawtxt ? (c.att.toFixed(0)+'% \u00b7 '+rawtxt) : (c.att.toFixed(0)+'% att');
   return '<td class="'+cls+'"'+(bold?' style="font-weight:600"':'')+'>'+inner+'<span class="attsub">'+sub+'</span></td>'; }
+function diagN(k,v,n){ if(v==null) return '<td class="r"><span class="muted">\u2014</span></td>';
+  var disp=(k==='csat')?v.toFixed(2):v.toFixed(0)+'%';
+  var sub=(k==='csat')?('n='+Math.round(n)):(Math.round(v/100*n)+'/'+Math.round(n));
+  return '<td class="r"><span style="color:'+diagBand(k,v)+'">'+disp+'</span><span class="attsub">'+sub+'</span></td>'; }
 function bfCount(r){return ORDER.filter(function(k){return r.m[k].status==='miss'}).length;}
 function btCount(r){return ORDER.filter(function(k){return r.m[k].status==='miss'||r.m[k].status==='floor'}).length;}
 function assignRatings(rows){var clean=rows.filter(function(r){return bfCount(r)===0&&r.qpr!=null}).slice().sort(function(a,b){return b.qpr-a.qpr});
@@ -435,10 +439,10 @@ function renderPE(){var rows=rowsComputed().filter(function(r){return r.weighted
      '<div class="pe-num" style="color:'+bandColor(pr.weighted)+'">'+(pr.weighted==null?0:pr.weighted).toFixed(1)+'%</div>'+
      '<div class="pe-num" style="color:'+bandColor(pr.qpr)+'">'+(pr.qpr==null?0:pr.qpr).toFixed(1)+'%</div>'+
      '<div><div class="pe-rdist"><div class="seg s3" style="width:'+(100*r3/tt)+'%"></div><div class="seg s2" style="width:'+(100*r2/tt)+'%"></div><div class="seg s1" style="width:'+(100*r1/tt)+'%"></div></div><div class="pe-rdist-cap"><b>'+r3+'</b> rated 3 · <b>'+r2+'</b> rated 2 · <b>'+r1+'</b> rated 1</div></div>'+'<div class="pe-diag" style="color:'+diagBand('csat',tcs)+'">'+(tcs==null?'—':tcs.toFixed(2))+'<span class="s">'+(csN>0?'n='+csN:'')+'</span></div>'+'<div class="pe-diag" style="color:'+diagBand('email_sla',tem)+'">'+(tem==null?'—':tem.toFixed(0)+'%')+'<span class="s">'+(emTot>0?emMet+' / '+emTot:'')+'</span></div>'+'<div class="pe-diag" style="color:'+diagBand('maestro',tma)+'">'+(tma==null?'—':tma.toFixed(0)+'%')+'<span class="s">'+(maTot>0?maMet+' / '+maTot:'')+'</span></div>'+'</div>'+
-     '<div class="pe-drill '+(state.peOpen[pe]?'open':'')+'"><table style="width:100%"><thead><tr><th>IC</th>'+ORDER.map(function(k){var ck=AREAOF[k].k;var cls=(FIRSTOF[k]?'asep ':'')+'col-'+ck+(LASTOF[k]?' aedge-'+ck:'');return '<th class="'+cls+'">'+(MLABEL[k].short||MLABEL[k].l)+'</th>';}).join('')+'<th class="r">WTD</th><th class="r">QPR</th></tr></thead><tbody>'+
+     '<div class="pe-drill '+(state.peOpen[pe]?'open':'')+'"><table style="width:100%"><thead><tr><th>IC</th>'+ORDER.map(function(k){var ck=AREAOF[k].k;var cls=(FIRSTOF[k]?'asep ':'')+'col-'+ck+(LASTOF[k]?' aedge-'+ck:'');return '<th class="'+cls+'">'+(MLABEL[k].short||MLABEL[k].l)+'</th>';}).join('')+'<th class="r">WTD</th><th class="r">QPR</th>'+DIAG.map(function(dd){return '<th class="r">'+dd.l+'</th>';}).join('')+'</tr></thead><tbody>'+
        t.slice().sort(function(a,b){return b.qpr-a.qpr}).map(function(r){
-         return '<tr><td class="nm pe-ic-link" data-ic="'+r.name+'">'+r.name+'</td>'+ORDER.map(function(k){return dcell(k,r.m[k],trk(r.a,k),false);}).join('')+scoreCell(r.weighted,'r')+scoreCell(r.qpr,'r')+'</tr>';}).join('')+
-       (function(){var PB=poolPE(t);return '<tr class="pe-blend" style="border-top:2px solid #cfcfcf;font-weight:600"><td class="nm">TEAM BLENDED <span class="muted">'+t.length+' IC'+(t.length===1?'':'s')+'</span></td>'+ORDER.map(function(k){return dcell(k,PB.m[k],trk({months:PB._months},k),true);}).join('')+scoreCell(PB.weighted,'r')+scoreCell(PB.qpr,'r')+'</tr>';})()+
+         return '<tr><td class="nm pe-ic-link" data-ic="'+r.name+'">'+r.name+'</td>'+ORDER.map(function(k){return dcell(k,r.m[k],trk(r.a,k),false);}).join('')+scoreCell(r.weighted,'r')+scoreCell(r.qpr,'r')+DIAG.map(function(dd){var x=diagVal(r.a,dd.k);return diagN(dd.k,x.v,x.n);}).join('')+'</tr>';}).join('')+
+       (function(){var PB=poolPE(t);return '<tr class="pe-blend" style="border-top:2px solid #cfcfcf;font-weight:600"><td class="nm">TEAM BLENDED <span class="muted">'+t.length+' IC'+(t.length===1?'':'s')+'</span></td>'+ORDER.map(function(k){return dcell(k,PB.m[k],trk({months:PB._months},k),true);}).join('')+scoreCell(PB.weighted,'r')+scoreCell(PB.qpr,'r')+DIAG.map(function(dd){var tv=teamDiag(t,dd.k),tn=0;t.forEach(function(rr){tn+=diagVal(rr.a,dd.k).n});return diagN(dd.k,tv,tn);}).join('')+'</tr>';})()+
      '</tbody></table></div></div>';});
  $('peRows').innerHTML=h;}
 

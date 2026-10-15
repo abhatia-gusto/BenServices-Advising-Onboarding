@@ -44,6 +44,8 @@ POOLTEAM = (
 "  if(k==='abandon'){ list.forEach(function(a){var ab=D.abandonData[a.name]||{};ms.forEach(function(mo){if(ab[mo]){n+=ab[mo].abandonedMod||0;d+=ab[mo].inbound||0;}});}); return d?(n+'/'+d):''; }\n"
 "  list.forEach(function(a){ms.forEach(function(mo){var x=a[k]&&a[k][mo];if(x){n+=x.met;d+=x.total;}});}); return d?(n+'/'+d):'';\n"
 "}\n"
+"function dScore(sc,n){return sc==null?\"<td class='r'>&mdash;</td>\":\"<td class='r'><span style='color:\"+colDiagScore(sc)+\"'>\"+sc.toFixed(2)+\"</span><div style='font-size:10px;color:var(--gt)'>n=\"+n+\"</div></td>\";}\n"
+"function dEmail(p,met,total){return p==null?\"<td class='r'>&mdash;</td>\":\"<td class='r'><span style='color:\"+colDiagEmail(p)+\"'>\"+p.toFixed(0)+\"%</span><div style='font-size:10px;color:var(--gt)'>\"+met+\"/\"+total+\"</div></td>\";}\n"
 )
 
 AVG_OLD = (
@@ -76,7 +78,7 @@ DRILL_NEW = r'''var MET=[["erConfirm","ER Confirm"],["rfd","RFD+Alt"],["tixSla",
     var drill = "<div class='pe-drill'><table class='pe-drill-tbl'>";
     drill += "<thead><tr><th>Advisor</th>";
     MET.forEach(function(m){ drill += "<th class='r'>"+m[1]+"</th>"; });
-    drill += "<th class='r'>WTD</th><th class='r'>QPR</th></tr></thead><tbody>";
+    drill += "<th class='r'>WTD</th><th class='r'>QPR</th><th class='r'>CSAT</th><th class='r'>In-App</th><th class='r'>Email SLA</th></tr></thead><tbody>";
     if(team.length===0){
       drill += "<tr><td colspan='"+(MET.length+3)+"' class='pe-drill-empty'>No advisors on this team match the current filters.</td></tr>";
     } else {
@@ -84,14 +86,16 @@ DRILL_NEW = r'''var MET=[["erConfirm","ER Confirm"],["rfd","RFD+Alt"],["tixSla",
         drill += "<tr><td class='nm icnm' data-icname='"+escAttr(r.name)+"' title='Click to view report'>"+escHtml(r.name)+"</td>";
         MET.forEach(function(m){ drill += mcell(m[0], r.metrics[m[0]], rawFor([r],m[0]), false); });
         var aW=r.att.avgWeighted, qV=r.att.qpr;
+        var _dc=diagCsat(r.name),_di=diagInapp(r.name),_de=diagEmail(r.name);
         drill += "<td class='r' style='font-weight:600;color:"+(aW==null?'var(--gt)':colAvg(aW))+"'>"+(aW==null?'&mdash;':aW.toFixed(1))+"</td>";
-        drill += "<td class='r' style='font-weight:600;color:"+(qV==null?'var(--gt)':colQpr(qV))+"'>"+(qV==null?'&mdash;':qV.toFixed(1))+"</td></tr>";
+        drill += "<td class='r' style='font-weight:600;color:"+(qV==null?'var(--gt)':colQpr(qV))+"'>"+(qV==null?'&mdash;':qV.toFixed(1))+"</td>"+dScore(_dc.score,_dc.n)+dScore(_di.score,_di.n)+dEmail(_de.pct,_de.met,_de.total)+"</tr>";
       });
       var bm=poolTeam(team), batt=calcAttainment(bm);
       drill += "<tr style='border-top:2px solid #cfcfcf'><td class='nm' style='font-weight:600'>TEAM BLENDED <span class='sub'>"+team.length+" IC"+(team.length===1?"":"s")+"</span></td>";
       MET.forEach(function(m){ drill += mcell(m[0], bm[m[0]], rawFor(team,m[0]), true); });
+      var _cs=0,_csn=0,_is=0,_isn=0,_em=0,_et=0;team.forEach(function(rr){var a=diagCsat(rr.name);if(a.score!=null){_cs+=a.score*a.n;_csn+=a.n;}var b=diagInapp(rr.name);if(b.score!=null){_is+=b.score*b.n;_isn+=b.n;}var e=diagEmail(rr.name);_em+=e.met;_et+=e.total;});
       drill += "<td class='r' style='font-weight:700;color:"+(batt.avgWeighted==null?'var(--gt)':colAvg(batt.avgWeighted))+"'>"+(batt.avgWeighted==null?'&mdash;':batt.avgWeighted.toFixed(1))+"</td>";
-      drill += "<td class='r' style='font-weight:700;color:"+(batt.qpr==null?'var(--gt)':colQpr(batt.qpr))+"'>"+(batt.qpr==null?'&mdash;':batt.qpr.toFixed(1))+"</td></tr>";
+      drill += "<td class='r' style='font-weight:700;color:"+(batt.qpr==null?'var(--gt)':colQpr(batt.qpr))+"'>"+(batt.qpr==null?'&mdash;':batt.qpr.toFixed(1))+"</td>"+dScore(_csn?_cs/_csn:null,_csn)+dScore(_isn?_is/_isn:null,_isn)+dEmail(_et?_em/_et*100:null,_em,_et)+"</tr>";
     }
     drill += "</tbody></table></div>";'''
 

@@ -2642,6 +2642,7 @@ function renderHist(rows){
 // ---- table (Weighted + QPR together) ----
 function chip(cell){if(cell.att==null)return '<span class="chip c-na">—</span>';return '<span class="chip '+clsOf(cell.status)+'">'+cell.val.toFixed(1)+'%</span>'}
 function trkTxt(c){if(!c||!c.agg)return "";var a=c.agg;if(a.count!=null)return a.count?("n="+Math.round(a.count)):"";if(a.cancels!=null)return a.total?(Math.round(a.cancels)+"/"+Math.round(a.total)):"";if(a.total!=null)return a.total?(Math.round(a.met)+"/"+Math.round(a.total)):"";return "";}
+function diagCell(v,k){ if(v==null) return '<td class="r"><span class="num" style="color:var(--gt)">\u2014</span></td>'; var dm=S.diagMeta[k]||{}; var disp=dm.fmt==='pct'?v.toFixed(0)+'%':dm.fmt==='avg'?v.toFixed(2):Math.round(v); var col='var(--tx)'; if(dm.fmt!=='count'&&dm.g){col=v>=dm.g?'#0F6E56':(v>=dm.g*0.9?'#854F0B':'#A32D2D');} return '<td class="r"><span style="color:'+col+'">'+disp+'</span></td>'; }
 function chipT(cell){if(cell.att==null)return '<span class="chip c-na">—</span>';var rt=trkTxt(cell);return '<span class="chip '+clsOf(cell.status)+'">'+cell.val.toFixed(1)+'%</span>'+(rt?'<div class="attsub" style="font-size:10px;color:var(--gt);margin-top:2px">'+rt+'</div>':"");}
 function icoCell(c,cls){cls=cls||"";
   if(c.att==null)return '<td class="'+cls+'"><span class="num" style="color:var(--gt)">—</span></td>';
@@ -2819,14 +2820,16 @@ function drillRow(r){return '<tr class="drill"><td colspan="'+NCOLS+'"><div clas
 function poolPE(pe){var ics=filteredAdvisors().filter(function(a){return a.pe===pe});
   function zm(mk){var o={};D.months.forEach(function(m){o[m]=mk()});return o;}
   var bs=zm(function(){return{met:0,total:0}}),e=zm(function(){return{met:0,total:0}}),c=zm(function(){return{cancels:0,total:0}}),q=zm(function(){return{sum:0,count:0}}),av=zm(function(){return{met:0,total:0}}),ab=zm(function(){return{met:0,total:0}});
+  var dg={};(D.diagnostics||[]).forEach(function(dk){dg[dk]={m:zm(function(){return{}})};});
   ics.forEach(function(a){D.months.forEach(function(m){
     var rb=a.raw.boStatus.m[m];bs[m].met+=rb.met;bs[m].total+=rb.total;
     var re=a.raw.e2e.m[m];e[m].met+=re.met;e[m].total+=re.total;
     var rc=a.raw.cancel.m[m];c[m].cancels+=rc.cancels;c[m].total+=rc.total;
     var rq=a.raw.quality.m[m];if(rq.count){q[m].sum+=(rq.sum||0);q[m].count+=rq.count}
     var ra=a.raw.avail.m[m];av[m].met+=ra.met;av[m].total+=ra.total;
-    var rab=a.raw.abandon.m[m];ab[m].met+=rab.met;ab[m].total+=rab.total;});});
-  var synth={name:pe,pe:pe,raw:{boStatus:{m:bs},e2e:{m:e},cancel:{m:c},quality:{m:q},avail:{m:av},abandon:{m:ab}}};
+    var rab=a.raw.abandon.m[m];ab[m].met+=rab.met;ab[m].total+=rab.total;
+    (D.diagnostics||[]).forEach(function(dk){var src=((a.raw[dk]||{m:{}}).m[m])||{},tgt=dg[dk].m[m];for(var fld in src){if(typeof src[fld]==='number')tgt[fld]=(tgt[fld]||0)+src[fld];}});});});
+  var synth={name:pe,pe:pe,raw:{boStatus:{m:bs},e2e:{m:e},cancel:{m:c},quality:{m:q},avail:{m:av},abandon:{m:ab}}};(D.diagnostics||[]).forEach(function(dk){synth.raw[dk]=dg[dk];});
   var r=computeRow(synth);r.n=ics.length;r.ics=ics.map(computeRow);return r;}
 function peStat(lbl,val,sub,col){return '<div class="pe-stat"><div class="lbl">'+lbl+'</div><div class="val" style="color:'+(col||"var(--dk)")+'">'+val+'</div><div class="sub">'+sub+'</div></div>'}
 function renderPE(){
@@ -2847,8 +2850,8 @@ function renderPE(){
     var ics=p.ics.filter(function(r){return r.qpr!=null});
     var met=ics.filter(function(r){return r.qpr>=QPR_MET}).length,below=ics.length-met,mp=ics.length?met/ics.length*100:0,bp=100-mp;
     var bar='<div><div class="pe-split-bar"><div class="met" style="width:'+mp+'%"></div><div class="below" style="width:'+bp+'%"></div></div><div class="pe-split-cap"><span class="met-c">'+met+' met ('+Math.round(mp)+'%)</span> · <span class="bel-c">'+below+' below ('+Math.round(bp)+'%)</span></div></div>';
-    var drill='<div class="pe-drill'+(openPE===p.name?' open':'')+'"><div class="tbl-wrap"><table><thead><tr><th>IC</th>'+DORDER.map(function(k){return '<th class="r">'+S.metrics[k].l+'</th>'}).join("")+'<th class="r">Wtd</th><th class="r">QPR</th></tr></thead><tbody>'+
-      p.ics.slice().sort(function(a,b){return (b.qpr==null?-1:b.qpr)-(a.qpr==null?-1:a.qpr)}).map(function(r){return '<tr><td class="nm">'+r.name+'</td>'+DORDER.map(function(k){return '<td class="r">'+chipT(r.m[k])+'</td>'}).join("")+'<td class="r pe-num">'+fs(r.weighted)+'</td><td class="r pe-num">'+fs(r.qpr)+'</td></tr>'}).join("")+'<tr class="pe-blend" style="border-top:2px solid #cfcfcf;font-weight:600"><td class="nm">TEAM BLENDED</td>'+DORDER.map(function(k){return '<td class="r">'+chipT(p.m[k])+'</td>'}).join("")+'<td class="r pe-num">'+fs(p.weighted)+'</td><td class="r pe-num">'+fs(p.qpr)+'</td></tr>'+'</tbody></table></div></div>';
+    var drill='<div class="pe-drill'+(openPE===p.name?' open':'')+'"><div class="tbl-wrap"><table><thead><tr><th>IC</th>'+DORDER.map(function(k){return '<th class="r">'+S.metrics[k].l+'</th>'}).join("")+'<th class="r">Wtd</th><th class="r">QPR</th>'+(D.diagnostics||[]).map(function(dk){return '<th class="r">'+((S.diagMeta[dk]&&S.diagMeta[dk].l)||dk)+'</th>';}).join("")+'</tr></thead><tbody>'+
+      p.ics.slice().sort(function(a,b){return (b.qpr==null?-1:b.qpr)-(a.qpr==null?-1:a.qpr)}).map(function(r){return '<tr><td class="nm">'+r.name+'</td>'+DORDER.map(function(k){return '<td class="r">'+chipT(r.m[k])+'</td>'}).join("")+'<td class="r pe-num">'+fs(r.weighted)+'</td><td class="r pe-num">'+fs(r.qpr)+'</td>'+(D.diagnostics||[]).map(function(dk){return diagCell(r.diag[dk],dk);}).join("")+'</tr>'}).join("")+'<tr class="pe-blend" style="border-top:2px solid #cfcfcf;font-weight:600"><td class="nm">TEAM BLENDED</td>'+DORDER.map(function(k){return '<td class="r">'+chipT(p.m[k])+'</td>'}).join("")+'<td class="r pe-num">'+fs(p.weighted)+'</td><td class="r pe-num">'+fs(p.qpr)+'</td>'+(D.diagnostics||[]).map(function(dk){return diagCell(p.diag[dk],dk);}).join("")+'</tr>'+'</tbody></table></div></div>';
     return '<div class="pe-row'+(openPE===p.name?' open':'')+'" data-pe="'+escAttr(p.name)+'"><div class="peg pe-click"><div class="caret">▶</div><div class="pe-nm">'+p.name+'<span class="s">'+p.n+' ICs</span></div><div class="pe-num" style="color:'+bandColor(p.weighted)+'">'+fs(p.weighted)+'%</div><div class="pe-num" style="color:'+bandColor(p.qpr)+'">'+fs(p.qpr)+'%</div>'+bar+'</div>'+drill+'</div>';}).join("");
   Array.from(document.querySelectorAll(".pe-click")).forEach(function(h){h.onclick=function(){var pe=h.parentElement.dataset.pe;openPE=openPE===pe?null:pe;renderPE()}});
 }
