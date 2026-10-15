@@ -45,12 +45,21 @@ def main():
                  "inject_v11_core_data.py", "inject_v11_period_data.py", "inject_diagnostic_v11.py",
                  "inject_data_resources.py"):
         sh([step])
-    # verify the built HTML still carries the export + dynamic date
+    # Re-apply PE-view customizations (pooled PE summary + Broker-style blended drill +
+    # autoSelectICs off-list fix). inject_* preserves them in place, but this guarantees
+    # they're present on every run and repairs a reverted/rebuilt HTML. Idempotent.
+    import advising_pe_patches as _pep
     html = os.path.join(HERE, "advising_performance_dashboard_v11.html")
+    _h, _applied = _pep.apply(open(html, encoding="utf-8").read())
+    open(html, "w", encoding="utf-8").write(_h)
+    print("advising_pe_patches: " + (", ".join(_applied) if _applied else "already current"))
+    # verify the built HTML still carries the export + dynamic date
     s = open(html, encoding="utf-8").read()
     assert 'id="benopsXlsxBtn"' in s, "export button missing after rebuild"
     assert 'class="perfDT"' in s and 'class="perfRE"' in s, "dynamic status spans missing"
     assert "July 16, 2026" not in s, "stale hardcoded date reappeared"
+    assert ("function poolTeam(team){" in s and "TEAM BLENDED" in s and "!DEFAULT_OFF.has(n)" in s), \
+        "PE-view customizations (pooled PE / blended drill / off-list fix) missing after rebuild"
     # Current-PE guard: advisors[*].pe (drives the PE filter/grouping) must match peMap.
     import json as _json
     def _extract(src, key):

@@ -47,9 +47,9 @@ D=json.load(open(os.path.join(TMP,"varD2.json")))
 # diagnostic config (NOT scored, NOT gated)
 D["diagnostics"]=["email","csat","qc"]
 D["defaults"]["diagMeta"]={
-  "email":{"l":"Email SLA","sub":"% met ≤4hr SLA","fmt":"pct","d":"gte","g":90,
+  "email":{"l":"Email SLA","sub":"% met \u22644hr SLA","fmt":"pct","d":"gte","g":90,
            "tip":"Diagnostic (not scored): % of answered inbound emails responded within SLA. num=within-SLA, den=answered (within+past). Canonical email-SLA logic; case owner at touchpoint, point-in-time sub-team."},
-  "csat":{"l":"CSAT","sub":"avg 1–5","fmt":"avg","d":"gte","g":4.5,
+  "csat":{"l":"CSAT","sub":"avg 1\u20135","fmt":"avg","d":"gte","g":4.5,
           "tip":"Diagnostic (not scored): average CSAT score (1-5). Sparse — many IC-months have no surveys."},
   "qc":{"l":"QC Errors","sub":"count (P·S)","fmt":"count","d":"lte","g":0,
         "tip":"Diagnostic (not scored): count of QC errors created that month (Primary/Secondary per CX QC Error Guide). Source BI.SFDC_QA_ERRORS, attributed to the error owner; month = created date."},

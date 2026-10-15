@@ -1,0 +1,6 @@
+{
+  "_note": "Structure only. The real off-list (new-hire + transfer names) is a LOCAL-ONLY fixture and is NOT committed, per data policy (no real employee names/PII in git-tracked files). Populate new_hire_default_off.json in the live project folder; the pipeline reads it there.",
+  "advising": [],
+  "npr": [],
+  "broker": []
+}

@@ -74,8 +74,12 @@ def main():
     # Snowflake loads T-1, so the newest complete data date is the day before the run.
     asof=(datetime.date.today()-datetime.timedelta(days=1)).strftime("%B %-d, %Y")
     out=os.path.join(HERE,"broker_onboarding_performance_dashboard_v3.html")
-    open(out,"w").write(tpl.replace("var D=__DATA__","var D="+d)
-                        .replace("__DATA_ASOF__",asof).replace("__REFRESHED__",refreshed))
+    _s=(tpl.replace("var D=__DATA__","var D="+d)
+          .replace("__DATA_ASOF__",asof).replace("__REFRESHED__",refreshed))
+    # New-hire default-off: force newly-hired ICs unchecked by default (persists across refreshes)
+    import new_hire_off as _nho
+    _s=_nho.apply(_s,"broker",os.path.join(HERE,"new_hire_default_off.json"))
+    open(out,"w").write(_s)
     print(f"wrote {out} ({os.path.getsize(out)} bytes)")
     # re-inject the Excel export (payload regenerated from fresh D + static JS blocks);
     # lives here, not in the template, so it always carries current data and survives rebuilds.

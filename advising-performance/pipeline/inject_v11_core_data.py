@@ -53,7 +53,7 @@ def _keep(n):
     return n in old_peMap
 roster = sorted({n for n in (set(old_peMap) | _scoped) if _keep(n)})
 def _pe_for(n):
-    return _pe_map_data.get(n) or _emp.get(_nz(n), {}).get("mgr") or old_peMap.get(n) or "—"
+    return _pe_map_data.get(n) or _emp.get(_nz(n), {}).get("mgr") or old_peMap.get(n) or "\u2014"
 peMap = { n: _pe_for(n) for n in roster }
 current_pe = { n: _pe_for(n) for n in roster }
 print(f"Roster (union-from-data): {len(roster)} advisors (old curated {len(old_peMap)})")
@@ -382,6 +382,17 @@ _nowstr_new = f'return "Data updated as of {DATA_AS_OF} · last published {PUBLI
 html = re.sub(r'return "Data through "\+dt\+"[^"]*";', _nowstr_new, html, count=1)
 html = re.sub(r'return "Data updated as of [^"]*";', _nowstr_new, html, count=1)
 print(f"  footer -> data as of {DATA_AS_OF}; last published {PUBLISHED_ON}")
+
+# ── New-hire default-off: seed DEFAULT_OFF from new_hire_default_off.json (persists across refreshes) ──
+import sys as _sys
+_sys.path.insert(0, str(HERE))
+import new_hire_off as _nho
+html = _nho.apply(html, "advising", str(HERE / "new_hire_default_off.json"))
+try:
+    _n = len(json.load(open(HERE / "new_hire_default_off.json")).get("advising", []))
+    print(f"  DEFAULT_OFF seeded from new_hire_default_off.json: {_n} new-hire name(s) unchecked by default")
+except Exception:
+    pass
 
 with open(V11, "w") as f:
     f.write(html)
