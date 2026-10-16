@@ -58,8 +58,8 @@ def main():
     assert 'id="benopsXlsxBtn"' in s, "export button missing after rebuild"
     assert 'class="perfDT"' in s and 'class="perfRE"' in s, "dynamic status spans missing"
     assert "July 16, 2026" not in s, "stale hardcoded date reappeared"
-    assert ("function poolTeam(team){" in s and "TEAM BLENDED" in s and "!DEFAULT_OFF.has(n)" in s), \
-        "PE-view customizations (pooled PE / blended drill / off-list fix) missing after rebuild"
+    assert ("function poolTeam(team){" in s and "window.__peSortK" in s and "!DEFAULT_OFF.has(n)" in s), \
+        "PE-view customizations (pooled sortable table / off-list fix) missing after rebuild"
     # Current-PE guard: advisors[*].pe (drives the PE filter/grouping) must match peMap.
     import json as _json
     def _extract(src, key):
