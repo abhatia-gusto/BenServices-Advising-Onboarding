@@ -2835,7 +2835,7 @@ function peStat(lbl,val,sub,col){return '<div class="pe-stat"><div class="lbl">'
 function renderPE(){
   ensureFilterSets();
   var pes=grp().pes.filter(function(p){return sPE.has(p)}).map(poolPE).filter(function(p){return p.n>0});
-  var allIcs=[];pes.forEach(function(p){allIcs=allIcs.concat(p.ics)});
+  var allIcs=[];pes.forEach(function(p){allIcs=allIcs.concat(p.ics)});attachRatings(allIcs);
   var sw=0,ww=0,sq=0,wq=0;pes.forEach(function(p){if(p.weighted!=null){sw+=p.weighted*p.n;ww+=p.n}if(p.qpr!=null){sq+=p.qpr*p.n;wq+=p.n}});
   var meanW=ww?sw/ww:null,meanQ=wq?sq/wq:null;
   var scored=allIcs.filter(function(r){return r.qpr!=null}),above=scored.filter(function(r){return r.qpr>=QPR_MET}).length;
@@ -2863,8 +2863,9 @@ function renderPE(){
     h+='</tr></thead><tbody>';
     pes.forEach(function(p,idx){
       var ics=p.ics.filter(function(r){return r.qpr!=null}); var met=ics.filter(function(r){return r.qpr>=QPR_MET}).length;
+      var r3=p.ics.filter(function(r){return r.rating===3}).length,r2=p.ics.filter(function(r){return r.rating===2}).length,r1=p.ics.filter(function(r){return r.rating===1}).length;
       h+='<tr class="pe-main" data-pe="'+idx+'" style="cursor:pointer;background:#f9fafb">';
-      h+='<td style="padding:8px 9px;border-bottom:1px solid '+BRD+';white-space:nowrap;font-weight:600"><span class="pe-caret" data-c="'+idx+'">&#9656;</span> '+p.name+' <span class="s" style="font-weight:400;color:var(--gt)">'+p.n+' ICs &middot; '+met+'/'+ics.length+' pass</span></td>';
+      h+='<td style="padding:8px 9px;border-bottom:1px solid '+BRD+';white-space:nowrap;font-weight:600"><span class="pe-caret" data-c="'+idx+'">&#9656;</span> '+p.name+' <span class="s" style="font-weight:400;color:var(--gt)">'+p.n+' ICs &middot; <b style="color:#16804a">'+r3+'</b>&middot;<b style="color:#b8860b">'+r2+'</b>&middot;<b style="color:#c7392f">'+r1+'</b></span></td>';
       DORDER.forEach(function(k){h+=mTd(p.m[k],BG_MET);});
       h+=wTd(p.weighted,true)+wTd(p.qpr,true);
       DG.forEach(function(dk){h+=dTd(p.diag[dk],dk);});

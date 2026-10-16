@@ -436,7 +436,7 @@ function renderPE(){
  var BG_MET="#EFF5F4",BG_RATE="#FAF5EA",BG_DIAG="#F3F0F8",BRD="#e5e7eb";
  function metTd(k,c,rawtxt,bold,bg){ if(!c||c.att==null) return '<td class="r" style="padding:6px 9px;border-bottom:1px solid '+BRD+';background:'+bg+'"><span class="muted">—</span></td>';
    var inner; if(k==='ticket_rate'){inner=valText(k,c);} else {var ic=c.status==='goal'?'ico-g':c.status==='floor'?'ico-y':'ico-r'; inner='<span class="ico '+ic+'">'+valText(k,c)+'</span>';}
-   var sub=rawtxt?(c.att.toFixed(0)+'% · '+rawtxt):(c.att.toFixed(0)+'% att');
+   var sub=rawtxt?rawtxt:'';
    return '<td class="r" style="padding:6px 9px;border-bottom:1px solid '+BRD+';background:'+bg+';'+(bold?'font-weight:600':'')+'">'+inner+'<span class="attsub">'+sub+'</span></td>'; }
  function wtdTd(v,bold){ return '<td class="r" style="padding:6px 9px;border-bottom:1px solid '+BRD+';background:'+BG_RATE+';'+(bold?'font-weight:700':'font-weight:500')+';color:'+bandColor(v)+'">'+(v==null?'—':v.toFixed(1)+'%')+'</td>'; }
  function diagTd(k,v,n){ if(v==null) return '<td class="r" style="padding:6px 9px;border-bottom:1px solid '+BRD+';background:'+BG_DIAG+'"><span class="muted">—</span></td>';
