@@ -22,7 +22,7 @@ rd as (
   join roster r on ph.user_id::varchar = r.agent_id
    and to_date(ph.conversation_start_date) between r.effect_start_dt and r.effect_end_dt
   left join bi.phone_calls pc on pc.conversation_id = ph.conversation_id
-  where ph.conversation_start_date between date_trunc('month', dateadd(month,-12,current_date)) and current_date
+  where ph.conversation_start_date between date_trunc('month', dateadd(month,-19,current_date)) and current_date
     and r.team is not null
 )
 select team, agent_id, call_date,

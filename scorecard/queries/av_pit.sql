@@ -17,7 +17,7 @@ aux as (
     sum(activity_length_mins)::float total_aux_mins
   from (
     select * from bi.wfm_agent_activity_log_details
-    where source_system='CXOne-API' and activity_start_ts::date between date_trunc('month', dateadd(month,-12,current_date)) and current_date
+    where source_system='CXOne-API' and activity_start_ts::date between date_trunc('month', dateadd(month,-19,current_date)) and current_date
     qualify row_number() over (partition by sor_agent_external_id, activity_start_ts, activity_nm order by sor_acd_id)=1
   ) aux
   join roster r on r.email=aux.sor_agent_external_id and aux.business_dt_mt::date between r.effect_start_dt and r.effect_end_dt
@@ -29,7 +29,7 @@ clock as (
     sum(case when calculation_tags ilike '%regular%' and calculation_tags not ilike '%meal%' then reported_quantity_min end)
       + coalesce(sum(case when calculation_tags ilike '%overtime%' then reported_quantity_min end),0) paid_mins
   from bi.people_analytics_workday_time_tracking
-  where reported_date::date between date_trunc('month', dateadd(month,-12,current_date)) and current_date and in_time is not null
+  where reported_date::date between date_trunc('month', dateadd(month,-19,current_date)) and current_date and in_time is not null
     and (primary_position ilike '%Advis%' or primary_position ilike '%Onboarding Advoca%' or primary_position ilike '%New Plan%'
       or primary_position ilike '%Bring Your Broker%' or primary_position ilike '%Benefits Transfers%'
       or primary_position ilike '%Broker Onboarding%' or primary_position ilike '%Benefit%Services%')
