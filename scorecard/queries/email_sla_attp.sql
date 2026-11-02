@@ -485,7 +485,14 @@ select
     , 'https://gusto.my.salesforce.com/' || i.trimmed_case_id || '?srPos=0&srKp=500' as case_link
     , i.sfdc_opportunity_id
     , i.sfdc_benefit_order_id
-    , bo.record_type_name as bo_record_type
+    , case when bo.record_type_name is null then null
+           when bo.created_ts <= i.touchpoint_start_ts
+             or i.benefit_order_status_at_tp_start_ts is not null
+             or bo_owner_at_tp_ee.ee_name is not null
+           then bo.record_type_name
+      end as bo_record_type
+    , bo.record_type_name as bo_record_type_current
+    , bo.created_ts as bo_created_ts
     , op.owner_name     as current_opportunity_owner_name
     , opp_owner_ee.team     as opp_owner_team
     , opp_owner_ee.sub_team as opp_owner_subteam

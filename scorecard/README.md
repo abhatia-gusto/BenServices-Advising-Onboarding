@@ -83,3 +83,7 @@ enterprise GitHub member. A 404 means your GitHub isn't connected/authenticated 
 - **All-metrics verification** (`lib/scorecard_reconcile.py`) — `run.py` runs it automatically when
   both team + pepe are built: for the latest quarter it ties Σ leadership back to the team value per
   metric (PASS/FAIL within 0.6pp / 0.02; phone & email reported as coverage-bounded INFO).
+
+## Email SLO — point-in-time stage of ownership
+
+The Email SLO row reads the Email SLA dashboard feed (`queries/email_sla_attp.sql`). Attribution of an email to a person/team is point-in-time (owner and status as of the touchpoint). The **stage** an email falls in — "Opp only" vs "BO · With Advising" vs "BO · owner" — is point-in-time too: `bo_record_type` is populated only when a benefit order existed at the touchpoint (`bo.created_ts <= touchpoint`, or an at-TP owner/status exists). A benefit order linked to the case **after** the email arrived does not retroactively pull that email out of "Opp only", so re-pulling an earlier month returns the same Advising email number instead of drifting as orders get linked later. The query also exposes `bo_record_type_current` (today's record type) and `bo_created_ts` for auditing; the dashboard and the scorecard read only the point-in-time `bo_record_type`. See the Email SLA dashboard README → "Stage of ownership (point-in-time)".
