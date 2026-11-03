@@ -15,7 +15,7 @@ with src as (
    and ee.sub_team in ('New Plan & Renewal Onboarding','Onboarding Advocacy')
    and ee.is_pe = false
   where a.qa_score is not null
-    and nvl(b.record_type_name,'Call') in ('Benefits Renewal Case','Benefits BYB','Benefits New Plan Case','MF NHE','MF Member/Group Updates','Call')
+    and nvl(b.record_type_name,'Call') in ('Benefits Renewal Case','Benefits BYB','Benefits New Plan Case','MF NHE','MF Member/Group Updates','Call','Benefits BoR','Benefits Change Case')
     and convert_timezone('UTC','America/Denver', a.conversation_ts)::date between '2026-01-01' and CURRENT_DATE()
 )
 select ic as IC, mo as MONTH,

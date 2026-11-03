@@ -15,7 +15,7 @@ with src as (
   where a.qa_score is not null
     and nvl(b.record_type_name, 'Call') in (
           'Benefits Renewal Case', 'Benefits BYB', 'Benefits New Plan Case',
-          'MF NHE', 'MF Member/Group Updates', 'Call'
+          'MF NHE', 'MF Member/Group Updates', 'Call','Benefits BoR','Benefits Change Case'
         )
     and convert_timezone('UTC','America/Denver', a.conversation_ts)::date >= '{{start_date}}'
     and convert_timezone('UTC','America/Denver', a.conversation_ts)::date <= '{{end_date}}'
