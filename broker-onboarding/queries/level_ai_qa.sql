@@ -10,5 +10,5 @@ from roster r join bi.fct_level_ai_conversation_asr_log a on a.user_email=r.emai
   and convert_timezone('UTC','America/Denver', a.conversation_ts)::date between '{{start_date}}' and '{{end_date}}'
 left join bi.cases b on a.case_number=b.casenumber
 where a.qa_score is not null
-  and nvl(b.record_type_name,'Call') in ('Benefits Renewal Case','Benefits BYB','Benefits New Plan Case','MF NHE','MF Member/Group Updates','Call')
+  and nvl(b.record_type_name,'Call') in ('Benefits Renewal Case','Benefits BYB','Benefits New Plan Case','MF NHE','MF Member/Group Updates','Call','Benefits BoR','Benefits Change Case')
 group by 1,2 order by 1,2

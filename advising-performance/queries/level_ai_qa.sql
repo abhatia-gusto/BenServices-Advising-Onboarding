@@ -61,7 +61,7 @@ WITH temp AS (
           'Benefits New Plan Case',
           'MF NHE',
           'MF Member/Group Updates',
-          'Call'
+          'Call','Benefits BoR','Benefits Change Case'
         )
     AND convert_timezone('UTC','America/Denver', a.conversation_ts)::date >= '{{ start_date }}'::date
     AND convert_timezone('UTC','America/Denver', a.conversation_ts)::date <= '{{ end_date }}'::date
