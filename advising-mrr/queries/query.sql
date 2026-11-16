@@ -277,6 +277,7 @@ SELECT
     WHEN FIRST_MODEL_CLOSE IS NOT NULL
      AND DATE_TRUNC('month', FIRST_MODEL_CLOSE) < DATE_TRUNC('month', INFERRED_CLOSE_DATE)
      AND FIRST_TERM_STATE = (CASE WHEN STATUS ILIKE '%closed won%' THEN 'Won' ELSE 'Lost' END)
+     AND FIRST_MODEL_CLOSE >= '{{Close Start}}'::DATE   -- floor: don't push a re-date before the tracked window (would create phantom, tiny pre-window buckets); keep it in its in-window month instead
     THEN FIRST_MODEL_CLOSE
     ELSE INFERRED_CLOSE_DATE
   END AS EFFECTIVE_CLOSE_DATE,
