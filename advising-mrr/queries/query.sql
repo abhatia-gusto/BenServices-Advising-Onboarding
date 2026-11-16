@@ -268,6 +268,18 @@ SELECT
       THEN 'No change - keep in ' || TO_VARCHAR(DATE_TRUNC('month', FIRST_MODEL_CLOSE),'YYYY-MM')
     ELSE 'Reversed & re-booked'
   END AS COMP_TREATMENT,
+  -- Booking-rule attribution month for the dashboard aggregate: a same-outcome re-date
+  -- (Won->Won / Lost->Lost) is counted in its FIRST close month, not the re-closed month,
+  -- so it stops double-appearing in a later month. Flips (Won->Lost / Lost->Won) and normal
+  -- opps keep their real INFERRED_CLOSE_DATE. The table still shows the true close date + chip;
+  -- only the month/quarter/cohort bucketing uses this. MRR/price-book math is unchanged.
+  CASE
+    WHEN FIRST_MODEL_CLOSE IS NOT NULL
+     AND DATE_TRUNC('month', FIRST_MODEL_CLOSE) < DATE_TRUNC('month', INFERRED_CLOSE_DATE)
+     AND FIRST_TERM_STATE = (CASE WHEN STATUS ILIKE '%closed won%' THEN 'Won' ELSE 'Lost' END)
+    THEN FIRST_MODEL_CLOSE
+    ELSE INFERRED_CLOSE_DATE
+  END AS EFFECTIVE_CLOSE_DATE,
   (COALESCE(MRR_MEDICAL_BEFORE,0)+COALESCE(MRR_DENTAL_BEFORE,0)+COALESCE(MRR_VISION_BEFORE,0)
    +COALESCE(MRR_LIFE_BEFORE,0)+COALESCE(MRR_LTD_BEFORE,0)+COALESCE(MRR_STD_BEFORE,0)
    +COALESCE(MRR_FSA_BEFORE,0)+COALESCE(MRR_DCA_BEFORE,0)+COALESCE(MRR_HSA_BEFORE,0)
