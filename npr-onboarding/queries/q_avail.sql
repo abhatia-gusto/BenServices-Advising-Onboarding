@@ -12,13 +12,13 @@ with roster as (
     and sub_team in ('New Plan & Renewal Onboarding','Onboarding Advocacy')
 ),
 aux as (
-  select r.name, r.email, aux.gusto_employee_id, aux.activity_start_ts::date aux_date,
+  select r.name, r.email, aux.gusto_employee_id, aux.business_dt_mt::date aux_date,
     sum(case when lower(activity_nm_standardized) in ('call','outbound call','outboundcontact','outbound') then activity_length_mins end) phone_mins,
     sum(case when lower(activity_nm) in ('lunch','break') then activity_length_mins end) lunch_break_mins,
     sum(activity_length_mins)::float total_aux_mins
   from (
     select * from bi.wfm_agent_activity_log_details
-    where source_system='CXOne-API' and activity_start_ts::date between '2026-01-01' and CURRENT_DATE()
+    where source_system='CXOne-API' and business_dt_mt::date between '2026-01-01' and CURRENT_DATE()
     qualify row_number() over (partition by sor_agent_external_id, activity_start_ts, activity_nm order by sor_acd_id)=1
   ) aux
   join roster r on r.email=aux.sor_agent_external_id and aux.business_dt_mt::date between r.effect_start_dt and r.effect_end_dt

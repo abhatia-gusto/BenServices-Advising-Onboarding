@@ -2,11 +2,11 @@
 -- Params: {{start_date}} / {{end_date}}
 with roster as (select name,email,effect_start_dt,effect_end_dt from bi.gusto_employees
   where is_pe=false and email is not null and team='Benefits Onboarding' and sub_team in ('Bring Your Broker','Benefits Transfers')),
-aux as (select r.name,r.email,aux.gusto_employee_id,aux.activity_start_ts::date aux_date,
+aux as (select r.name,r.email,aux.gusto_employee_id,aux.business_dt_mt::date aux_date,
   sum(case when lower(activity_nm_standardized) in ('call','outbound call','outboundcontact','outbound') then activity_length_mins end) phone_mins,
   sum(activity_length_mins)::float total_aux_mins
  from (select * from bi.wfm_agent_activity_log_details where source_system='CXOne-API'
-       and activity_start_ts::date between '{{start_date}}' and '{{end_date}}'
+       and business_dt_mt::date between '{{start_date}}' and '{{end_date}}'
        qualify row_number() over (partition by sor_agent_external_id,activity_start_ts,activity_nm order by sor_acd_id)=1) aux
  join roster r on r.email=aux.sor_agent_external_id and aux.business_dt_mt::date between r.effect_start_dt and r.effect_end_dt
  group by all),

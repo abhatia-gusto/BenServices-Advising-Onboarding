@@ -22,7 +22,7 @@ with roster as (
     and sub_team in ('Benefits Advising','Customer Advising','New Plan & Renewal Onboarding','Onboarding Advocacy','Bring Your Broker','Benefits Transfers','Broker Onboarding')
 ),
 aux as (
-  select r.team, r.name, r.email, aux.gusto_employee_id, aux.activity_start_ts::date aux_date,
+  select r.team, r.name, r.email, aux.gusto_employee_id, aux.business_dt_mt::date aux_date,
     sum(case when lower(activity_nm_standardized) in ('call','outbound call','outboundcontact','outbound') then activity_length_mins end) phone_mins,
     sum(case when lower(activity_nm_standardized)='call' then activity_length_mins end) inbound_mins,
     sum(case when lower(activity_nm_standardized)='outbound call' then activity_length_mins end) outbound_mins,
@@ -30,7 +30,7 @@ aux as (
     sum(activity_length_mins)::float total_aux_mins
   from (
     select * from bi.wfm_agent_activity_log_details
-    where source_system='CXOne-API' and activity_start_ts::date between '{{start_date}}' and '{{end_date}}'
+    where source_system='CXOne-API' and business_dt_mt::date between '{{start_date}}' and '{{end_date}}'
     qualify row_number() over (partition by sor_agent_external_id, activity_start_ts, activity_nm order by sor_acd_id)=1
   ) aux
   join roster r on r.email=aux.sor_agent_external_id and aux.business_dt_mt::date between r.effect_start_dt and r.effect_end_dt
